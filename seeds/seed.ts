@@ -1,5 +1,5 @@
 import neo4j, { Driver, Session } from 'neo4j-driver';
-import * as data from './data';
+import * as data from './index';
 
 // ============================================
 // CONFIGURATION
@@ -9,14 +9,18 @@ const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687';
 const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
 const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'password';
 
+// Category definitions
+type SeedCategory = 'skills' | 'engineers' | 'stories' | 'assessments' | 'all';
+
+const SEED_CATEGORIES = (process.env.SEED_CATEGORIES?.split(',') || ['all']) as SeedCategory[];
+
+function shouldSeedCategory(category: SeedCategory): boolean {
+  return SEED_CATEGORIES.includes('all') || SEED_CATEGORIES.includes(category);
+}
+
 // ============================================
 // SEED FUNCTIONS
 // ============================================
-
-async function clearDatabase(session: Session): Promise<void> {
-  console.log('🗑️  Clearing existing data...');
-  await session.run('MATCH (n) DETACH DELETE n');
-}
 
 async function createConstraints(session: Session): Promise<void> {
   console.log('📐 Creating constraints and indexes...');
@@ -46,16 +50,20 @@ async function createConstraints(session: Session): Promise<void> {
 
 async function seedSkills(session: Session): Promise<void> {
   console.log('🎯 Seeding skills...');
-  
+
   for (const skill of data.skills) {
     await session.run(
-      `CREATE (s:Skill {
-        id: $id,
-        name: $name,
-        skillType: $skillType,
-        isCategory: $isCategory,
-        description: $description
-      })`,
+      `MERGE (s:Skill {id: $id})
+       ON CREATE SET
+         s.name = $name,
+         s.skillType = $skillType,
+         s.isCategory = $isCategory,
+         s.description = $description
+       ON MATCH SET
+         s.name = $name,
+         s.skillType = $skillType,
+         s.isCategory = $isCategory,
+         s.description = $description`,
       {
         id: skill.id,
         name: skill.name,
@@ -65,37 +73,36 @@ async function seedSkills(session: Session): Promise<void> {
       }
     );
   }
-  console.log(`   ✓ Created ${data.skills.length} skills`);
+  console.log(`   ✓ Seeded ${data.skills.length} skills`);
 }
 
 async function seedSkillHierarchy(session: Session): Promise<void> {
   console.log('🌳 Seeding skill hierarchy...');
-  
+
   for (const rel of data.skillHierarchy) {
     await session.run(
       `MATCH (child:Skill {id: $childId})
        MATCH (parent:Skill {id: $parentId})
-       CREATE (child)-[:CHILD_OF]->(parent)`,
+       MERGE (child)-[:CHILD_OF]->(parent)`,
       {
         childId: rel.childSkillId,
         parentId: rel.parentSkillId,
       }
     );
   }
-  console.log(`   ✓ Created ${data.skillHierarchy.length} hierarchy relationships`);
+  console.log(`   ✓ Seeded ${data.skillHierarchy.length} hierarchy relationships`);
 }
 
 async function seedSkillCorrelations(session: Session): Promise<void> {
   console.log('🔗 Seeding skill correlations...');
-  
+
   for (const corr of data.skillCorrelations) {
     await session.run(
       `MATCH (from:Skill {id: $fromId})
        MATCH (to:Skill {id: $toId})
-       CREATE (from)-[:CORRELATES_WITH {
-         strength: $strength,
-         correlationType: $correlationType
-       }]->(to)`,
+       MERGE (from)-[r:CORRELATES_WITH]->(to)
+       ON CREATE SET r.strength = $strength, r.correlationType = $correlationType
+       ON MATCH SET r.strength = $strength, r.correlationType = $correlationType`,
       {
         fromId: corr.fromSkillId,
         toId: corr.toSkillId,
@@ -104,285 +111,281 @@ async function seedSkillCorrelations(session: Session): Promise<void> {
       }
     );
   }
-  console.log(`   ✓ Created ${data.skillCorrelations.length} correlation relationships`);
+  console.log(`   ✓ Seeded ${data.skillCorrelations.length} correlation relationships`);
 }
 
 async function seedEngineers(session: Session): Promise<void> {
   console.log('👩‍💻 Seeding engineers...');
-  
+
   for (const eng of data.engineers) {
     await session.run(
-      `CREATE (e:Engineer {
-        id: $id,
-        name: $name,
-        email: $email,
-        headline: $headline,
-        hourlyRate: $hourlyRate,
-        yearsExperience: $yearsExperience,
-        availability: $availability,
-        timezone: $timezone,
-        createdAt: datetime($createdAt)
-      })`,
+      `MERGE (e:Engineer {id: $id})
+       ON CREATE SET
+         e.name = $name, e.email = $email, e.headline = $headline,
+         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
+         e.availability = $availability, e.timezone = $timezone,
+         e.createdAt = datetime($createdAt)
+       ON MATCH SET
+         e.name = $name, e.email = $email, e.headline = $headline,
+         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
+         e.availability = $availability, e.timezone = $timezone`,
       eng
     );
   }
-  console.log(`   ✓ Created ${data.engineers.length} engineers`);
+  console.log(`   ✓ Seeded ${data.engineers.length} engineers`);
 }
 
 async function seedManagers(session: Session): Promise<void> {
   console.log('👔 Seeding engineering managers...');
-  
+
   for (const mgr of data.managers) {
     await session.run(
-      `CREATE (m:EngineeringManager {
-        id: $id,
-        name: $name,
-        email: $email,
-        company: $company,
-        title: $title,
-        createdAt: datetime($createdAt)
-      })`,
+      `MERGE (m:EngineeringManager {id: $id})
+       ON CREATE SET
+         m.name = $name, m.email = $email, m.company = $company,
+         m.title = $title, m.createdAt = datetime($createdAt)
+       ON MATCH SET
+         m.name = $name, m.email = $email, m.company = $company, m.title = $title`,
       mgr
     );
   }
-  console.log(`   ✓ Created ${data.managers.length} managers`);
+  console.log(`   ✓ Seeded ${data.managers.length} managers`);
 }
 
 async function seedEngineerSkills(session: Session): Promise<void> {
   console.log('💪 Seeding engineer skills...');
-  
+
   for (const es of data.engineerSkills) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
        MATCH (s:Skill {id: $skillId})
-       CREATE (es:EngineerSkill {
-         id: $id,
-         proficiencyLevel: $proficiencyLevel,
-         yearsUsed: $yearsUsed,
-         confidenceScore: $confidenceScore,
-         lastValidated: datetime($lastValidated)
-       })
-       CREATE (e)-[:HAS]->(es)
-       CREATE (es)-[:FOR]->(s)`,
+       MERGE (es:EngineerSkill {id: $id})
+       ON CREATE SET
+         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
+         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
+       ON MATCH SET
+         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
+         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
+       MERGE (e)-[:HAS]->(es)
+       MERGE (es)-[:FOR]->(s)`,
       es
     );
   }
-  console.log(`   ✓ Created ${data.engineerSkills.length} engineer skill records`);
+  console.log(`   ✓ Seeded ${data.engineerSkills.length} engineer skill records`);
 }
 
 async function seedInterviewStories(session: Session): Promise<void> {
   console.log('📖 Seeding interview stories...');
-  
+
   for (const story of data.interviewStories) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
-       CREATE (s:InterviewStory {
-         id: $id,
-         interviewId: $interviewId,
-         questionPrompt: $questionPrompt,
-         situation: $situation,
-         task: $task,
-         action: $action,
-         result: $result,
-         durationSeconds: $durationSeconds,
-         createdAt: datetime($createdAt)
-       })
-       CREATE (e)-[:TOLD]->(s)`,
+       MERGE (s:InterviewStory {id: $id})
+       ON CREATE SET
+         s.interviewId = $interviewId, s.questionPrompt = $questionPrompt,
+         s.situation = $situation, s.task = $task, s.action = $action,
+         s.result = $result, s.durationSeconds = $durationSeconds,
+         s.createdAt = datetime($createdAt)
+       ON MATCH SET
+         s.interviewId = $interviewId, s.questionPrompt = $questionPrompt,
+         s.situation = $situation, s.task = $task, s.action = $action,
+         s.result = $result, s.durationSeconds = $durationSeconds
+       MERGE (e)-[:TOLD]->(s)`,
       story
     );
   }
-  console.log(`   ✓ Created ${data.interviewStories.length} interview stories`);
+  console.log(`   ✓ Seeded ${data.interviewStories.length} interview stories`);
 }
 
 async function seedStoryAnalyses(session: Session): Promise<void> {
   console.log('🔍 Seeding story analyses...');
-  
+
   for (const analysis of data.storyAnalyses) {
     await session.run(
       `MATCH (s:InterviewStory {id: $storyId})
-       CREATE (a:StoryAnalysis {
-         id: $id,
-         analyzerModel: $analyzerModel,
-         analyzedAt: datetime($analyzedAt),
-         clarityScore: $clarityScore,
-         impactScore: $impactScore,
-         ownershipScore: $ownershipScore,
-         overallScore: $overallScore,
-         reasoning: $reasoning,
-         flags: $flags
-       })
-       CREATE (s)-[:ANALYZED_BY]->(a)`,
+       MERGE (a:StoryAnalysis {id: $id})
+       ON CREATE SET
+         a.analyzerModel = $analyzerModel, a.analyzedAt = datetime($analyzedAt),
+         a.clarityScore = $clarityScore, a.impactScore = $impactScore,
+         a.ownershipScore = $ownershipScore, a.overallScore = $overallScore,
+         a.reasoning = $reasoning, a.flags = $flags
+       ON MATCH SET
+         a.analyzerModel = $analyzerModel, a.clarityScore = $clarityScore,
+         a.impactScore = $impactScore, a.ownershipScore = $ownershipScore,
+         a.overallScore = $overallScore, a.reasoning = $reasoning, a.flags = $flags
+       MERGE (s)-[:ANALYZED_BY]->(a)`,
       analysis
     );
   }
-  console.log(`   ✓ Created ${data.storyAnalyses.length} story analyses`);
+  console.log(`   ✓ Seeded ${data.storyAnalyses.length} story analyses`);
 }
 
 async function seedStoryDemonstrations(session: Session): Promise<void> {
   console.log('✨ Seeding story skill demonstrations...');
-  
+
   for (const demo of data.storyDemonstrations) {
     await session.run(
       `MATCH (s:InterviewStory {id: $storyId})
        MATCH (skill:Skill {id: $skillId})
-       CREATE (s)-[:DEMONSTRATES {
-         strength: $strength,
-         notes: $notes
-       }]->(skill)`,
+       MERGE (s)-[r:DEMONSTRATES]->(skill)
+       ON CREATE SET r.strength = $strength, r.notes = $notes
+       ON MATCH SET r.strength = $strength, r.notes = $notes`,
       demo
     );
   }
-  console.log(`   ✓ Created ${data.storyDemonstrations.length} demonstration relationships`);
+  console.log(`   ✓ Seeded ${data.storyDemonstrations.length} demonstration relationships`);
 }
 
 async function seedAssessments(session: Session): Promise<void> {
   console.log('📝 Seeding assessments...');
-  
+
   for (const assess of data.assessments) {
     await session.run(
-      `CREATE (a:Assessment {
-        id: $id,
-        name: $name,
-        assessmentType: $assessmentType,
-        description: $description,
-        totalQuestions: $totalQuestions,
-        createdAt: datetime($createdAt)
-      })`,
+      `MERGE (a:Assessment {id: $id})
+       ON CREATE SET
+         a.name = $name, a.assessmentType = $assessmentType,
+         a.description = $description, a.totalQuestions = $totalQuestions,
+         a.createdAt = datetime($createdAt)
+       ON MATCH SET
+         a.name = $name, a.assessmentType = $assessmentType,
+         a.description = $description, a.totalQuestions = $totalQuestions`,
       assess
     );
   }
-  console.log(`   ✓ Created ${data.assessments.length} assessments`);
+  console.log(`   ✓ Seeded ${data.assessments.length} assessments`);
 }
 
 async function seedAssessmentQuestions(session: Session): Promise<void> {
   console.log('❓ Seeding assessment questions...');
-  
+
   for (const q of data.assessmentQuestions) {
     await session.run(
       `MATCH (a:Assessment {id: $assessmentId})
-       CREATE (q:AssessmentQuestion {
-         id: $id,
-         questionNumber: $questionNumber,
-         summary: $summary,
-         maxScore: $maxScore,
-         evaluationCriteria: $evaluationCriteria
-       })
-       CREATE (a)-[:CONTAINS]->(q)`,
+       MERGE (q:AssessmentQuestion {id: $id})
+       ON CREATE SET
+         q.questionNumber = $questionNumber, q.summary = $summary,
+         q.maxScore = $maxScore, q.evaluationCriteria = $evaluationCriteria
+       ON MATCH SET
+         q.questionNumber = $questionNumber, q.summary = $summary,
+         q.maxScore = $maxScore, q.evaluationCriteria = $evaluationCriteria
+       MERGE (a)-[:CONTAINS]->(q)`,
       q
     );
   }
-  console.log(`   ✓ Created ${data.assessmentQuestions.length} questions`);
+  console.log(`   ✓ Seeded ${data.assessmentQuestions.length} questions`);
 }
 
 async function seedQuestionSkillTests(session: Session): Promise<void> {
   console.log('🎯 Seeding question skill tests...');
-  
+
   for (const test of data.questionSkillTests) {
     await session.run(
       `MATCH (q:AssessmentQuestion {id: $questionId})
        MATCH (s:Skill {id: $skillId})
-       CREATE (q)-[:TESTS {weight: $weight}]->(s)`,
+       MERGE (q)-[r:TESTS]->(s)
+       ON CREATE SET r.weight = $weight
+       ON MATCH SET r.weight = $weight`,
       test
     );
   }
-  console.log(`   ✓ Created ${data.questionSkillTests.length} skill test relationships`);
+  console.log(`   ✓ Seeded ${data.questionSkillTests.length} skill test relationships`);
 }
 
 async function seedAssessmentAttempts(session: Session): Promise<void> {
   console.log('📋 Seeding assessment attempts...');
-  
+
   for (const attempt of data.assessmentAttempts) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
        MATCH (a:Assessment {id: $assessmentId})
-       CREATE (att:AssessmentAttempt {
-         id: $id,
-         startedAt: datetime($startedAt),
-         completedAt: datetime($completedAt),
-         overallScore: $overallScore,
-         overallFeedback: $overallFeedback
-       })
-       CREATE (e)-[:ATTEMPTED]->(att)
-       CREATE (att)-[:OF]->(a)`,
+       MERGE (att:AssessmentAttempt {id: $id})
+       ON CREATE SET
+         att.startedAt = datetime($startedAt), att.completedAt = datetime($completedAt),
+         att.overallScore = $overallScore, att.overallFeedback = $overallFeedback
+       ON MATCH SET
+         att.startedAt = datetime($startedAt), att.completedAt = datetime($completedAt),
+         att.overallScore = $overallScore, att.overallFeedback = $overallFeedback
+       MERGE (e)-[:ATTEMPTED]->(att)
+       MERGE (att)-[:OF]->(a)`,
       attempt
     );
   }
-  console.log(`   ✓ Created ${data.assessmentAttempts.length} assessment attempts`);
+  console.log(`   ✓ Seeded ${data.assessmentAttempts.length} assessment attempts`);
 }
 
 async function seedQuestionPerformances(session: Session): Promise<void> {
   console.log('📊 Seeding question performances...');
-  
+
   for (const perf of data.questionPerformances) {
     await session.run(
       `MATCH (att:AssessmentAttempt {id: $attemptId})
        MATCH (q:AssessmentQuestion {id: $questionId})
-       CREATE (p:QuestionPerformance {
-         id: $id,
-         score: $score,
-         technicalDepth: $technicalDepth,
-         feedback: $feedback,
-         evaluatedAt: datetime($evaluatedAt)
-       })
-       CREATE (att)-[:INCLUDES]->(p)
-       CREATE (p)-[:FOR_QUESTION]->(q)`,
+       MERGE (p:QuestionPerformance {id: $id})
+       ON CREATE SET
+         p.score = $score, p.technicalDepth = $technicalDepth,
+         p.feedback = $feedback, p.evaluatedAt = datetime($evaluatedAt)
+       ON MATCH SET
+         p.score = $score, p.technicalDepth = $technicalDepth,
+         p.feedback = $feedback, p.evaluatedAt = datetime($evaluatedAt)
+       MERGE (att)-[:INCLUDES]->(p)
+       MERGE (p)-[:FOR_QUESTION]->(q)`,
       perf
     );
   }
-  console.log(`   ✓ Created ${data.questionPerformances.length} question performances`);
+  console.log(`   ✓ Seeded ${data.questionPerformances.length} question performances`);
 }
 
 async function seedCertifications(session: Session): Promise<void> {
   console.log('🏆 Seeding certifications...');
-  
+
   for (const cert of data.certifications) {
     await session.run(
-      `CREATE (c:Certification {
-        id: $id,
-        name: $name,
-        issuingOrg: $issuingOrg,
-        issueDate: datetime($issueDate),
-        expiryDate: datetime($expiryDate),
-        verificationUrl: $verificationUrl,
-        verified: $verified
-      })`,
+      `MERGE (c:Certification {id: $id})
+       ON CREATE SET
+         c.name = $name, c.issuingOrg = $issuingOrg,
+         c.issueDate = datetime($issueDate), c.expiryDate = datetime($expiryDate),
+         c.verificationUrl = $verificationUrl, c.verified = $verified
+       ON MATCH SET
+         c.name = $name, c.issuingOrg = $issuingOrg,
+         c.issueDate = datetime($issueDate), c.expiryDate = datetime($expiryDate),
+         c.verificationUrl = $verificationUrl, c.verified = $verified`,
       cert
     );
   }
-  console.log(`   ✓ Created ${data.certifications.length} certifications`);
+  console.log(`   ✓ Seeded ${data.certifications.length} certifications`);
 }
 
 async function seedCertificationValidations(session: Session): Promise<void> {
   console.log('✅ Seeding certification skill validations...');
-  
+
   for (const val of data.certificationValidations) {
     await session.run(
       `MATCH (c:Certification {id: $certificationId})
        MATCH (s:Skill {id: $skillId})
-       CREATE (c)-[:VALIDATES]->(s)`,
+       MERGE (c)-[:VALIDATES]->(s)`,
       val
     );
   }
-  console.log(`   ✓ Created ${data.certificationValidations.length} validation relationships`);
+  console.log(`   ✓ Seeded ${data.certificationValidations.length} validation relationships`);
 }
 
 async function seedEngineerCertifications(session: Session): Promise<void> {
   console.log('🎖️  Seeding engineer certifications...');
-  
+
   for (const ec of data.engineerCertifications) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
        MATCH (c:Certification {id: $certificationId})
-       CREATE (e)-[:HOLDS]->(c)`,
+       MERGE (e)-[:HOLDS]->(c)`,
       ec
     );
   }
-  console.log(`   ✓ Created ${data.engineerCertifications.length} engineer certification relationships`);
+  console.log(`   ✓ Seeded ${data.engineerCertifications.length} engineer certification relationships`);
 }
 
 async function seedSkillEvidence(session: Session): Promise<void> {
   console.log('🔗 Seeding skill evidence links...');
-  
+
   for (const ev of data.skillEvidence) {
     let evidenceLabel: string;
     switch (ev.evidenceType) {
@@ -402,10 +405,9 @@ async function seedSkillEvidence(session: Session): Promise<void> {
     await session.run(
       `MATCH (es:EngineerSkill {id: $engineerSkillId})
        MATCH (ev:${evidenceLabel} {id: $evidenceId})
-       CREATE (es)-[:EVIDENCED_BY {
-         relevanceScore: $relevanceScore,
-         isPrimary: $isPrimary
-       }]->(ev)`,
+       MERGE (es)-[r:EVIDENCED_BY]->(ev)
+       ON CREATE SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary
+       ON MATCH SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary`,
       {
         engineerSkillId: ev.engineerSkillId,
         evidenceId: ev.evidenceId,
@@ -414,7 +416,7 @@ async function seedSkillEvidence(session: Session): Promise<void> {
       }
     );
   }
-  console.log(`   ✓ Created ${data.skillEvidence.length} evidence relationships`);
+  console.log(`   ✓ Seeded ${data.skillEvidence.length} evidence relationships`);
 }
 
 // ============================================
@@ -422,9 +424,10 @@ async function seedSkillEvidence(session: Session): Promise<void> {
 // ============================================
 
 async function seed(): Promise<void> {
-  console.log('🚀 Starting Neo4j seed process...\n');
+  console.log('Starting Neo4j seed process...\n');
   console.log(`   URI: ${NEO4J_URI}`);
-  console.log(`   User: ${NEO4J_USER}\n`);
+  console.log(`   User: ${NEO4J_USER}`);
+  console.log(`   Categories: ${SEED_CATEGORIES.join(', ')}\n`);
 
   const driver: Driver = neo4j.driver(
     NEO4J_URI,
@@ -434,50 +437,53 @@ async function seed(): Promise<void> {
   const session: Session = driver.session();
 
   try {
-    await clearDatabase(session);
     await createConstraints(session);
-    
-    // Seed in dependency order
-    await seedSkills(session);
-    await seedSkillHierarchy(session);
-    await seedSkillCorrelations(session);
-    
-    await seedEngineers(session);
-    await seedManagers(session);
-    await seedEngineerSkills(session);
-    
-    await seedInterviewStories(session);
-    await seedStoryAnalyses(session);
-    await seedStoryDemonstrations(session);
-    
-    await seedAssessments(session);
-    await seedAssessmentQuestions(session);
-    await seedQuestionSkillTests(session);
-    await seedAssessmentAttempts(session);
-    await seedQuestionPerformances(session);
-    
-    await seedCertifications(session);
-    await seedCertificationValidations(session);
-    await seedEngineerCertifications(session);
-    
-    await seedSkillEvidence(session);
 
-    console.log('\n✅ Seed completed successfully!');
-    
-    // Print summary
+    if (shouldSeedCategory('skills')) {
+      await seedSkills(session);
+      await seedSkillHierarchy(session);
+      await seedSkillCorrelations(session);
+    }
+
+    if (shouldSeedCategory('engineers')) {
+      await seedEngineers(session);
+      await seedManagers(session);
+      await seedEngineerSkills(session);
+    }
+
+    if (shouldSeedCategory('stories')) {
+      await seedInterviewStories(session);
+      await seedStoryAnalyses(session);
+      await seedStoryDemonstrations(session);
+    }
+
+    if (shouldSeedCategory('assessments')) {
+      await seedAssessments(session);
+      await seedAssessmentQuestions(session);
+      await seedQuestionSkillTests(session);
+      await seedAssessmentAttempts(session);
+      await seedQuestionPerformances(session);
+      await seedCertifications(session);
+      await seedCertificationValidations(session);
+      await seedEngineerCertifications(session);
+      await seedSkillEvidence(session);
+    }
+
+    console.log('\nSeed completed successfully!');
+
     const result = await session.run(`
       MATCH (n)
       RETURN labels(n)[0] as label, count(n) as count
       ORDER BY count DESC
     `);
-    
-    console.log('\n📊 Database summary:');
+
+    console.log('\nDatabase summary:');
     result.records.forEach(record => {
       console.log(`   ${record.get('label')}: ${record.get('count')}`);
     });
 
   } catch (error) {
-    console.error('❌ Seed failed:', error);
+    console.error('Seed failed:', error);
     throw error;
   } finally {
     await session.close();

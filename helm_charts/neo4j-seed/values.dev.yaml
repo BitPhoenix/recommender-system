@@ -1,0 +1,7 @@
+image:
+  pullPolicy: Never
+
+neo4j:
+  uri: "bolt://neo4j-db.recommender.svc.cluster.local:7687"
+
+ttlSecondsAfterFinished: 60

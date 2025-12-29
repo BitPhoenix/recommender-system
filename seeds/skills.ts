@@ -145,6 +145,8 @@ export const skills: Skill[] = [
   { id: 'skill_curiosity', name: 'Curiosity', skillType: 'behavioral', isCategory: false },
 
   // Domain knowledge
+  { id: 'skill_ai_ml', name: 'AI/Machine Learning', skillType: 'domain_knowledge', isCategory: false },
+  { id: 'skill_blockchain', name: 'Blockchain/Web3', skillType: 'domain_knowledge', isCategory: false },
   { id: 'skill_fintech', name: 'Fintech', skillType: 'domain_knowledge', isCategory: false },
   { id: 'skill_healthcare', name: 'Healthcare', skillType: 'domain_knowledge', isCategory: false },
   { id: 'skill_ecommerce', name: 'E-commerce', skillType: 'domain_knowledge', isCategory: false },
@@ -292,6 +294,8 @@ export const skillHierarchy: SkillHierarchy[] = [
   { childSkillId: 'skill_curiosity', parentSkillId: 'cat_growth' },
 
   // Domain knowledge
+  { childSkillId: 'skill_ai_ml', parentSkillId: 'cat_domain' },
+  { childSkillId: 'skill_blockchain', parentSkillId: 'cat_domain' },
   { childSkillId: 'skill_fintech', parentSkillId: 'cat_domain' },
   { childSkillId: 'skill_healthcare', parentSkillId: 'cat_domain' },
   { childSkillId: 'skill_ecommerce', parentSkillId: 'cat_domain' },

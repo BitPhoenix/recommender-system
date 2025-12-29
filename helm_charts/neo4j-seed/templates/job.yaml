@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "neo4j-seed.fullname" . }}-{{ now | date "20060102-150405" }}
+  labels:
+    {{- include "neo4j-seed.labels" . | nindent 4 }}
+    app: neo4j-seed
+spec:
+  ttlSecondsAfterFinished: {{ .Values.ttlSecondsAfterFinished }}
+  activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+  backoffLimit: {{ .Values.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        app: neo4j-seed
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: NEO4J_URI
+              value: {{ .Values.neo4j.uri | quote }}
+            - name: NEO4J_USER
+              value: {{ .Values.neo4j.user | quote }}
+            - name: NEO4J_PASSWORD
+              value: {{ .Values.neo4j.password | quote }}
+            - name: SEED_CATEGORIES
+              value: {{ .Values.seed.categories | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

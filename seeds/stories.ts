@@ -1,4 +1,4 @@
-import { InterviewStory, StoryAnalysis, StoryDemonstration } from '../types';
+import { InterviewStory, StoryAnalysis, StoryDemonstration } from './types';
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 

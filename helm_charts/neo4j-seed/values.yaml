@@ -1,0 +1,24 @@
+image:
+  repository: neo4j-seed
+  tag: latest
+  pullPolicy: IfNotPresent
+
+neo4j:
+  uri: "bolt://neo4j-db:7687"
+  user: "neo4j"
+  password: "password"
+
+seed:
+  categories: "all"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+backoffLimit: 3
+ttlSecondsAfterFinished: 300
+activeDeadlineSeconds: 600

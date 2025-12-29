@@ -27,6 +27,27 @@ k8s_resource(
 )
 
 # ============================================
+# Neo4j Seed Job
+# ============================================
+
+local_resource(
+    'neo4j-seed',
+    cmd='eval $(minikube docker-env) && docker build -f seeds/Dockerfile -t neo4j-seed:latest . && kubectl delete job -n recommender -l app=neo4j-seed --ignore-not-found && helm upgrade --install neo4j-seed helm_charts/neo4j-seed --namespace recommender --values helm_charts/neo4j-seed/values.dev.yaml --set image.repository=neo4j-seed --set image.tag=latest --set image.pullPolicy=Never',
+    deps=[
+        'seeds/seed.ts',
+        'seeds/skills.ts',
+        'seeds/engineers.ts',
+        'seeds/stories.ts',
+        'seeds/assessments.ts',
+        'seeds/types.ts',
+        'seeds/index.ts',
+    ],
+    resource_deps=['neo4j-db'],
+    labels=['recommender'],
+    auto_init=True,
+)
+
+# ============================================
 # Recommender API
 # ============================================
 
