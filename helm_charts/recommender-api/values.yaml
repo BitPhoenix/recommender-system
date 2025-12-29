@@ -1,0 +1,21 @@
+replicaCount: 1
+
+image:
+  repository: recommender_api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4025
+  targetPort: 4025
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+env: {}

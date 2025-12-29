@@ -1,0 +1,27 @@
+{
+  "name": "recommender_api",
+  "version": "1.0.0",
+  "description": "Recommender System API with Neo4j",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0",
+    "neo4j-driver": "^5.27.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "tsx": "^4.21.0",
+    "@types/node": "^22.10.2",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9"
+  }
+}

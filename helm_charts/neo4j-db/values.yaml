@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: neo4j
+  tag: "5.26-community"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  boltPort: 7687
+  httpPort: 7474
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+
+neo4j:
+  auth:
+    username: neo4j
+    password: password

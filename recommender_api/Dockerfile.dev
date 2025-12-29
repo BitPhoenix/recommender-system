@@ -1,0 +1,21 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install necessary packages
+RUN apk add --no-cache curl bash
+
+# Copy package files first for better caching
+COPY recommender_api/package*.json ./
+COPY recommender_api/tsconfig.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY recommender_api/src ./src
+
+EXPOSE 4025
+
+# Start with tsx watch for hot reload
+CMD ["npm", "run", "dev"]
