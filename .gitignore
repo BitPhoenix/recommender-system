@@ -2,3 +2,4 @@ seeds/node_modules
 seeds/dist
 .DS_Store
 __pycache__
+code_walkthrough_plan.md
