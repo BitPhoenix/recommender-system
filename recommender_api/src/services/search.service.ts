@@ -159,7 +159,9 @@ export async function executeSearch(
       // Get all relevant skills from the query (consistent field name in unified query)
       const allSkills = (record.get('allRelevantSkills') as RawSkillData[]) || [];
 
-      // Split skills into matched and unmatched based on constraint check booleans
+      // Split skills into matched and unmatched based on:
+      // 1. matchType: only 'direct' matches go into matchedSkills
+      // 2. constraint checks: skills failing constraints go to unmatchedRelatedSkills
       for (const skill of allSkills) {
         // Check if skill has constraint check booleans (from skill search mode)
         const hasConstraintChecks = 'meetsConfidence' in skill && 'meetsProficiency' in skill;
@@ -169,8 +171,8 @@ export async function executeSearch(
           if (!skill.meetsConfidence) violations.push('confidence_below_threshold');
           if (!skill.meetsProficiency) violations.push('proficiency_below_minimum');
 
-          if (violations.length === 0) {
-            // Skill meets all constraints
+          // Only direct matches that pass all constraints go into matchedSkills
+          if (skill.matchType === 'direct' && violations.length === 0) {
             matchedSkills.push({
               skillId: skill.skillId,
               skillName: skill.skillName,
@@ -180,7 +182,8 @@ export async function executeSearch(
               matchType: skill.matchType,
             });
           } else {
-            // Skill has violations
+            // Descendants (even if passing constraints) and any skill with violations
+            // go to unmatchedRelatedSkills
             unmatchedRelatedSkills.push({
               skillId: skill.skillId,
               skillName: skill.skillName,

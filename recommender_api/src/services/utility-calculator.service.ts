@@ -14,18 +14,8 @@ import type {
   MatchStrength,
   AvailabilityOption,
   ScoreBreakdown,
-  ScoreComponent,
-  TeamFocusBonusComponent,
-  PreferredSkillsBonusComponent,
-  RelatedSkillsBonusComponent,
-  DomainBonusComponent,
-  // NEW types
-  AvailabilityBonusComponent,
-  TimezoneBonusComponent,
-  SeniorityBonusComponent,
-  SalaryRangeBonusComponent,
-  ConfidenceBonusComponent,
-  ProficiencyBonusComponent,
+  CoreScores,
+  Bonuses,
   SeniorityLevel,
   ProficiencyLevel,
 } from '../types/search.types.js';
@@ -370,12 +360,8 @@ function calculatePreferredProficiencyBonus(
   return { raw: matchedLevel ? maxBonus : 0, matchedLevel };
 }
 
-function buildComponent(raw: number, weight: number): ScoreComponent {
-  return {
-    raw: Math.round(raw * 100) / 100,
-    weight,
-    weighted: Math.round(raw * weight * 1000) / 1000,
-  };
+function calculateWeighted(raw: number, weight: number): number {
+  return Math.round(raw * weight * 1000) / 1000;
 }
 
 /**
@@ -476,70 +462,110 @@ export function calculateUtilityWithBreakdown(
     params.preferredProficiencyBonusMax
   );
 
-  // Build component breakdown
-  const components = {
-    skillMatch: buildComponent(skillMatchRaw, weights.skillMatch),
-    confidence: buildComponent(confidenceRaw, weights.confidenceScore),
-    experience: buildComponent(experienceRaw, weights.yearsExperience),
-    availability: buildComponent(availabilityRaw, weights.availability),
-    salary: buildComponent(salaryRaw, weights.salary),
-    preferredSkillsBonus: {
-      ...buildComponent(preferredSkillsResult.raw, weights.preferredSkillsBonus),
-      matchedSkills: preferredSkillsResult.matchedSkillNames,
-    } as PreferredSkillsBonusComponent,
-    teamFocusBonus: {
-      ...buildComponent(teamFocusResult.raw, weights.teamFocusBonus),
-      matchedSkills: teamFocusResult.matchedSkillNames,
-    } as TeamFocusBonusComponent,
-    relatedSkillsBonus: {
-      ...buildComponent(relatedSkillsResult.raw, weights.relatedSkillsBonus),
-      count: relatedSkillsResult.count,
-    } as RelatedSkillsBonusComponent,
-    domainBonus: {
-      ...buildComponent(domainBonusResult.raw, weights.domainBonus),
-      matchedDomains: domainBonusResult.matchedDomainNames,
-    } as DomainBonusComponent,
-    // NEW components
-    preferredAvailabilityBonus: {
-      ...buildComponent(preferredAvailabilityResult.raw, weights.preferredAvailabilityBonus),
-      matchedAvailability: preferredAvailabilityResult.matchedAvailability,
-      rank: preferredAvailabilityResult.rank,
-    } as AvailabilityBonusComponent,
-    preferredTimezoneBonus: {
-      ...buildComponent(preferredTimezoneResult.raw, weights.preferredTimezoneBonus),
-      matchedTimezone: preferredTimezoneResult.matchedTimezone,
-      rank: preferredTimezoneResult.rank,
-    } as TimezoneBonusComponent,
-    preferredSeniorityBonus: {
-      ...buildComponent(preferredSeniorityResult.raw, weights.preferredSeniorityBonus),
-      matchedLevel: preferredSeniorityResult.matchedLevel,
-    } as SeniorityBonusComponent,
-    preferredSalaryRangeBonus: {
-      ...buildComponent(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeBonus),
-      inPreferredRange: preferredSalaryRangeResult.inPreferredRange,
-    } as SalaryRangeBonusComponent,
-    preferredConfidenceBonus: {
-      ...buildComponent(preferredConfidenceResult.raw, weights.preferredConfidenceBonus),
-      meetsPreferred: preferredConfidenceResult.meetsPreferred,
-    } as ConfidenceBonusComponent,
-    preferredProficiencyBonus: {
-      ...buildComponent(preferredProficiencyResult.raw, weights.preferredProficiencyBonus),
-      matchedLevel: preferredProficiencyResult.matchedLevel,
-    } as ProficiencyBonusComponent,
+  // Calculate core weighted scores
+  const coreScores: CoreScores = {
+    skillMatch: calculateWeighted(skillMatchRaw, weights.skillMatch),
+    confidence: calculateWeighted(confidenceRaw, weights.confidenceScore),
+    experience: calculateWeighted(experienceRaw, weights.yearsExperience),
+    availability: calculateWeighted(availabilityRaw, weights.availability),
+    salary: calculateWeighted(salaryRaw, weights.salary),
   };
 
-  // Sum weighted scores
-  const total = Object.values(components).reduce(
-    (sum, comp) => sum + comp.weighted,
-    0
-  );
+  // Calculate bonus weighted scores
+  const bonusScores = {
+    preferredSkillsBonus: calculateWeighted(preferredSkillsResult.raw, weights.preferredSkillsBonus),
+    teamFocusBonus: calculateWeighted(teamFocusResult.raw, weights.teamFocusBonus),
+    relatedSkillsBonus: calculateWeighted(relatedSkillsResult.raw, weights.relatedSkillsBonus),
+    domainBonus: calculateWeighted(domainBonusResult.raw, weights.domainBonus),
+    preferredAvailabilityBonus: calculateWeighted(preferredAvailabilityResult.raw, weights.preferredAvailabilityBonus),
+    preferredTimezoneBonus: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneBonus),
+    preferredSeniorityBonus: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityBonus),
+    preferredSalaryRangeBonus: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeBonus),
+    preferredConfidenceBonus: calculateWeighted(preferredConfidenceResult.raw, weights.preferredConfidenceBonus),
+    preferredProficiencyBonus: calculateWeighted(preferredProficiencyResult.raw, weights.preferredProficiencyBonus),
+  };
+
+  // Sum all weighted scores
+  const total = Object.values(coreScores).reduce((sum, score) => sum + score, 0)
+    + Object.values(bonusScores).reduce((sum, score) => sum + score, 0);
+
+  // Filter core scores - only include non-zero values
+  const scores: Partial<CoreScores> = {};
+  for (const [key, value] of Object.entries(coreScores)) {
+    if (value > 0) {
+      scores[key as keyof CoreScores] = value;
+    }
+  }
+
+  // Build bonuses - only include non-zero bonuses with their match data
+  const bonuses: Bonuses = {};
+
+  if (bonusScores.preferredSkillsBonus > 0) {
+    bonuses.preferredSkillsBonus = {
+      score: bonusScores.preferredSkillsBonus,
+      matchedSkills: preferredSkillsResult.matchedSkillNames,
+    };
+  }
+  if (bonusScores.teamFocusBonus > 0) {
+    bonuses.teamFocusBonus = {
+      score: bonusScores.teamFocusBonus,
+      matchedSkills: teamFocusResult.matchedSkillNames,
+    };
+  }
+  if (bonusScores.relatedSkillsBonus > 0) {
+    bonuses.relatedSkillsBonus = {
+      score: bonusScores.relatedSkillsBonus,
+      count: relatedSkillsResult.count,
+    };
+  }
+  if (bonusScores.domainBonus > 0) {
+    bonuses.domainBonus = {
+      score: bonusScores.domainBonus,
+      matchedDomains: domainBonusResult.matchedDomainNames,
+    };
+  }
+  if (bonusScores.preferredAvailabilityBonus > 0) {
+    bonuses.preferredAvailabilityBonus = {
+      score: bonusScores.preferredAvailabilityBonus,
+      matchedAvailability: preferredAvailabilityResult.matchedAvailability!,
+      rank: preferredAvailabilityResult.rank,
+    };
+  }
+  if (bonusScores.preferredTimezoneBonus > 0) {
+    bonuses.preferredTimezoneBonus = {
+      score: bonusScores.preferredTimezoneBonus,
+      matchedTimezone: preferredTimezoneResult.matchedTimezone!,
+      rank: preferredTimezoneResult.rank,
+    };
+  }
+  if (bonusScores.preferredSeniorityBonus > 0) {
+    bonuses.preferredSeniorityBonus = {
+      score: bonusScores.preferredSeniorityBonus,
+    };
+  }
+  if (bonusScores.preferredSalaryRangeBonus > 0) {
+    bonuses.preferredSalaryRangeBonus = {
+      score: bonusScores.preferredSalaryRangeBonus,
+    };
+  }
+  if (bonusScores.preferredConfidenceBonus > 0) {
+    bonuses.preferredConfidenceBonus = {
+      score: bonusScores.preferredConfidenceBonus,
+    };
+  }
+  if (bonusScores.preferredProficiencyBonus > 0) {
+    bonuses.preferredProficiencyBonus = {
+      score: bonusScores.preferredProficiencyBonus,
+    };
+  }
 
   const utilityScore = Math.round(total * 100) / 100;
 
   return {
     utilityScore,
     scoreBreakdown: {
-      components,
+      scores,
+      bonuses,
       total: utilityScore,
     },
   };

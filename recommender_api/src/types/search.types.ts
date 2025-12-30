@@ -77,73 +77,80 @@ export interface UnmatchedRelatedSkill extends MatchedSkill {
   constraintViolations: ConstraintViolation[];
 }
 
-export interface ScoreComponent {
-  raw: number;      // Raw utility value (0-1)
-  weight: number;   // Weight applied (from config)
-  weighted: number; // raw * weight contribution to total
+// Core scores (always present if > 0)
+export interface CoreScores {
+  skillMatch: number;
+  confidence: number;
+  experience: number;
+  availability: number;
+  salary: number;
 }
 
-export interface TeamFocusBonusComponent extends ScoreComponent {
-  matchedSkills: string[];  // Names of bonus skills the engineer has
+// Individual bonus types with score + match data
+export interface PreferredSkillsBonus {
+  score: number;
+  matchedSkills: string[];
 }
 
-export interface PreferredSkillsBonusComponent extends ScoreComponent {
-  matchedSkills: string[];  // Names of preferred skills the engineer has
+export interface TeamFocusBonus {
+  score: number;
+  matchedSkills: string[];
 }
 
-export interface RelatedSkillsBonusComponent extends ScoreComponent {
-  count: number;  // Number of unmatched related skills
+export interface RelatedSkillsBonus {
+  score: number;
+  count: number;
 }
 
-export interface DomainBonusComponent extends ScoreComponent {
-  matchedDomains: string[];  // Names of matched preferred domains
+export interface DomainBonus {
+  score: number;
+  matchedDomains: string[];
 }
 
-export interface AvailabilityBonusComponent extends ScoreComponent {
-  matchedAvailability: string | null;  // Which preferred availability matched
-  rank: number;                        // Position in preference list (0 = best)
-}
-
-export interface TimezoneBonusComponent extends ScoreComponent {
-  matchedTimezone: string | null;
+export interface PreferredAvailabilityBonus {
+  score: number;
+  matchedAvailability: string;
   rank: number;
 }
 
-export interface SeniorityBonusComponent extends ScoreComponent {
-  matchedLevel: boolean;  // Whether engineer meets/exceeds preferred level
+export interface PreferredTimezoneBonus {
+  score: number;
+  matchedTimezone: string;
+  rank: number;
 }
 
-export interface SalaryRangeBonusComponent extends ScoreComponent {
-  inPreferredRange: boolean;
+export interface PreferredSeniorityBonus {
+  score: number;
 }
 
-export interface ConfidenceBonusComponent extends ScoreComponent {
-  meetsPreferred: boolean;
+export interface PreferredSalaryRangeBonus {
+  score: number;
 }
 
-export interface ProficiencyBonusComponent extends ScoreComponent {
-  matchedLevel: boolean;
+export interface PreferredConfidenceBonus {
+  score: number;
+}
+
+export interface PreferredProficiencyBonus {
+  score: number;
+}
+
+export interface Bonuses {
+  preferredSkillsBonus?: PreferredSkillsBonus;
+  teamFocusBonus?: TeamFocusBonus;
+  relatedSkillsBonus?: RelatedSkillsBonus;
+  domainBonus?: DomainBonus;
+  preferredAvailabilityBonus?: PreferredAvailabilityBonus;
+  preferredTimezoneBonus?: PreferredTimezoneBonus;
+  preferredSeniorityBonus?: PreferredSeniorityBonus;
+  preferredSalaryRangeBonus?: PreferredSalaryRangeBonus;
+  preferredConfidenceBonus?: PreferredConfidenceBonus;
+  preferredProficiencyBonus?: PreferredProficiencyBonus;
 }
 
 export interface ScoreBreakdown {
-  components: {
-    skillMatch: ScoreComponent;
-    confidence: ScoreComponent;
-    experience: ScoreComponent;
-    availability: ScoreComponent;
-    salary: ScoreComponent;
-    preferredSkillsBonus: PreferredSkillsBonusComponent;
-    teamFocusBonus: TeamFocusBonusComponent;
-    relatedSkillsBonus: RelatedSkillsBonusComponent;
-    domainBonus: DomainBonusComponent;
-    // NEW components for preferred properties
-    preferredAvailabilityBonus: AvailabilityBonusComponent;
-    preferredTimezoneBonus: TimezoneBonusComponent;
-    preferredSeniorityBonus: SeniorityBonusComponent;
-    preferredSalaryRangeBonus: SalaryRangeBonusComponent;
-    preferredConfidenceBonus: ConfidenceBonusComponent;
-    preferredProficiencyBonus: ProficiencyBonusComponent;
-  };
+  scores: Partial<CoreScores>;
+  bonuses: Bonuses;
   total: number;  // Sum of all weighted scores (equals utilityScore)
 }
 
