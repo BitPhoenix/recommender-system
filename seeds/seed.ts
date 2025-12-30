@@ -93,6 +93,42 @@ async function seedSkillHierarchy(session: Session): Promise<void> {
   console.log(`   ✓ Seeded ${data.skillHierarchy.length} hierarchy relationships`);
 }
 
+async function cleanupRoleCategoryChildOf(session: Session): Promise<void> {
+  // Remove any stale CHILD_OF relationships pointing to role categories
+  // These were replaced by BELONGS_TO relationships
+  console.log('🧹 Cleaning up stale CHILD_OF relationships from role categories...');
+
+  const result = await session.run(
+    `MATCH (s:Skill)-[r:CHILD_OF]->(cat:Skill)
+     WHERE cat.id IN ['cat_backend', 'cat_frontend', 'cat_fullstack']
+       AND s.isCategory = false
+     DELETE r
+     RETURN count(r) AS deleted`
+  );
+
+  const deleted = result.records[0]?.get('deleted')?.toNumber() || 0;
+  if (deleted > 0) {
+    console.log(`   ✓ Removed ${deleted} stale CHILD_OF relationships`);
+  }
+}
+
+async function seedSkillCategoryMemberships(session: Session): Promise<void> {
+  console.log('🏷️  Seeding skill category memberships...');
+
+  for (const membership of data.skillCategoryMemberships) {
+    await session.run(
+      `MATCH (skill:Skill {id: $skillId})
+       MATCH (category:Skill {id: $categoryId})
+       MERGE (skill)-[:BELONGS_TO]->(category)`,
+      {
+        skillId: membership.skillId,
+        categoryId: membership.categoryId,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${data.skillCategoryMemberships.length} category membership relationships`);
+}
+
 async function seedSkillCorrelations(session: Session): Promise<void> {
   console.log('🔗 Seeding skill correlations...');
 
@@ -122,12 +158,12 @@ async function seedEngineers(session: Session): Promise<void> {
       `MERGE (e:Engineer {id: $id})
        ON CREATE SET
          e.name = $name, e.email = $email, e.headline = $headline,
-         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
+         e.salary = $salary, e.yearsExperience = $yearsExperience,
          e.availability = $availability, e.timezone = $timezone,
          e.createdAt = datetime($createdAt)
        ON MATCH SET
          e.name = $name, e.email = $email, e.headline = $headline,
-         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
+         e.salary = $salary, e.yearsExperience = $yearsExperience,
          e.availability = $availability, e.timezone = $timezone`,
       eng
     );
@@ -442,6 +478,8 @@ async function seed(): Promise<void> {
     if (shouldSeedCategory('skills')) {
       await seedSkills(session);
       await seedSkillHierarchy(session);
+      await cleanupRoleCategoryChildOf(session);
+      await seedSkillCategoryMemberships(session);
       await seedSkillCorrelations(session);
     }
 

@@ -1,0 +1,111 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Tailwind v4 dark mode configuration */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Ensure the page background matches the theme canvas */
+html,
+body,
+#root {
+  min-height: 100%;
+  background-color: var(--color-canvas);
+}
+
+@theme {
+  /* Typography Scale */
+  --text-heading-xl: 1.75rem;   /* 28px */
+  --text-heading-lg: 1.5rem;    /* 24px */
+  --text-heading-md: 1.25rem;   /* 20px */
+  --text-heading-sm: 1.125rem;  /* 18px */
+  --text-body-lg: 1rem;         /* 16px */
+  --text-body-md: 0.875rem;     /* 14px */
+  --text-body-sm: 0.75rem;      /* 12px */
+  --text-body-xs: 0.6875rem;    /* 11px */
+
+  /* Line heights */
+  --leading-heading: 1.2;
+  --leading-body: 1.5;
+  --leading-relaxed: 1.6;
+
+  /* Semantic background colors */
+  --color-canvas: #f9fafb; /* gray-50 */
+  --color-surface: white;
+  --color-page: white;
+  --color-interactive: #f5f5f4; /* stone-100 */
+
+  /* Content colors */
+  --color-content-primary: #111827; /* gray-900 */
+  --color-content-secondary: #4b5563; /* gray-600 */
+  --color-content-tertiary: #6b7280; /* gray-500 */
+
+  /* Border colors */
+  --color-border-default: #d1d5db; /* gray-300 */
+  --color-border-subtle: #e5e7eb; /* gray-200 */
+
+  /* Action colors */
+  --color-action-primary: #1d4ed8; /* blue-700 */
+  --color-action-primary-hover: #1e40af; /* blue-800 */
+
+  /* Status colors */
+  --color-success: #047857; /* green-700 */
+  --color-success-hover: #065f46; /* green-800 */
+  --color-warning: #b45309; /* amber-700 */
+  --color-warning-hover: #92400e; /* amber-800 */
+  --color-error: #dc2626; /* red-600 */
+  --color-error-hover: #b91c1c; /* red-700 */
+
+  /* Focus states */
+  --color-focus-ring: #3b82f6; /* blue-500 */
+  --color-focus-offset: white;
+
+  /* Interactive states */
+  --color-hover-surface: #f9fafb; /* gray-50 */
+  --color-selected-surface: #e5e7eb; /* gray-200 */
+}
+
+.dark {
+  --color-canvas: #1e1e1e; /* VSCode editor dark */
+  --color-surface: #252526; /* VSCode sidebar dark */
+  --color-page: #1e1e1e;
+  --color-interactive: #2d2d30;
+
+  /* Content colors */
+  --color-content-primary: #cccccc;
+  --color-content-secondary: #d1d1d1;
+  --color-content-tertiary: #a1a1aa;
+
+  /* Border colors */
+  --color-border-default: #3a4146;
+  --color-border-subtle: #2d3135;
+
+  /* Action colors */
+  --color-action-primary: #396dd5;
+  --color-action-primary-hover: #1d4ed8;
+
+  /* Status colors */
+  --color-success: #10b981;
+  --color-success-hover: #34d399;
+  --color-warning: #f59e0b;
+  --color-warning-hover: #d97706;
+  --color-error: #f87171;
+  --color-error-hover: #fca5a5;
+
+  /* Focus states */
+  --color-focus-ring: #60a5fa;
+  --color-focus-offset: #1e1e1e;
+
+  /* Interactive states */
+  --color-hover-surface: #2d2d30;
+  --color-selected-surface: #3c3c3c;
+}
+
+/* Typography utility classes */
+.text-heading-xl { font-size: var(--text-heading-xl); font-weight: 700; line-height: var(--leading-heading); }
+.text-heading-lg { font-size: var(--text-heading-lg); font-weight: 600; line-height: var(--leading-heading); }
+.text-heading-md { font-size: var(--text-heading-md); font-weight: 600; line-height: var(--leading-heading); }
+.text-heading-sm { font-size: var(--text-heading-sm); font-weight: 500; line-height: var(--leading-heading); }
+.text-body-lg { font-size: var(--text-body-lg); line-height: var(--leading-body); }
+.text-body-md { font-size: var(--text-body-md); line-height: var(--leading-body); }
+.text-body-sm { font-size: var(--text-body-sm); line-height: var(--leading-body); }
+.text-body-xs { font-size: var(--text-body-xs); line-height: var(--leading-body); }

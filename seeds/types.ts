@@ -29,6 +29,11 @@ export interface SkillHierarchy {
   parentSkillId: string;
 }
 
+export interface SkillCategoryMembership {
+  skillId: string;
+  categoryId: string;
+}
+
 // ============================================
 // ENGINEER TYPES
 // ============================================
@@ -38,7 +43,7 @@ export interface Engineer {
   name: string;
   email: string;
   headline: string;
-  hourlyRate: number;
+  salary: number;
   yearsExperience: number;
   availability: Availability;
   timezone: string;

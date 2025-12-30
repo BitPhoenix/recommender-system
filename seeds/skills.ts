@@ -1,4 +1,4 @@
-import { Skill, SkillCorrelation, SkillHierarchy } from './types';
+import { Skill, SkillCorrelation, SkillHierarchy, SkillCategoryMembership } from './types';
 
 // ============================================
 // SKILLS
@@ -16,6 +16,11 @@ export const skills: Skill[] = [
   { id: 'cat_infrastructure', name: 'Infrastructure & DevOps', skillType: 'technical', isCategory: true },
   { id: 'cat_design', name: 'Design & Architecture', skillType: 'technical', isCategory: true },
   { id: 'cat_practices', name: 'Engineering Practices', skillType: 'technical', isCategory: true },
+
+  // Role-based categories (virtual groupings that span multiple subcategories)
+  { id: 'cat_backend', name: 'Backend', skillType: 'technical', isCategory: true },
+  { id: 'cat_frontend', name: 'Frontend', skillType: 'technical', isCategory: true },
+  { id: 'cat_fullstack', name: 'Full Stack', skillType: 'technical', isCategory: true },
 
   // Languages & Frameworks
   { id: 'skill_javascript', name: 'JavaScript', skillType: 'technical', isCategory: false },
@@ -301,6 +306,12 @@ export const skillHierarchy: SkillHierarchy[] = [
   { childSkillId: 'skill_ecommerce', parentSkillId: 'cat_domain' },
   { childSkillId: 'skill_saas', parentSkillId: 'cat_domain' },
   { childSkillId: 'skill_marketplace', parentSkillId: 'cat_domain' },
+
+  // Role-based categories are now linked to cat_technical but their
+  // skill membership uses BELONGS_TO (see skillCategoryMemberships below)
+  { childSkillId: 'cat_backend', parentSkillId: 'cat_technical' },
+  { childSkillId: 'cat_frontend', parentSkillId: 'cat_technical' },
+  { childSkillId: 'cat_fullstack', parentSkillId: 'cat_technical' },
 ];
 
 // ============================================
@@ -380,4 +391,57 @@ export const skillCorrelations: SkillCorrelation[] = [
   { fromSkillId: 'skill_system_design', toSkillId: 'skill_tradeoffs', strength: 0.8, correlationType: 'complementary' },
   { fromSkillId: 'skill_distributed', toSkillId: 'skill_debugging', strength: 0.7, correlationType: 'complementary' },
   { fromSkillId: 'skill_tdd', toSkillId: 'skill_ownership', strength: 0.6, correlationType: 'complementary' },
+];
+
+// ============================================
+// SKILL CATEGORY MEMBERSHIPS (BELONGS_TO)
+// ============================================
+// Non-transitive category membership for role-based categories
+// (Backend, Frontend, Full Stack)
+
+export const skillCategoryMemberships: SkillCategoryMembership[] = [
+  // Frontend skills
+  { skillId: 'skill_javascript', categoryId: 'cat_frontend' },
+  { skillId: 'skill_typescript', categoryId: 'cat_frontend' },
+  { skillId: 'skill_react', categoryId: 'cat_frontend' },
+  { skillId: 'skill_nextjs', categoryId: 'cat_frontend' },
+  { skillId: 'skill_vue', categoryId: 'cat_frontend' },
+  { skillId: 'skill_angular', categoryId: 'cat_frontend' },
+
+  // Backend skills - languages
+  { skillId: 'skill_javascript', categoryId: 'cat_backend' },  // JS is BOTH!
+  { skillId: 'skill_typescript', categoryId: 'cat_backend' },  // TS is BOTH!
+  { skillId: 'skill_nodejs', categoryId: 'cat_backend' },
+  { skillId: 'skill_express', categoryId: 'cat_backend' },
+  { skillId: 'skill_nestjs', categoryId: 'cat_backend' },
+  { skillId: 'skill_python', categoryId: 'cat_backend' },
+  { skillId: 'skill_django', categoryId: 'cat_backend' },
+  { skillId: 'skill_fastapi', categoryId: 'cat_backend' },
+  { skillId: 'skill_java', categoryId: 'cat_backend' },
+  { skillId: 'skill_spring', categoryId: 'cat_backend' },
+  { skillId: 'skill_go', categoryId: 'cat_backend' },
+  { skillId: 'skill_rust', categoryId: 'cat_backend' },
+  // Backend - databases
+  { skillId: 'skill_postgresql', categoryId: 'cat_backend' },
+  { skillId: 'skill_mysql', categoryId: 'cat_backend' },
+  { skillId: 'skill_mongodb', categoryId: 'cat_backend' },
+  { skillId: 'skill_redis', categoryId: 'cat_backend' },
+  { skillId: 'skill_dynamodb', categoryId: 'cat_backend' },
+  { skillId: 'skill_neo4j', categoryId: 'cat_backend' },
+  { skillId: 'skill_kafka', categoryId: 'cat_backend' },
+  // Backend - architecture
+  { skillId: 'skill_api_design', categoryId: 'cat_backend' },
+  { skillId: 'skill_rest_api', categoryId: 'cat_backend' },
+  { skillId: 'skill_graphql', categoryId: 'cat_backend' },
+  { skillId: 'skill_grpc', categoryId: 'cat_backend' },
+  { skillId: 'skill_system_design', categoryId: 'cat_backend' },
+  { skillId: 'skill_microservices', categoryId: 'cat_backend' },
+  { skillId: 'skill_event_driven', categoryId: 'cat_backend' },
+  { skillId: 'skill_distributed', categoryId: 'cat_backend' },
+
+  // Full Stack = skills that belong to BOTH Frontend and Backend
+  // (handled by having skills in both categories above)
+  // The cat_fullstack category itself gets BELONGS_TO from cat_backend and cat_frontend
+  { skillId: 'cat_backend', categoryId: 'cat_fullstack' },
+  { skillId: 'cat_frontend', categoryId: 'cat_fullstack' },
 ];

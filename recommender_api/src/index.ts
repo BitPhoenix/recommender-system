@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import config from "./config.js";
 import driver from "./neo4j.js";
+import searchRoutes from "./routes/search.routes.js";
 
 const app = express();
 
@@ -32,6 +33,9 @@ app.get("/db-health", async (_req: Request, res: Response) => {
     await session.close();
   }
 });
+
+// API Routes
+app.use("/api/search", searchRoutes);
 
 // Start server
 app.listen(config.PORT, () => {
