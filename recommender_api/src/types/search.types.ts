@@ -14,30 +14,43 @@ export type RiskTolerance = 'low' | 'medium' | 'high';
 export type ProficiencyLevel = 'learning' | 'proficient' | 'expert';
 export type TeamFocus = 'greenfield' | 'migration' | 'maintenance' | 'scaling';
 
+export interface PreferredSalaryRange {
+  min: number;
+  max: number;
+}
+
 export interface SearchFilterRequest {
-  // Core constraints
-  seniorityLevel?: SeniorityLevel;
-  requiredSkills?: string[];           // Skill names OR IDs (supports hierarchy)
-  preferredSkills?: string[];          // Nice-to-have skills (for ranking boost)
-  availability?: AvailabilityOption[];
-  timezone?: string;                   // Glob pattern: "America/*", "Europe/*"
+  // Core constraints - RENAMED to use required prefix
+  requiredSeniorityLevel?: SeniorityLevel;      // was: seniorityLevel
+  requiredSkills?: string[];                     // unchanged
+  preferredSkills?: string[];                    // unchanged
+  requiredAvailability?: AvailabilityOption[];   // was: availability
+  requiredTimezone?: string;                     // was: timezone
 
-  // Budget constraints
-  maxSalary?: number;   // Maximum annual salary
-  minSalary?: number;   // Minimum annual salary
+  // Budget constraints - RENAMED
+  requiredMaxSalary?: number;   // was: maxSalary
+  requiredMinSalary?: number;   // was: minSalary
 
-  // Quality constraints
-  riskTolerance?: RiskTolerance;
-  minProficiency?: ProficiencyLevel;
+  // Quality constraints - RENAMED
+  requiredRiskTolerance?: RiskTolerance;         // was: riskTolerance
+  requiredMinProficiency?: ProficiencyLevel;     // was: minProficiency
 
-  // Context constraints (for ranking bonuses)
+  // Context constraints (for ranking bonuses) - unchanged
   teamFocus?: TeamFocus;
 
-  // Domain filtering
+  // Domain filtering - unchanged
   requiredDomains?: string[];    // Hard filter - must match at least one domain
   preferredDomains?: string[];   // Ranking boost - optional, increases score
 
-  // Pagination
+  // NEW: Preferred properties for ranking boosts
+  preferredSeniorityLevel?: SeniorityLevel;
+  preferredAvailability?: AvailabilityOption[];  // ordered preference list
+  preferredTimezone?: string[];                  // ordered preference list
+  preferredSalaryRange?: PreferredSalaryRange;   // ideal salary range
+  preferredConfidenceScore?: number;             // threshold for bonus (0-1)
+  preferredProficiency?: ProficiencyLevel;
+
+  // Pagination - unchanged
   limit?: number;   // Default: 20, max: 100
   offset?: number;  // Default: 0
 }
@@ -86,6 +99,32 @@ export interface DomainBonusComponent extends ScoreComponent {
   matchedDomains: string[];  // Names of matched preferred domains
 }
 
+export interface AvailabilityBonusComponent extends ScoreComponent {
+  matchedAvailability: string | null;  // Which preferred availability matched
+  rank: number;                        // Position in preference list (0 = best)
+}
+
+export interface TimezoneBonusComponent extends ScoreComponent {
+  matchedTimezone: string | null;
+  rank: number;
+}
+
+export interface SeniorityBonusComponent extends ScoreComponent {
+  matchedLevel: boolean;  // Whether engineer meets/exceeds preferred level
+}
+
+export interface SalaryRangeBonusComponent extends ScoreComponent {
+  inPreferredRange: boolean;
+}
+
+export interface ConfidenceBonusComponent extends ScoreComponent {
+  meetsPreferred: boolean;
+}
+
+export interface ProficiencyBonusComponent extends ScoreComponent {
+  matchedLevel: boolean;
+}
+
 export interface ScoreBreakdown {
   components: {
     skillMatch: ScoreComponent;
@@ -97,6 +136,13 @@ export interface ScoreBreakdown {
     teamFocusBonus: TeamFocusBonusComponent;
     relatedSkillsBonus: RelatedSkillsBonusComponent;
     domainBonus: DomainBonusComponent;
+    // NEW components for preferred properties
+    preferredAvailabilityBonus: AvailabilityBonusComponent;
+    preferredTimezoneBonus: TimezoneBonusComponent;
+    preferredSeniorityBonus: SeniorityBonusComponent;
+    preferredSalaryRangeBonus: SalaryRangeBonusComponent;
+    preferredConfidenceBonus: ConfidenceBonusComponent;
+    preferredProficiencyBonus: ProficiencyBonusComponent;
   };
   total: number;  // Sum of all weighted scores (equals utilityScore)
 }

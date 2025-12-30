@@ -246,6 +246,13 @@ export async function executeSearch(
     preferredDomainIds,
     bonusSkillIds: expanded.bonusSkillIds,
     maxSalaryBudget: expanded.maxSalary,
+    // NEW: Pass through preferred values
+    preferredSeniorityLevel: expanded.preferredSeniorityLevel,
+    preferredAvailability: expanded.preferredAvailability,
+    preferredTimezone: expanded.preferredTimezone,
+    preferredSalaryRange: expanded.preferredSalaryRange,
+    preferredConfidenceScore: expanded.preferredConfidenceScore,
+    preferredProficiency: expanded.preferredProficiency,
   };
 
   const engineerData: EngineerData[] = rawEngineers.map((raw) => ({

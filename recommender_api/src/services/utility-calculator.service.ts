@@ -19,6 +19,15 @@ import type {
   PreferredSkillsBonusComponent,
   RelatedSkillsBonusComponent,
   DomainBonusComponent,
+  // NEW types
+  AvailabilityBonusComponent,
+  TimezoneBonusComponent,
+  SeniorityBonusComponent,
+  SalaryRangeBonusComponent,
+  ConfidenceBonusComponent,
+  ProficiencyBonusComponent,
+  SeniorityLevel,
+  ProficiencyLevel,
 } from '../types/search.types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base.config.js';
 
@@ -42,6 +51,13 @@ export interface UtilityContext {
   preferredDomainIds: string[];
   bonusSkillIds: string[];
   maxSalaryBudget: number | null;
+  // NEW: Preferred values for bonus calculation
+  preferredSeniorityLevel: SeniorityLevel | null;
+  preferredAvailability: AvailabilityOption[];
+  preferredTimezone: string[];
+  preferredSalaryRange: { min: number; max: number } | null;
+  preferredConfidenceScore: number | null;
+  preferredProficiency: ProficiencyLevel | null;
 }
 
 export interface ScoredEngineer extends EngineerData {
@@ -179,6 +195,181 @@ function calculateDomainBonusWithDetails(
   };
 }
 
+// ============================================
+// NEW BONUS CALCULATION FUNCTIONS
+// ============================================
+
+interface PreferredAvailabilityBonusResult {
+  raw: number;
+  matchedAvailability: string | null;
+  rank: number;
+}
+
+interface PreferredTimezoneBonusResult {
+  raw: number;
+  matchedTimezone: string | null;
+  rank: number;
+}
+
+interface PreferredSeniorityBonusResult {
+  raw: number;
+  matchedLevel: boolean;
+}
+
+interface PreferredSalaryRangeBonusResult {
+  raw: number;
+  inPreferredRange: boolean;
+}
+
+interface PreferredConfidenceBonusResult {
+  raw: number;
+  meetsPreferred: boolean;
+}
+
+interface PreferredProficiencyBonusResult {
+  raw: number;
+  matchedLevel: boolean;
+}
+
+/**
+ * Calculates preferred availability bonus.
+ * Higher bonus for earlier positions in preference list.
+ */
+function calculatePreferredAvailabilityBonus(
+  engineerAvailability: AvailabilityOption,
+  preferredAvailability: AvailabilityOption[],
+  maxBonus: number
+): PreferredAvailabilityBonusResult {
+  if (preferredAvailability.length === 0) {
+    return { raw: 0, matchedAvailability: null, rank: -1 };
+  }
+
+  const index = preferredAvailability.indexOf(engineerAvailability);
+  if (index === -1) {
+    return { raw: 0, matchedAvailability: null, rank: -1 };
+  }
+
+  // Higher bonus for earlier positions: 1st = full, 2nd = 75%, 3rd = 50%, 4th = 25%
+  const positionMultiplier = 1 - (index / preferredAvailability.length);
+  const raw = positionMultiplier * maxBonus;
+
+  return { raw, matchedAvailability: engineerAvailability, rank: index };
+}
+
+/**
+ * Calculates preferred timezone bonus.
+ * Matches against prefix patterns in preference order.
+ */
+function calculatePreferredTimezoneBonus(
+  engineerTimezone: string,
+  preferredTimezone: string[],
+  maxBonus: number
+): PreferredTimezoneBonusResult {
+  if (preferredTimezone.length === 0) {
+    return { raw: 0, matchedTimezone: null, rank: -1 };
+  }
+
+  for (let i = 0; i < preferredTimezone.length; i++) {
+    const pattern = preferredTimezone[i].replace(/\*$/, '');
+    if (engineerTimezone.startsWith(pattern) || engineerTimezone === preferredTimezone[i]) {
+      const positionMultiplier = 1 - (i / preferredTimezone.length);
+      const raw = positionMultiplier * maxBonus;
+      return { raw, matchedTimezone: preferredTimezone[i], rank: i };
+    }
+  }
+
+  return { raw: 0, matchedTimezone: null, rank: -1 };
+}
+
+/**
+ * Calculates preferred seniority bonus.
+ * Full bonus if engineer meets or exceeds preferred level.
+ */
+function calculatePreferredSeniorityBonus(
+  engineerYearsExperience: number,
+  preferredSeniorityLevel: SeniorityLevel | null,
+  maxBonus: number
+): PreferredSeniorityBonusResult {
+  if (!preferredSeniorityLevel) {
+    return { raw: 0, matchedLevel: false };
+  }
+
+  const seniorityMinYears: Record<SeniorityLevel, number> = {
+    junior: 0,
+    mid: 3,
+    senior: 6,
+    staff: 10,
+    principal: 15,
+  };
+
+  const requiredYears = seniorityMinYears[preferredSeniorityLevel];
+  const matchedLevel = engineerYearsExperience >= requiredYears;
+
+  return { raw: matchedLevel ? maxBonus : 0, matchedLevel };
+}
+
+/**
+ * Calculates preferred salary range bonus.
+ * Full bonus if salary is within preferred range.
+ */
+function calculatePreferredSalaryRangeBonus(
+  engineerSalary: number,
+  preferredSalaryRange: { min: number; max: number } | null,
+  maxBonus: number
+): PreferredSalaryRangeBonusResult {
+  if (!preferredSalaryRange) {
+    return { raw: 0, inPreferredRange: false };
+  }
+
+  const inPreferredRange = engineerSalary >= preferredSalaryRange.min &&
+                           engineerSalary <= preferredSalaryRange.max;
+
+  return { raw: inPreferredRange ? maxBonus : 0, inPreferredRange };
+}
+
+/**
+ * Calculates preferred confidence score bonus.
+ * Full bonus if engineer's average confidence meets threshold.
+ */
+function calculatePreferredConfidenceBonus(
+  avgConfidence: number,
+  preferredConfidenceScore: number | null,
+  maxBonus: number
+): PreferredConfidenceBonusResult {
+  if (preferredConfidenceScore === null || avgConfidence <= 0) {
+    return { raw: 0, meetsPreferred: false };
+  }
+
+  const meetsPreferred = avgConfidence >= preferredConfidenceScore;
+
+  return { raw: meetsPreferred ? maxBonus : 0, meetsPreferred };
+}
+
+/**
+ * Calculates preferred proficiency bonus.
+ * Full bonus if engineer has skills at or above preferred level.
+ */
+function calculatePreferredProficiencyBonus(
+  matchedSkills: MatchedSkill[],
+  preferredProficiency: ProficiencyLevel | null,
+  maxBonus: number
+): PreferredProficiencyBonusResult {
+  if (!preferredProficiency || matchedSkills.length === 0) {
+    return { raw: 0, matchedLevel: false };
+  }
+
+  const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
+  const preferredIndex = proficiencyOrder.indexOf(preferredProficiency);
+
+  // Check if any matched skill meets or exceeds preferred proficiency
+  const matchedLevel = matchedSkills.some((skill) => {
+    const skillIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
+    return skillIndex >= preferredIndex;
+  });
+
+  return { raw: matchedLevel ? maxBonus : 0, matchedLevel };
+}
+
 function buildComponent(raw: number, weight: number): ScoreComponent {
   return {
     raw: Math.round(raw * 100) / 100,
@@ -248,6 +439,43 @@ export function calculateUtilityWithBreakdown(
     params.domainBonusMax
   );
 
+  // NEW: Calculate preferred bonuses
+  const preferredAvailabilityResult = calculatePreferredAvailabilityBonus(
+    engineer.availability as AvailabilityOption,
+    context.preferredAvailability,
+    params.preferredAvailabilityBonusMax
+  );
+
+  const preferredTimezoneResult = calculatePreferredTimezoneBonus(
+    engineer.timezone,
+    context.preferredTimezone,
+    params.preferredTimezoneBonusMax
+  );
+
+  const preferredSeniorityResult = calculatePreferredSeniorityBonus(
+    engineer.yearsExperience,
+    context.preferredSeniorityLevel,
+    params.preferredSeniorityBonusMax
+  );
+
+  const preferredSalaryRangeResult = calculatePreferredSalaryRangeBonus(
+    engineer.salary,
+    context.preferredSalaryRange,
+    params.preferredSalaryRangeBonusMax
+  );
+
+  const preferredConfidenceResult = calculatePreferredConfidenceBonus(
+    engineer.avgConfidence,
+    context.preferredConfidenceScore,
+    params.preferredConfidenceBonusMax
+  );
+
+  const preferredProficiencyResult = calculatePreferredProficiencyBonus(
+    engineer.matchedSkills,
+    context.preferredProficiency,
+    params.preferredProficiencyBonusMax
+  );
+
   // Build component breakdown
   const components = {
     skillMatch: buildComponent(skillMatchRaw, weights.skillMatch),
@@ -271,6 +499,33 @@ export function calculateUtilityWithBreakdown(
       ...buildComponent(domainBonusResult.raw, weights.domainBonus),
       matchedDomains: domainBonusResult.matchedDomainNames,
     } as DomainBonusComponent,
+    // NEW components
+    preferredAvailabilityBonus: {
+      ...buildComponent(preferredAvailabilityResult.raw, weights.preferredAvailabilityBonus),
+      matchedAvailability: preferredAvailabilityResult.matchedAvailability,
+      rank: preferredAvailabilityResult.rank,
+    } as AvailabilityBonusComponent,
+    preferredTimezoneBonus: {
+      ...buildComponent(preferredTimezoneResult.raw, weights.preferredTimezoneBonus),
+      matchedTimezone: preferredTimezoneResult.matchedTimezone,
+      rank: preferredTimezoneResult.rank,
+    } as TimezoneBonusComponent,
+    preferredSeniorityBonus: {
+      ...buildComponent(preferredSeniorityResult.raw, weights.preferredSeniorityBonus),
+      matchedLevel: preferredSeniorityResult.matchedLevel,
+    } as SeniorityBonusComponent,
+    preferredSalaryRangeBonus: {
+      ...buildComponent(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeBonus),
+      inPreferredRange: preferredSalaryRangeResult.inPreferredRange,
+    } as SalaryRangeBonusComponent,
+    preferredConfidenceBonus: {
+      ...buildComponent(preferredConfidenceResult.raw, weights.preferredConfidenceBonus),
+      meetsPreferred: preferredConfidenceResult.meetsPreferred,
+    } as ConfidenceBonusComponent,
+    preferredProficiencyBonus: {
+      ...buildComponent(preferredProficiencyResult.raw, weights.preferredProficiencyBonus),
+      matchedLevel: preferredProficiencyResult.matchedLevel,
+    } as ProficiencyBonusComponent,
   };
 
   // Sum weighted scores
@@ -351,6 +606,43 @@ export function calculateUtilityScore(
     params.domainBonusMax
   );
 
+  // NEW: Calculate preferred bonus utilities
+  const preferredAvailabilityUtility = calculatePreferredAvailabilityBonus(
+    engineer.availability as AvailabilityOption,
+    context.preferredAvailability,
+    params.preferredAvailabilityBonusMax
+  ).raw;
+
+  const preferredTimezoneUtility = calculatePreferredTimezoneBonus(
+    engineer.timezone,
+    context.preferredTimezone,
+    params.preferredTimezoneBonusMax
+  ).raw;
+
+  const preferredSeniorityUtility = calculatePreferredSeniorityBonus(
+    engineer.yearsExperience,
+    context.preferredSeniorityLevel,
+    params.preferredSeniorityBonusMax
+  ).raw;
+
+  const preferredSalaryRangeUtility = calculatePreferredSalaryRangeBonus(
+    engineer.salary,
+    context.preferredSalaryRange,
+    params.preferredSalaryRangeBonusMax
+  ).raw;
+
+  const preferredConfidenceUtility = calculatePreferredConfidenceBonus(
+    engineer.avgConfidence,
+    context.preferredConfidenceScore,
+    params.preferredConfidenceBonusMax
+  ).raw;
+
+  const preferredProficiencyUtility = calculatePreferredProficiencyBonus(
+    engineer.matchedSkills,
+    context.preferredProficiency,
+    params.preferredProficiencyBonusMax
+  ).raw;
+
   // Weighted sum: U(V) = Σ w_j * f_j(v_j)
   const utilityScore =
     weights.skillMatch * skillMatchUtility +
@@ -361,7 +653,14 @@ export function calculateUtilityScore(
     weights.preferredSkillsBonus * preferredSkillsBonusUtility +
     weights.teamFocusBonus * teamFocusBonusUtility +
     weights.relatedSkillsBonus * relatedSkillsBonusUtility +
-    weights.domainBonus * domainBonusUtility;
+    weights.domainBonus * domainBonusUtility +
+    // NEW bonuses
+    weights.preferredAvailabilityBonus * preferredAvailabilityUtility +
+    weights.preferredTimezoneBonus * preferredTimezoneUtility +
+    weights.preferredSeniorityBonus * preferredSeniorityUtility +
+    weights.preferredSalaryRangeBonus * preferredSalaryRangeUtility +
+    weights.preferredConfidenceBonus * preferredConfidenceUtility +
+    weights.preferredProficiencyBonus * preferredProficiencyUtility;
 
   return Math.round(utilityScore * 100) / 100; // Round to 2 decimal places
 }

@@ -42,7 +42,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"seniorityLevel\": \"senior\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -66,7 +66,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"seniorityLevel\": \"junior\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"junior\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -162,7 +162,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"timezone\": \"America/*\"\n}"
+					"raw": "{\n  \"requiredTimezone\": \"America/*\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -186,7 +186,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"timezone\": \"Europe/*\"\n}"
+					"raw": "{\n  \"requiredTimezone\": \"Europe/*\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -210,7 +210,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"availability\": [\"immediate\"]\n}"
+					"raw": "{\n  \"requiredAvailability\": [\"immediate\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -234,7 +234,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"availability\": [\"immediate\", \"two_weeks\", \"one_month\", \"not_available\"]\n}"
+					"raw": "{\n  \"requiredAvailability\": [\"immediate\", \"two_weeks\", \"one_month\", \"not_available\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -258,7 +258,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"riskTolerance\": \"low\"\n}"
+					"raw": "{\n  \"requiredRiskTolerance\": \"low\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -282,7 +282,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"riskTolerance\": \"high\"\n}"
+					"raw": "{\n  \"requiredRiskTolerance\": \"high\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -306,7 +306,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"minProficiency\": \"expert\"\n}"
+					"raw": "{\n  \"requiredMinProficiency\": \"expert\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -330,7 +330,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"minProficiency\": \"learning\"\n}"
+					"raw": "{\n  \"requiredMinProficiency\": \"learning\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -402,7 +402,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"minSalary\": 100000,\n  \"maxSalary\": 180000\n}"
+					"raw": "{\n  \"requiredMinSalary\": 100000,\n  \"requiredMaxSalary\": 180000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -426,7 +426,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"maxSalary\": 150000\n}"
+					"raw": "{\n  \"requiredMaxSalary\": 150000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -498,7 +498,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"seniorityLevel\": \"senior\",\n  \"requiredSkills\": [\"Backend\"],\n  \"timezone\": \"America/*\",\n  \"availability\": [\"immediate\", \"two_weeks\"]\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [\"Backend\"],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredAvailability\": [\"immediate\", \"two_weeks\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -522,7 +522,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Full Stack\"],\n  \"teamFocus\": \"scaling\",\n  \"riskTolerance\": \"low\",\n  \"minProficiency\": \"expert\",\n  \"maxSalary\": 200000\n}"
+					"raw": "{\n  \"requiredSkills\": [\"Full Stack\"],\n  \"teamFocus\": \"scaling\",\n  \"requiredRiskTolerance\": \"low\",\n  \"requiredMinProficiency\": \"expert\",\n  \"requiredMaxSalary\": 200000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -594,7 +594,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"seniorityLevel\": \"staff\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"staff\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -618,7 +618,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"seniorityLevel\": \"principal\",\n  \"minProficiency\": \"expert\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"requiredMinProficiency\": \"expert\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -628,6 +628,174 @@
 					"path": ["api", "search", "filter"]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"expert\"]` | user |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert proficiency only**\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
+			}
+		},
+		{
+			"name": "27 - Preferred Availability (Ranking Boost)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredAvailability\": [\"immediate\", \"two_weeks\"]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredAvailability | `BOOST` | `[\"immediate\",\"two_weeks\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all available engineers returned\n- Engineers with `immediate` availability rank higher than `two_weeks`\n- Ordered preference: first item in array has highest priority\n- Uses `preferredAvailabilityBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredAvailabilityBonus` component appears\n- Max bonus: 1.0 for first preference match\n- Second preference: 0.5 bonus\n- No match: 0.0 bonus"
+			}
+		},
+		{
+			"name": "28 - Preferred Timezone (Ranking Boost)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredTimezone\": [\"America/New_York\", \"America/Chicago\", \"Europe/London\"]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"America/Chicago\",\"Europe/London\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneBonus` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
+			}
+		},
+		{
+			"name": "29 - Preferred Seniority (Staff Preferred)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredSeniorityLevel\": \"staff\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSeniorityLevel | `BOOST` | staff | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all seniority levels returned\n- Engineers with 10+ years experience (staff level) rank higher\n- Uses `preferredSeniorityBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSeniorityBonus` component appears\n- Exact match (10+ years): 1.0 bonus\n- Nearby levels get partial bonus\n- Far from preferred: 0.0 bonus"
+			}
+		},
+		{
+			"name": "30 - Preferred Salary Range",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredSalaryRange\": {\n    \"min\": 120000,\n    \"max\": 160000\n  }\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSalaryRange | `BOOST` | `{\"min\":120000,\"max\":160000}` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all salary ranges returned\n- Engineers with salary in $120k-$160k range rank higher\n- Uses `preferredSalaryRangeBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSalaryRangeBonus` component appears\n- Salary within range: 1.0 bonus\n- Salary outside range: 0.0 bonus"
+			}
+		},
+		{
+			"name": "31 - Preferred Confidence Score",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredConfidenceScore\": 0.90\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredConfidenceScore | `BOOST` | 0.90 | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - default minConfidence (0.70) still applies\n- Engineers with >= 90% confidence get ranking boost\n- Uses `preferredConfidenceBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredConfidenceBonus` component appears\n- Confidence >= 0.90: 1.0 bonus\n- Confidence < 0.90: 0.0 bonus"
+			}
+		},
+		{
+			"name": "32 - Preferred Proficiency (Expert Preferred)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredProficiency\": \"expert\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredProficiency | `BOOST` | expert | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - default minProficiency (proficient) still applies\n- Engineers with expert-level skills rank higher\n- Uses `preferredProficiencyBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredProficiencyBonus` component appears\n- Expert level: 1.0 bonus\n- Proficient level: 0.0 bonus (or partial depending on implementation)"
+			}
+		},
+		{
+			"name": "33 - Combined: All Preferred Properties",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [\"Backend\"],\n  \"preferredSkills\": [\"TypeScript\", \"PostgreSQL\"],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredAvailability\": [\"immediate\"],\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredConfidenceScore\": 0.85,\n  \"preferredProficiency\": \"expert\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\"]` | user |\n| preferredSeniorityLevel | `BOOST` | senior | user |\n| preferredAvailability | `BOOST` | `[\"immediate\"]` | user |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"Europe/London\"]` | user |\n| preferredSalaryRange | `BOOST` | `{\"min\":100000,\"max\":150000}` | user |\n| preferredConfidenceScore | `BOOST` | 0.85 | user |\n| preferredProficiency | `BOOST` | expert | user |\n\n## Expected behavior\n\n- **Hard filter:** Must have Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Combined bonus weights: ~15% of total score\n- Utility weights:\n  - preferredAvailabilityBonus: 3%\n  - preferredTimezoneBonus: 2%\n  - preferredSeniorityBonus: 3%\n  - preferredSalaryRangeBonus: 3%\n  - preferredConfidenceBonus: 2%\n  - preferredProficiencyBonus: 2%\n\n## Expected scoreBreakdown\n\n- All 6 preferred bonus components present\n- Engineers matching more preferences rank higher\n- Perfect match on all preferences: maximum combined bonus"
 			}
 		}
 	]

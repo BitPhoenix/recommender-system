@@ -11,6 +11,7 @@ import type {
   AppliedConstraint,
   ProficiencyLevel,
   AvailabilityOption,
+  SeniorityLevel,
 } from '../types/search.types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base.config.js';
 
@@ -43,6 +44,14 @@ export interface ExpandedConstraints {
   // Tracking
   appliedConstraints: AppliedConstraint[];
   defaultsApplied: string[];
+
+  // NEW: Pass-through preferred values for utility calculation
+  preferredSeniorityLevel: SeniorityLevel | null;
+  preferredAvailability: AvailabilityOption[];
+  preferredTimezone: string[];
+  preferredSalaryRange: { min: number; max: number } | null;
+  preferredConfidenceScore: number | null;
+  preferredProficiency: ProficiencyLevel | null;
 }
 
 /**
@@ -59,8 +68,8 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   let minYearsExperience = 0;
   let maxYearsExperience: number | null = null;
 
-  if (request.seniorityLevel) {
-    const mapping = config.seniorityMapping[request.seniorityLevel];
+  if (request.requiredSeniorityLevel) {  // RENAMED
+    const mapping = config.seniorityMapping[request.requiredSeniorityLevel];
     minYearsExperience = mapping.minYears;
     maxYearsExperience = mapping.maxYears;
 
@@ -79,9 +88,9 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // ============================================
   // RISK TOLERANCE -> CONFIDENCE SCORE
   // ============================================
-  const riskTolerance = request.riskTolerance || config.defaults.riskTolerance;
-  if (!request.riskTolerance) {
-    defaultsApplied.push('riskTolerance');
+  const riskTolerance = request.requiredRiskTolerance || config.defaults.requiredRiskTolerance;  // RENAMED
+  if (!request.requiredRiskTolerance) {
+    defaultsApplied.push('requiredRiskTolerance');
   }
 
   const confidenceMapping = config.riskToleranceMapping[riskTolerance];
@@ -91,15 +100,15 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     field: 'confidenceScore',
     operator: '>=',
     value: minConfidenceScore.toFixed(2),
-    source: request.riskTolerance ? 'user' : 'knowledge_base',
+    source: request.requiredRiskTolerance ? 'user' : 'knowledge_base',
   });
 
   // ============================================
   // MIN PROFICIENCY -> ALLOWED LEVELS
   // ============================================
-  const minProficiency = request.minProficiency || config.defaults.minProficiency;
-  if (!request.minProficiency) {
-    defaultsApplied.push('minProficiency');
+  const minProficiency = request.requiredMinProficiency || config.defaults.requiredMinProficiency;  // RENAMED
+  if (!request.requiredMinProficiency) {
+    defaultsApplied.push('requiredMinProficiency');
   }
 
   const allowedProficiencyLevels = config.proficiencyMapping[minProficiency];
@@ -108,22 +117,22 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     field: 'proficiencyLevel',
     operator: 'IN',
     value: JSON.stringify(allowedProficiencyLevels),
-    source: request.minProficiency ? 'user' : 'knowledge_base',
+    source: request.requiredMinProficiency ? 'user' : 'knowledge_base',
   });
 
   // ============================================
   // AVAILABILITY
   // ============================================
-  const availability = request.availability || config.defaults.availability;
-  if (!request.availability) {
-    defaultsApplied.push('availability');
+  const availability = request.requiredAvailability || config.defaults.requiredAvailability;  // RENAMED
+  if (!request.requiredAvailability) {
+    defaultsApplied.push('requiredAvailability');
   }
 
   appliedConstraints.push({
     field: 'availability',
     operator: 'IN',
     value: JSON.stringify(availability),
-    source: request.availability ? 'user' : 'knowledge_base',
+    source: request.requiredAvailability ? 'user' : 'knowledge_base',
   });
 
   // ============================================
@@ -131,10 +140,10 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // ============================================
   let timezonePrefix: string | null = null;
 
-  if (request.timezone) {
+  if (request.requiredTimezone) {  // RENAMED
     // Convert glob pattern to prefix for STARTS WITH
     // "America/*" -> "America/"
-    timezonePrefix = request.timezone.replace(/\*$/, '');
+    timezonePrefix = request.requiredTimezone.replace(/\*$/, '');
 
     appliedConstraints.push({
       field: 'timezone',
@@ -147,8 +156,8 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // ============================================
   // SALARY CONSTRAINTS
   // ============================================
-  const maxSalary = request.maxSalary ?? null;
-  const minSalary = request.minSalary ?? null;
+  const maxSalary = request.requiredMaxSalary ?? null;  // RENAMED
+  const minSalary = request.requiredMinSalary ?? null;  // RENAMED
 
   if (maxSalary !== null) {
     appliedConstraints.push({
@@ -222,6 +231,63 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     });
   }
 
+  // ============================================
+  // NEW: PREFERRED VALUES (pass-through for utility)
+  // ============================================
+  if (request.preferredSeniorityLevel) {
+    appliedConstraints.push({
+      field: 'preferredSeniorityLevel',
+      operator: 'BOOST',
+      value: request.preferredSeniorityLevel,
+      source: 'user',
+    });
+  }
+
+  if (request.preferredAvailability && request.preferredAvailability.length > 0) {
+    appliedConstraints.push({
+      field: 'preferredAvailability',
+      operator: 'BOOST',
+      value: JSON.stringify(request.preferredAvailability),
+      source: 'user',
+    });
+  }
+
+  if (request.preferredTimezone && request.preferredTimezone.length > 0) {
+    appliedConstraints.push({
+      field: 'preferredTimezone',
+      operator: 'BOOST',
+      value: JSON.stringify(request.preferredTimezone),
+      source: 'user',
+    });
+  }
+
+  if (request.preferredSalaryRange) {
+    appliedConstraints.push({
+      field: 'preferredSalaryRange',
+      operator: 'BOOST',
+      value: JSON.stringify(request.preferredSalaryRange),
+      source: 'user',
+    });
+  }
+
+  if (request.preferredConfidenceScore !== undefined) {
+    appliedConstraints.push({
+      field: 'preferredConfidenceScore',
+      operator: 'BOOST',
+      value: request.preferredConfidenceScore.toString(),
+      source: 'user',
+    });
+  }
+
+  if (request.preferredProficiency) {
+    appliedConstraints.push({
+      field: 'preferredProficiency',
+      operator: 'BOOST',
+      value: request.preferredProficiency,
+      source: 'user',
+    });
+  }
+
   return {
     minYearsExperience,
     maxYearsExperience,
@@ -236,5 +302,12 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     offset,
     appliedConstraints,
     defaultsApplied,
+    // NEW: Pass-through preferred values
+    preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
+    preferredAvailability: request.preferredAvailability ?? [],
+    preferredTimezone: request.preferredTimezone ?? [],
+    preferredSalaryRange: request.preferredSalaryRange ?? null,
+    preferredConfidenceScore: request.preferredConfidenceScore ?? null,
+    preferredProficiency: request.preferredProficiency ?? null,
   };
 }

@@ -95,9 +95,9 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // ============================================
 
   defaults: {
-    riskTolerance: 'medium',
-    minProficiency: 'proficient',
-    availability: ['immediate', 'two_weeks', 'one_month'], // excludes not_available
+    requiredRiskTolerance: 'medium',      // was: riskTolerance
+    requiredMinProficiency: 'proficient', // was: minProficiency
+    requiredAvailability: ['immediate', 'two_weeks', 'one_month'], // was: availability, excludes not_available
     limit: 20,
     offset: 0,
   },
@@ -111,15 +111,24 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
    * Weights sum to 1.0 for normalized scoring.
    */
   utilityWeights: {
-    skillMatch: 0.25,           // Core signal - unchanged
-    confidenceScore: 0.16,      // Reduced from 0.18
-    yearsExperience: 0.13,      // Reduced from 0.14
-    availability: 0.13,         // Reduced from 0.14
-    salary: 0.08,               // Reduced from 0.09
-    preferredSkillsBonus: 0.10, // Explicit user preference - unchanged
-    teamFocusBonus: 0.05,       // Unchanged
-    relatedSkillsBonus: 0.05,   // Breadth bonus for skills in hierarchy but below threshold
-    domainBonus: 0.05,          // Bonus for matching preferred domains
+    // Core attributes (reduced slightly to make room for new bonuses)
+    skillMatch: 0.22,              // was 0.25
+    confidenceScore: 0.14,         // was 0.16
+    yearsExperience: 0.11,         // was 0.13
+    availability: 0.11,            // was 0.13
+    salary: 0.07,                  // was 0.08
+    // Existing bonuses
+    preferredSkillsBonus: 0.08,    // was 0.10
+    teamFocusBonus: 0.04,          // was 0.05
+    relatedSkillsBonus: 0.04,      // was 0.05
+    domainBonus: 0.04,             // was 0.05
+    // NEW bonuses (total: 0.15)
+    preferredAvailabilityBonus: 0.03,
+    preferredTimezoneBonus: 0.02,
+    preferredSeniorityBonus: 0.03,
+    preferredSalaryRangeBonus: 0.03,
+    preferredConfidenceBonus: 0.02,
+    preferredProficiencyBonus: 0.02,
   },
 
   /**
@@ -142,6 +151,13 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
     relatedSkillsBonusMax: 5,
     // Max domain bonus (accumulated from matched preferred domains)
     domainBonusMax: 1.0,
+    // NEW params for preferred properties
+    preferredAvailabilityBonusMax: 1.0,   // Full bonus for top preference
+    preferredTimezoneBonusMax: 1.0,
+    preferredSeniorityBonusMax: 1.0,
+    preferredSalaryRangeBonusMax: 1.0,
+    preferredConfidenceBonusMax: 1.0,
+    preferredProficiencyBonusMax: 1.0,
   },
 
   /**

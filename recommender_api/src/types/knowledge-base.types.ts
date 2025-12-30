@@ -69,9 +69,9 @@ export type TeamFocusBonusMapping = Record<TeamFocus, TeamFocusBonus>;
  * Sensible defaults applied when fields are unspecified.
  */
 export interface SearchDefaults {
-  riskTolerance: RiskTolerance;
-  minProficiency: ProficiencyLevel;
-  availability: AvailabilityOption[];
+  requiredRiskTolerance: RiskTolerance;      // was: riskTolerance
+  requiredMinProficiency: ProficiencyLevel;  // was: minProficiency
+  requiredAvailability: AvailabilityOption[]; // was: availability
   limit: number;
   offset: number;
 }
@@ -93,6 +93,13 @@ export interface UtilityWeights {
   teamFocusBonus: number;
   relatedSkillsBonus: number;  // Bonus for unmatched related skills in hierarchy
   domainBonus: number;         // Bonus for matching preferred domains
+  // NEW weights for preferred properties
+  preferredAvailabilityBonus: number;
+  preferredTimezoneBonus: number;
+  preferredSeniorityBonus: number;
+  preferredSalaryRangeBonus: number;
+  preferredConfidenceBonus: number;
+  preferredProficiencyBonus: number;
 }
 
 /**
@@ -116,6 +123,13 @@ export interface UtilityFunctionParams {
   relatedSkillsBonusMax: number;
   // Domain bonus max
   domainBonusMax: number;
+  // NEW params for preferred properties
+  preferredAvailabilityBonusMax: number;
+  preferredTimezoneBonusMax: number;
+  preferredSeniorityBonusMax: number;
+  preferredSalaryRangeBonusMax: number;
+  preferredConfidenceBonusMax: number;
+  preferredProficiencyBonusMax: number;
 }
 
 /**

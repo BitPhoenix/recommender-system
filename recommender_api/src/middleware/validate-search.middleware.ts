@@ -39,21 +39,31 @@ export function validateSearchRequest(
     return;
   }
 
-  // Validate seniorityLevel
-  if (body.seniorityLevel !== undefined) {
-    if (!VALID_SENIORITY_LEVELS.includes(body.seniorityLevel)) {
+  // Validate requiredSeniorityLevel (was: seniorityLevel)
+  if (body.requiredSeniorityLevel !== undefined) {
+    if (!VALID_SENIORITY_LEVELS.includes(body.requiredSeniorityLevel)) {
       errors.push({
-        field: 'seniorityLevel',
+        field: 'requiredSeniorityLevel',
         message: `Must be one of: ${VALID_SENIORITY_LEVELS.join(', ')}`,
       });
     }
   }
 
-  // Validate riskTolerance
-  if (body.riskTolerance !== undefined) {
-    if (!VALID_RISK_TOLERANCES.includes(body.riskTolerance)) {
+  // Validate preferredSeniorityLevel (NEW)
+  if (body.preferredSeniorityLevel !== undefined) {
+    if (!VALID_SENIORITY_LEVELS.includes(body.preferredSeniorityLevel)) {
       errors.push({
-        field: 'riskTolerance',
+        field: 'preferredSeniorityLevel',
+        message: `Must be one of: ${VALID_SENIORITY_LEVELS.join(', ')}`,
+      });
+    }
+  }
+
+  // Validate requiredRiskTolerance (was: riskTolerance)
+  if (body.requiredRiskTolerance !== undefined) {
+    if (!VALID_RISK_TOLERANCES.includes(body.requiredRiskTolerance)) {
+      errors.push({
+        field: 'requiredRiskTolerance',
         message: `Must be one of: ${VALID_RISK_TOLERANCES.join(', ')}`,
       });
     }
@@ -69,30 +79,60 @@ export function validateSearchRequest(
     }
   }
 
-  // Validate minProficiency
-  if (body.minProficiency !== undefined) {
-    if (!VALID_PROFICIENCY_LEVELS.includes(body.minProficiency)) {
+  // Validate requiredMinProficiency (was: minProficiency)
+  if (body.requiredMinProficiency !== undefined) {
+    if (!VALID_PROFICIENCY_LEVELS.includes(body.requiredMinProficiency)) {
       errors.push({
-        field: 'minProficiency',
+        field: 'requiredMinProficiency',
         message: `Must be one of: ${VALID_PROFICIENCY_LEVELS.join(', ')}`,
       });
     }
   }
 
-  // Validate availability
-  if (body.availability !== undefined) {
-    if (!Array.isArray(body.availability)) {
+  // Validate preferredProficiency (NEW)
+  if (body.preferredProficiency !== undefined) {
+    if (!VALID_PROFICIENCY_LEVELS.includes(body.preferredProficiency)) {
       errors.push({
-        field: 'availability',
+        field: 'preferredProficiency',
+        message: `Must be one of: ${VALID_PROFICIENCY_LEVELS.join(', ')}`,
+      });
+    }
+  }
+
+  // Validate requiredAvailability (was: availability)
+  if (body.requiredAvailability !== undefined) {
+    if (!Array.isArray(body.requiredAvailability)) {
+      errors.push({
+        field: 'requiredAvailability',
         message: 'Must be an array',
       });
     } else {
-      const invalidOptions = body.availability.filter(
+      const invalidOptions = body.requiredAvailability.filter(
         (opt) => !VALID_AVAILABILITY_OPTIONS.includes(opt)
       );
       if (invalidOptions.length > 0) {
         errors.push({
-          field: 'availability',
+          field: 'requiredAvailability',
+          message: `Invalid options: ${invalidOptions.join(', ')}. Must be one of: ${VALID_AVAILABILITY_OPTIONS.join(', ')}`,
+        });
+      }
+    }
+  }
+
+  // Validate preferredAvailability (NEW)
+  if (body.preferredAvailability !== undefined) {
+    if (!Array.isArray(body.preferredAvailability)) {
+      errors.push({
+        field: 'preferredAvailability',
+        message: 'Must be an array (ordered preference list)',
+      });
+    } else {
+      const invalidOptions = body.preferredAvailability.filter(
+        (opt) => !VALID_AVAILABILITY_OPTIONS.includes(opt)
+      );
+      if (invalidOptions.length > 0) {
+        errors.push({
+          field: 'preferredAvailability',
           message: `Invalid options: ${invalidOptions.join(', ')}. Must be one of: ${VALID_AVAILABILITY_OPTIONS.join(', ')}`,
         });
       }
@@ -159,42 +199,99 @@ export function validateSearchRequest(
     }
   }
 
-  // Validate timezone
-  if (body.timezone !== undefined) {
-    if (typeof body.timezone !== 'string') {
+  // Validate requiredTimezone (was: timezone)
+  if (body.requiredTimezone !== undefined) {
+    if (typeof body.requiredTimezone !== 'string') {
       errors.push({
-        field: 'timezone',
+        field: 'requiredTimezone',
         message: 'Must be a string',
       });
     }
   }
 
-  // Validate maxSalary
-  if (body.maxSalary !== undefined) {
-    if (typeof body.maxSalary !== 'number' || body.maxSalary <= 0) {
+  // Validate preferredTimezone (NEW)
+  if (body.preferredTimezone !== undefined) {
+    if (!Array.isArray(body.preferredTimezone)) {
       errors.push({
-        field: 'maxSalary',
+        field: 'preferredTimezone',
+        message: 'Must be an array of strings (ordered preference list)',
+      });
+    } else if (!body.preferredTimezone.every((tz) => typeof tz === 'string')) {
+      errors.push({
+        field: 'preferredTimezone',
+        message: 'All items must be strings',
+      });
+    }
+  }
+
+  // Validate requiredMaxSalary (was: maxSalary)
+  if (body.requiredMaxSalary !== undefined) {
+    if (typeof body.requiredMaxSalary !== 'number' || body.requiredMaxSalary <= 0) {
+      errors.push({
+        field: 'requiredMaxSalary',
         message: 'Must be a positive number',
       });
     }
   }
 
-  // Validate minSalary
-  if (body.minSalary !== undefined) {
-    if (typeof body.minSalary !== 'number' || body.minSalary <= 0) {
+  // Validate requiredMinSalary (was: minSalary)
+  if (body.requiredMinSalary !== undefined) {
+    if (typeof body.requiredMinSalary !== 'number' || body.requiredMinSalary <= 0) {
       errors.push({
-        field: 'minSalary',
+        field: 'requiredMinSalary',
         message: 'Must be a positive number',
       });
     }
   }
 
-  // Validate minSalary <= maxSalary
-  if (body.minSalary !== undefined && body.maxSalary !== undefined) {
-    if (body.minSalary > body.maxSalary) {
+  // Validate requiredMinSalary <= requiredMaxSalary
+  if (body.requiredMinSalary !== undefined && body.requiredMaxSalary !== undefined) {
+    if (body.requiredMinSalary > body.requiredMaxSalary) {
       errors.push({
-        field: 'minSalary',
-        message: 'Must be less than or equal to maxSalary',
+        field: 'requiredMinSalary',
+        message: 'Must be less than or equal to requiredMaxSalary',
+      });
+    }
+  }
+
+  // Validate preferredSalaryRange (NEW)
+  if (body.preferredSalaryRange !== undefined) {
+    if (typeof body.preferredSalaryRange !== 'object' || body.preferredSalaryRange === null) {
+      errors.push({
+        field: 'preferredSalaryRange',
+        message: 'Must be an object with min and max properties',
+      });
+    } else {
+      const { min, max } = body.preferredSalaryRange;
+      if (typeof min !== 'number' || min <= 0) {
+        errors.push({
+          field: 'preferredSalaryRange.min',
+          message: 'Must be a positive number',
+        });
+      }
+      if (typeof max !== 'number' || max <= 0) {
+        errors.push({
+          field: 'preferredSalaryRange.max',
+          message: 'Must be a positive number',
+        });
+      }
+      if (typeof min === 'number' && typeof max === 'number' && min > max) {
+        errors.push({
+          field: 'preferredSalaryRange',
+          message: 'min must be less than or equal to max',
+        });
+      }
+    }
+  }
+
+  // Validate preferredConfidenceScore (NEW)
+  if (body.preferredConfidenceScore !== undefined) {
+    if (typeof body.preferredConfidenceScore !== 'number' ||
+        body.preferredConfidenceScore < 0 ||
+        body.preferredConfidenceScore > 1) {
+      errors.push({
+        field: 'preferredConfidenceScore',
+        message: 'Must be a number between 0 and 1',
       });
     }
   }
