@@ -66,15 +66,15 @@ export async function executeSearch(
   const expanded = expandConstraints(request);
 
   // Step 2: Resolve skill hierarchy if skills are specified
-  let targetSkillIds: string[] | null = null;
+  let expandedSkillIds: string[] | null = null;
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
-  const skillIdentifiers = request.requiredSkills || null;
-  const skillsWereRequested = skillIdentifiers !== null && skillIdentifiers.length > 0;
+  const requestedSkillIdentifiers = request.requiredSkills || null;
+  const skillsWereRequested = requestedSkillIdentifiers !== null && requestedSkillIdentifiers.length > 0;
 
   if (skillsWereRequested) {
-    const skillResolution = await resolveSkillHierarchy(session, skillIdentifiers);
-    targetSkillIds = skillResolution.resolvedSkills.map((s) => s.skillId);
+    const skillResolution = await resolveSkillHierarchy(session, requestedSkillIdentifiers);
+    expandedSkillIds = skillResolution.resolvedSkills.map((s) => s.skillId);
     expandedSkillNames = skillResolution.expandedSkillNames;
 
     // Track which requested skills didn't resolve to anything
@@ -82,7 +82,7 @@ export async function executeSearch(
     const matchedSet = new Set(
       skillResolution.matchedIdentifiers.map((id) => id.toLowerCase())
     );
-    unresolvedSkills = skillIdentifiers.filter(
+    unresolvedSkills = requestedSkillIdentifiers.filter(
       (id) => !matchedSet.has(id.toLowerCase())
     );
   }
@@ -116,8 +116,8 @@ export async function executeSearch(
 
   // Step 3: Build query parameters
   const queryParams: CypherQueryParams = {
-    targetSkillIds,
-    skillIdentifiers,
+    expandedSkillIds,
+    requestedSkillIdentifiers,
     availability: expanded.availability,
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
@@ -134,7 +134,7 @@ export async function executeSearch(
   };
 
   // Step 4: Execute main query (unified for skill-filtered and unfiltered search)
-  const hasResolvedSkills = targetSkillIds !== null && targetSkillIds.length > 0;
+  const hasResolvedSkills = expandedSkillIds !== null && expandedSkillIds.length > 0;
   const mainQuery = buildSearchQuery(queryParams);
 
   // Run main query (now includes totalCount computed before pagination)
@@ -244,7 +244,7 @@ export async function executeSearch(
 
   // Step 6: Calculate utility scores and rank
   const utilityContext: UtilityContext = {
-    requestedSkillIds: targetSkillIds || [],
+    requestedSkillIds: expandedSkillIds || [],
     preferredSkillIds,
     preferredDomainIds,
     alignedSkillIds: expanded.alignedSkillIds,

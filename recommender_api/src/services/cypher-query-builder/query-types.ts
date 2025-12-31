@@ -8,8 +8,8 @@ import type {
 } from "../../types/search.types.js";
 
 export interface CypherQueryParams {
-  targetSkillIds: string[] | null;
-  skillIdentifiers: string[] | null;
+  expandedSkillIds: string[] | null;
+  requestedSkillIdentifiers: string[] | null;
   availability: AvailabilityOption[];
   minYearsExperience: number;
   maxYearsExperience: number | null;

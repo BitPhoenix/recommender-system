@@ -15,7 +15,7 @@ import {
 
 export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const hasSkillFilter =
-    params.targetSkillIds !== null && params.targetSkillIds.length > 0;
+    params.expandedSkillIds !== null && params.expandedSkillIds.length > 0;
 
   /*
    * QUERY STRUCTURE: SHARED + CONDITIONAL
@@ -45,14 +45,14 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 
   // === CONDITIONAL: Skill-specific params ===
   if (hasSkillFilter) {
-    queryParams.targetSkillIds = params.targetSkillIds;
-    queryParams.skillIdentifiers = params.skillIdentifiers || [];
+    queryParams.expandedSkillIds = params.expandedSkillIds;
+    queryParams.requestedSkillIdentifiers = params.requestedSkillIdentifiers || [];
   }
 
   // === BUILD MATCH CLAUSE ===
   const matchClause = hasSkillFilter
     ? `MATCH (e:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
-WHERE s.id IN $targetSkillIds
+WHERE s.id IN $expandedSkillIds
   AND ${whereClause}`
     : `MATCH (e:Engineer)
 WHERE ${whereClause}`;
@@ -126,7 +126,7 @@ SKIP $offset LIMIT $limit`;
     ? `
 // Collect all skills with constraint check info (now only for paginated subset)
 MATCH (e)-[:HAS]->(es2:EngineerSkill)-[:FOR]->(s2:Skill)
-WHERE s2.id IN $targetSkillIds
+WHERE s2.id IN $expandedSkillIds
 
 WITH e, totalCount,
      COLLECT({
@@ -136,7 +136,7 @@ WITH e, totalCount,
        confidenceScore: es2.confidenceScore,
        yearsUsed: es2.yearsUsed,
        matchType: CASE
-         WHEN s2.id IN $skillIdentifiers OR s2.name IN $skillIdentifiers THEN 'direct'
+         WHEN s2.id IN $requestedSkillIdentifiers OR s2.name IN $requestedSkillIdentifiers THEN 'direct'
          ELSE 'descendant'
        END,
        meetsConfidence: es2.confidenceScore >= $minConfidenceScore,
