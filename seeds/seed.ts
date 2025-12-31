@@ -159,12 +159,12 @@ async function seedEngineers(session: Session): Promise<void> {
        ON CREATE SET
          e.name = $name, e.email = $email, e.headline = $headline,
          e.salary = $salary, e.yearsExperience = $yearsExperience,
-         e.availability = $availability, e.timezone = $timezone,
+         e.startTimeline = $startTimeline, e.timezone = $timezone,
          e.createdAt = datetime($createdAt)
        ON MATCH SET
          e.name = $name, e.email = $email, e.headline = $headline,
          e.salary = $salary, e.yearsExperience = $yearsExperience,
-         e.availability = $availability, e.timezone = $timezone`,
+         e.startTimeline = $startTimeline, e.timezone = $timezone`,
       eng
     );
   }

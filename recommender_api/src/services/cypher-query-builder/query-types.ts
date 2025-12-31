@@ -3,7 +3,7 @@
  */
 
 import type {
-  AvailabilityOption,
+  StartTimeline,
 } from "../../types/search.types.js";
 
 export interface CypherQueryParams {
@@ -16,7 +16,7 @@ export interface CypherQueryParams {
   originalSkillIdentifiers: string[] | null;
 
   // Basic engineer filters
-  availability: AvailabilityOption[];
+  startTimeline: StartTimeline[];
   minYearsExperience: number;
   maxYearsExperience: number | null;
   timezonePrefix: string | null;

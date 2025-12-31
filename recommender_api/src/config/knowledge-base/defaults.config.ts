@@ -22,7 +22,8 @@ import type { SearchDefaults } from '../../types/knowledge-base.types.js';
 export const defaults: SearchDefaults = {
   // Default proficiency for skills without explicit minProficiency
   defaultMinProficiency: 'learning',
-  requiredAvailability: ['immediate', 'two_weeks', 'one_month'], // excludes not_available
+  // Include all timeline options by default - let recruiters filter if they need quick starters
+  requiredStartTimeline: ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'],
   limit: 20,
   offset: 0,
 };

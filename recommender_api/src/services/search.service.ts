@@ -98,7 +98,7 @@ interface RawEngineerRecord {
   headline: string;
   salary: number;
   yearsExperience: number;
-  availability: string;
+  startTimeline: string;
   timezone: string;
   matchedSkills: MatchedSkill[];
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];
@@ -204,7 +204,7 @@ export async function executeSearch(
     expertLevelSkillIds: skillGroups.expertLevelSkillIds,
     originalSkillIdentifiers: originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
     // Basic engineer filters
-    availability: expanded.availability,
+    startTimeline: expanded.startTimeline,
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
     timezonePrefix: expanded.timezonePrefix,
@@ -312,7 +312,7 @@ export async function executeSearch(
       headline: record.get('headline') as string,
       salary: toNumber(record.get('salary')),
       yearsExperience: toNumber(record.get('yearsExperience')),
-      availability: record.get('availability') as string,
+      startTimeline: record.get('startTimeline') as string,
       timezone: record.get('timezone') as string,
       matchedSkills,
       unmatchedRelatedSkills,
@@ -340,7 +340,7 @@ export async function executeSearch(
     maxSalaryBudget: expanded.maxSalary,
     // Pass through preferred values
     preferredSeniorityLevel: expanded.preferredSeniorityLevel,
-    preferredAvailability: expanded.preferredAvailability,
+    preferredStartTimeline: expanded.preferredStartTimeline,
     preferredTimezone: expanded.preferredTimezone,
     preferredSalaryRange: expanded.preferredSalaryRange,
     // Per-skill preferred proficiencies for ranking boost
@@ -353,7 +353,7 @@ export async function executeSearch(
     headline: raw.headline,
     salary: raw.salary,
     yearsExperience: raw.yearsExperience,
-    availability: raw.availability,
+    startTimeline: raw.startTimeline,
     timezone: raw.timezone,
     matchedSkills: raw.matchedSkills,
     unmatchedRelatedSkills: raw.unmatchedRelatedSkills,
@@ -370,7 +370,7 @@ export async function executeSearch(
     headline: eng.headline,
     salary: eng.salary,
     yearsExperience: eng.yearsExperience,
-    availability: eng.availability,
+    startTimeline: eng.startTimeline,
     timezone: eng.timezone,
     matchedSkills: eng.matchedSkills,
     unmatchedRelatedSkills: eng.unmatchedRelatedSkills,

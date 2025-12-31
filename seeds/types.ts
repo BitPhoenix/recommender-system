@@ -6,7 +6,7 @@ export type SkillType = 'technical' | 'behavioral' | 'domain_knowledge';
 export type CorrelationType = 'complementary' | 'transferable' | 'co_occurring';
 export type ProficiencyLevel = 'learning' | 'proficient' | 'expert';
 export type TechnicalDepth = 'surface' | 'working' | 'deep' | 'expert';
-export type Availability = 'immediate' | 'two_weeks' | 'one_month' | 'not_available';
+export type StartTimeline = 'immediate' | 'two_weeks' | 'one_month' | 'three_months' | 'six_months' | 'one_year';
 export type AssessmentType = 'coding_challenge' | 'system_design' | 'take_home' | 'live_interview';
 
 export interface Skill {
@@ -45,7 +45,7 @@ export interface Engineer {
   headline: string;
   salary: number;
   yearsExperience: number;
-  availability: Availability;
+  startTimeline: StartTimeline;
   timezone: string;
   createdAt: string;
 }

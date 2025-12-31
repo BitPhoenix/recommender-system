@@ -13,8 +13,8 @@ export const SeniorityLevelSchema = z.enum([
   'junior', 'mid', 'senior', 'staff', 'principal'
 ]);
 
-export const AvailabilityOptionSchema = z.enum([
-  'immediate', 'two_weeks', 'one_month', 'not_available'
+export const StartTimelineSchema = z.enum([
+  'immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'
 ]);
 
 export const ProficiencyLevelSchema = z.enum(['learning', 'proficient', 'expert']);
@@ -59,9 +59,9 @@ export const SearchFilterRequestSchema = z.object({
   requiredSkills: z.array(SkillRequirementSchema).optional(),
   preferredSkills: z.array(SkillRequirementSchema).optional(),
 
-  // Availability
-  requiredAvailability: z.array(AvailabilityOptionSchema).optional(),
-  preferredAvailability: z.array(AvailabilityOptionSchema).optional(),
+  // Start timeline (when candidate could start if they accepted an offer)
+  requiredStartTimeline: z.array(StartTimelineSchema).optional(),
+  preferredStartTimeline: z.array(StartTimelineSchema).optional(),
 
   // Timezone
   requiredTimezone: z.string().optional(),
@@ -100,7 +100,7 @@ export const SearchFilterRequestSchema = z.object({
 // ============================================
 
 export type SeniorityLevel = z.infer<typeof SeniorityLevelSchema>;
-export type AvailabilityOption = z.infer<typeof AvailabilityOptionSchema>;
+export type StartTimeline = z.infer<typeof StartTimelineSchema>;
 export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
 export type TeamFocus = z.infer<typeof TeamFocusSchema>;
 export type PreferredSalaryRange = z.infer<typeof PreferredSalaryRangeSchema>;

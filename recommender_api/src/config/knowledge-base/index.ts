@@ -39,7 +39,7 @@ import { defaults } from './defaults.config.js';
 import {
   utilityWeights,
   utilityParams,
-  availabilityUtility,
+  startTimelineUtility,
 } from './utility.config.js';
 
 /**
@@ -62,7 +62,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // Utility Function Config (Section 5.2.3, p.178)
   utilityWeights,
   utilityParams,
-  availabilityUtility,
+  startTimelineUtility,
 };
 
 // Re-export individual configs for granular imports
@@ -73,7 +73,7 @@ export {
   defaults,
   utilityWeights,
   utilityParams,
-  availabilityUtility,
+  startTimelineUtility,
 };
 
 export default knowledgeBaseConfig;

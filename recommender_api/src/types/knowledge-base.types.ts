@@ -11,7 +11,7 @@ import type {
   SeniorityLevel,
   TeamFocus,
   ProficiencyLevel,
-  AvailabilityOption,
+  StartTimeline,
 } from './search.types.js';
 
 // ============================================
@@ -60,7 +60,7 @@ export type TeamFocusSkillAlignmentMapping = Record<TeamFocus, TeamFocusSkillAli
  */
 export interface SearchDefaults {
   defaultMinProficiency: ProficiencyLevel;   // Default for skills without explicit minProficiency
-  requiredAvailability: AvailabilityOption[];
+  requiredStartTimeline: StartTimeline[];
   limit: number;
   offset: number;
 }
@@ -78,13 +78,13 @@ export interface UtilityWeights {
   relatedSkillsMatch: number;
   confidenceScore: number;
   yearsExperience: number;
-  availability: number;
+  startTimeline: number;
   salary: number;
 
   // Preference matches (conditional on request specifying them)
   preferredSkillsMatch: number;
   preferredDomainMatch: number;
-  preferredAvailabilityMatch: number;
+  preferredStartTimelineMatch: number;
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
   preferredSalaryRangeMatch: number;
@@ -113,7 +113,7 @@ export interface UtilityFunctionParams {
   teamFocusMatchMax: number;
   relatedSkillsMatchMax: number;
   preferredDomainMatchMax: number;
-  preferredAvailabilityMatchMax: number;
+  preferredStartTimelineMatchMax: number;
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;
   preferredSalaryRangeMatchMax: number;
@@ -122,9 +122,10 @@ export interface UtilityFunctionParams {
 }
 
 /**
- * Availability step function values.
+ * Start timeline step function values.
+ * Maps each timeline option to a utility score (longer = lower score).
  */
-export type AvailabilityUtility = Record<AvailabilityOption, number>;
+export type StartTimelineUtility = Record<StartTimeline, number>;
 
 // ============================================
 // COMPLETE KNOWLEDGE BASE CONFIG
@@ -137,5 +138,5 @@ export interface KnowledgeBaseConfig {
   defaults: SearchDefaults;
   utilityWeights: UtilityWeights;
   utilityParams: UtilityFunctionParams;
-  availabilityUtility: AvailabilityUtility;
+  startTimelineUtility: StartTimelineUtility;
 }

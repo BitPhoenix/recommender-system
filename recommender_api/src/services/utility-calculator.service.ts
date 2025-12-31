@@ -11,7 +11,7 @@
 import type {
   MatchedSkill,
   UnmatchedRelatedSkill,
-  AvailabilityOption,
+  StartTimeline,
   ScoreBreakdown,
   CoreScores,
   PreferenceMatches,
@@ -26,7 +26,7 @@ export interface EngineerData {
   headline: string;
   salary: number;
   yearsExperience: number;
-  availability: string;
+  startTimeline: string;
   timezone: string;
   matchedSkills: MatchedSkill[];
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];
@@ -42,7 +42,7 @@ export interface UtilityContext {
   maxSalaryBudget: number | null;
   // Preferred values for match calculation
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredAvailability: AvailabilityOption[];
+  preferredStartTimeline: StartTimeline[];
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
@@ -187,9 +187,9 @@ function calculatePreferredDomainMatchWithDetails(
 // PREFERENCE MATCH CALCULATION FUNCTIONS
 // ============================================
 
-interface PreferredAvailabilityMatchResult {
+interface PreferredStartTimelineMatchResult {
   raw: number;
-  matchedAvailability: string | null;
+  matchedStartTimeline: string | null;
   rank: number;
 }
 
@@ -211,28 +211,28 @@ interface PreferredSalaryRangeMatchResult {
 
 
 /**
- * Calculates preferred availability match.
+ * Calculates preferred start timeline match.
  * Higher score for earlier positions in preference list.
  */
-function calculatePreferredAvailabilityMatch(
-  engineerAvailability: AvailabilityOption,
-  preferredAvailability: AvailabilityOption[],
+function calculatePreferredStartTimelineMatch(
+  engineerStartTimeline: StartTimeline,
+  preferredStartTimeline: StartTimeline[],
   maxMatch: number
-): PreferredAvailabilityMatchResult {
-  if (preferredAvailability.length === 0) {
-    return { raw: 0, matchedAvailability: null, rank: -1 };
+): PreferredStartTimelineMatchResult {
+  if (preferredStartTimeline.length === 0) {
+    return { raw: 0, matchedStartTimeline: null, rank: -1 };
   }
 
-  const index = preferredAvailability.indexOf(engineerAvailability);
+  const index = preferredStartTimeline.indexOf(engineerStartTimeline);
   if (index === -1) {
-    return { raw: 0, matchedAvailability: null, rank: -1 };
+    return { raw: 0, matchedStartTimeline: null, rank: -1 };
   }
 
   // Higher score for earlier positions: 1st = full, 2nd = 75%, 3rd = 50%, 4th = 25%
-  const positionMultiplier = 1 - (index / preferredAvailability.length);
+  const positionMultiplier = 1 - (index / preferredStartTimeline.length);
   const raw = positionMultiplier * maxMatch;
 
-  return { raw, matchedAvailability: engineerAvailability, rank: index };
+  return { raw, matchedStartTimeline: engineerStartTimeline, rank: index };
 }
 
 /**
@@ -377,8 +377,8 @@ export function calculateUtilityWithBreakdown(
     params.yearsExperienceMax
   );
 
-  const availabilityRaw = calculateAvailabilityUtility(
-    engineer.availability as AvailabilityOption
+  const startTimelineRaw = calculateStartTimelineUtility(
+    engineer.startTimeline as StartTimeline
   );
 
   const salaryRaw = calculateSalaryUtility(
@@ -412,10 +412,10 @@ export function calculateUtilityWithBreakdown(
   );
 
   // Calculate preference matches
-  const preferredAvailabilityResult = calculatePreferredAvailabilityMatch(
-    engineer.availability as AvailabilityOption,
-    context.preferredAvailability,
-    params.preferredAvailabilityMatchMax
+  const preferredStartTimelineResult = calculatePreferredStartTimelineMatch(
+    engineer.startTimeline as StartTimeline,
+    context.preferredStartTimeline,
+    params.preferredStartTimelineMatchMax
   );
 
   const preferredTimezoneResult = calculatePreferredTimezoneMatch(
@@ -447,7 +447,7 @@ export function calculateUtilityWithBreakdown(
     skillMatch: calculateWeighted(skillMatchRaw, weights.skillMatch),
     confidence: calculateWeighted(confidenceRaw, weights.confidenceScore),
     experience: calculateWeighted(experienceRaw, weights.yearsExperience),
-    availability: calculateWeighted(availabilityRaw, weights.availability),
+    startTimeline: calculateWeighted(startTimelineRaw, weights.startTimeline),
     salary: calculateWeighted(salaryRaw, weights.salary),
   };
 
@@ -457,7 +457,7 @@ export function calculateUtilityWithBreakdown(
     teamFocusMatch: calculateWeighted(teamFocusResult.raw, weights.teamFocusMatch),
     relatedSkillsMatch: calculateWeighted(relatedSkillsResult.raw, weights.relatedSkillsMatch),
     preferredDomainMatch: calculateWeighted(preferredDomainResult.raw, weights.preferredDomainMatch),
-    preferredAvailabilityMatch: calculateWeighted(preferredAvailabilityResult.raw, weights.preferredAvailabilityMatch),
+    preferredStartTimelineMatch: calculateWeighted(preferredStartTimelineResult.raw, weights.preferredStartTimelineMatch),
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
     preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
@@ -503,11 +503,11 @@ export function calculateUtilityWithBreakdown(
       matchedDomains: preferredDomainResult.matchedDomainNames,
     };
   }
-  if (matchScores.preferredAvailabilityMatch > 0) {
-    preferenceMatches.preferredAvailabilityMatch = {
-      score: matchScores.preferredAvailabilityMatch,
-      matchedAvailability: preferredAvailabilityResult.matchedAvailability!,
-      rank: preferredAvailabilityResult.rank,
+  if (matchScores.preferredStartTimelineMatch > 0) {
+    preferenceMatches.preferredStartTimelineMatch = {
+      score: matchScores.preferredStartTimelineMatch,
+      matchedStartTimeline: preferredStartTimelineResult.matchedStartTimeline!,
+      rank: preferredStartTimelineResult.rank,
     };
   }
   if (matchScores.preferredTimezoneMatch > 0) {
@@ -573,8 +573,8 @@ export function calculateUtilityScore(
     params.yearsExperienceMax
   );
 
-  const availabilityUtility = calculateAvailabilityUtility(
-    engineer.availability as AvailabilityOption
+  const startTimelineUtility = calculateStartTimelineUtility(
+    engineer.startTimeline as StartTimeline
   );
 
   const salaryUtility = calculateSalaryUtility(
@@ -608,10 +608,10 @@ export function calculateUtilityScore(
   );
 
   // Calculate preference match utilities
-  const preferredAvailabilityUtility = calculatePreferredAvailabilityMatch(
-    engineer.availability as AvailabilityOption,
-    context.preferredAvailability,
-    params.preferredAvailabilityMatchMax
+  const preferredStartTimelineUtility = calculatePreferredStartTimelineMatch(
+    engineer.startTimeline as StartTimeline,
+    context.preferredStartTimeline,
+    params.preferredStartTimelineMatchMax
   ).raw;
 
   const preferredTimezoneUtility = calculatePreferredTimezoneMatch(
@@ -643,14 +643,14 @@ export function calculateUtilityScore(
     weights.skillMatch * skillMatchUtility +
     weights.confidenceScore * confidenceUtility +
     weights.yearsExperience * experienceUtility +
-    weights.availability * availabilityUtility +
+    weights.startTimeline * startTimelineUtility +
     weights.salary * salaryUtility +
     weights.preferredSkillsMatch * preferredSkillsMatchUtility +
     weights.teamFocusMatch * teamFocusMatchUtility +
     weights.relatedSkillsMatch * relatedSkillsMatchUtility +
     weights.preferredDomainMatch * preferredDomainMatchUtility +
     // Preference matches
-    weights.preferredAvailabilityMatch * preferredAvailabilityUtility +
+    weights.preferredStartTimelineMatch * preferredStartTimelineUtility +
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
     weights.preferredSeniorityMatch * preferredSeniorityUtility +
     weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility +
@@ -720,13 +720,13 @@ function calculateExperienceUtility(
 }
 
 /**
- * Calculates availability utility.
- * Step function based on availability value.
+ * Calculates start timeline utility.
+ * Step function based on timeline value.
  */
-function calculateAvailabilityUtility(
-  availability: AvailabilityOption
+function calculateStartTimelineUtility(
+  startTimeline: StartTimeline
 ): number {
-  return config.availabilityUtility[availability] ?? 0;
+  return config.startTimelineUtility[startTimeline] ?? 0;
 }
 
 /**

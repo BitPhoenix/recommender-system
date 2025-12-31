@@ -17,7 +17,7 @@
 import type {
   UtilityWeights,
   UtilityFunctionParams,
-  AvailabilityUtility,
+  StartTimelineUtility,
 } from '../../types/knowledge-base.types.js';
 
 /**
@@ -35,13 +35,13 @@ export const utilityWeights: UtilityWeights = {
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
   yearsExperience: 0.11,
-  availability: 0.11,
+  startTimeline: 0.11,
   salary: 0.07,
 
   // Preference matches (conditional on request specifying them)
   preferredSkillsMatch: 0.08,
   preferredDomainMatch: 0.04,
-  preferredAvailabilityMatch: 0.03,
+  preferredStartTimelineMatch: 0.03,
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
@@ -75,7 +75,7 @@ export const utilityParams: UtilityFunctionParams = {
   teamFocusMatchMax: 0.5,
   relatedSkillsMatchMax: 5,
   preferredDomainMatchMax: 1.0,
-  preferredAvailabilityMatchMax: 1.0,
+  preferredStartTimelineMatchMax: 1.0,
   preferredTimezoneMatchMax: 1.0,
   preferredSeniorityMatchMax: 1.0,
   preferredSalaryRangeMatchMax: 1.0,
@@ -84,15 +84,20 @@ export const utilityParams: UtilityFunctionParams = {
 };
 
 /**
- * Availability Step Function Values (Section 5.2.3, p.178)
+ * Start Timeline Step Function Values (Section 5.2.3, p.178)
  *
- * Discrete utility values for categorical availability attribute.
+ * Discrete utility values for categorical start timeline attribute.
  * Step functions are appropriate for categorical attributes where
  * each value has a distinct, non-interpolatable utility.
+ *
+ * Note: All options have positive utility - even candidates who need a year
+ * are valuable to include in results, just ranked lower.
  */
-export const availabilityUtility: AvailabilityUtility = {
+export const startTimelineUtility: StartTimelineUtility = {
   immediate: 1.0,
-  two_weeks: 0.8,
-  one_month: 0.5,
-  not_available: 0.0,
+  two_weeks: 0.9,
+  one_month: 0.75,
+  three_months: 0.5,
+  six_months: 0.25,
+  one_year: 0.1,
 };

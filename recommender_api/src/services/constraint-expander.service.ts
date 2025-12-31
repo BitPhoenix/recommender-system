@@ -12,7 +12,7 @@
 import type {
   SearchFilterRequest,
   AppliedConstraint,
-  AvailabilityOption,
+  StartTimeline,
   SeniorityLevel,
   TeamFocus,
   SkillRequirement,
@@ -28,8 +28,8 @@ export interface ExpandedConstraints {
   minYearsExperience: number;
   maxYearsExperience: number | null;
 
-  // Availability
-  availability: AvailabilityOption[];
+  // Start timeline (when candidate could start)
+  startTimeline: StartTimeline[];
 
   // Timezone
   timezonePrefix: string | null;
@@ -51,7 +51,7 @@ export interface ExpandedConstraints {
 
   // Pass-through preferred values for utility calculation
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredAvailability: AvailabilityOption[];
+  preferredStartTimeline: StartTimeline[];
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
 }
@@ -96,25 +96,25 @@ function expandSeniorityToYearsExperience(
 }
 
 
-function expandAvailabilityConstraint(
-  requiredAvailability: AvailabilityOption[] | undefined,
+function expandStartTimelineConstraint(
+  requiredStartTimeline: StartTimeline[] | undefined,
   config: KnowledgeBaseConfig
-): { availability: AvailabilityOption[]; context: ExpansionContext } {
+): { startTimeline: StartTimeline[]; context: ExpansionContext } {
   const context: ExpansionContext = { constraints: [], defaults: [] };
 
-  const availability = requiredAvailability || config.defaults.requiredAvailability;
-  if (!requiredAvailability) {
-    context.defaults.push('requiredAvailability');
+  const startTimeline = requiredStartTimeline || config.defaults.requiredStartTimeline;
+  if (!requiredStartTimeline) {
+    context.defaults.push('requiredStartTimeline');
   }
 
   context.constraints.push({
-    field: 'availability',
+    field: 'startTimeline',
     operator: 'IN',
-    value: JSON.stringify(availability),
-    source: requiredAvailability ? 'user' : 'knowledge_base',
+    value: JSON.stringify(startTimeline),
+    source: requiredStartTimeline ? 'user' : 'knowledge_base',
   });
 
-  return { availability, context };
+  return { startTimeline, context };
 }
 
 function expandTimezoneToPrefix(
@@ -266,11 +266,11 @@ function trackPreferredValuesAsConstraints(request: SearchFilterRequest): Expans
     });
   }
 
-  if (request.preferredAvailability && request.preferredAvailability.length > 0) {
+  if (request.preferredStartTimeline && request.preferredStartTimeline.length > 0) {
     context.constraints.push({
-      field: 'preferredAvailability',
+      field: 'preferredStartTimeline',
       operator: 'BOOST',
-      value: JSON.stringify(request.preferredAvailability),
+      value: JSON.stringify(request.preferredStartTimeline),
       source: 'user',
     });
   }
@@ -319,7 +319,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
 
   // Expand each constraint type
   const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
-  const availability = expandAvailabilityConstraint(request.requiredAvailability, config);
+  const timeline = expandStartTimelineConstraint(request.requiredStartTimeline, config);
   const timezone = expandTimezoneToPrefix(request.requiredTimezone);
   const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
@@ -332,7 +332,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // Merge all contexts
   const merged = mergeContexts(
     seniority.context,
-    availability.context,
+    timeline.context,
     timezone.context,
     salary.context,
     teamFocus.context,
@@ -344,7 +344,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   return {
     minYearsExperience: seniority.minYears,
     maxYearsExperience: seniority.maxYears,
-    availability: availability.availability,
+    startTimeline: timeline.startTimeline,
     timezonePrefix: timezone.timezonePrefix,
     maxSalary: salary.maxSalary,
     minSalary: salary.minSalary,
@@ -355,7 +355,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     defaultsApplied: merged.defaults,
     // Pass-through preferred values
     preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
-    preferredAvailability: request.preferredAvailability ?? [],
+    preferredStartTimeline: request.preferredStartTimeline ?? [],
     preferredTimezone: request.preferredTimezone ?? [],
     preferredSalaryRange: request.preferredSalaryRange ?? null,
   };

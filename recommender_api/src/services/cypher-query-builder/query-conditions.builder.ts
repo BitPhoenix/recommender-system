@@ -1,6 +1,6 @@
 /**
  * Builds basic engineer filters (property-level WHERE conditions).
- * These are direct property comparisons on the Engineer node (availability,
+ * These are direct property comparisons on the Engineer node (startTimeline,
  * experience, timezone, salary) - separate from skill-matching filters.
  */
 
@@ -13,12 +13,12 @@ export function buildBasicEngineerFilters(
   params: CypherQueryParams
 ): BasicEngineerFilters {
   const queryParams: Record<string, unknown> = {
-    availability: params.availability,
+    startTimeline: params.startTimeline,
     minYearsExperience: params.minYearsExperience,
   };
 
   const conditions: string[] = [
-    "e.availability IN $availability",
+    "e.startTimeline IN $startTimeline",
     "e.yearsExperience >= $minYearsExperience",
   ];
 

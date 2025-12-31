@@ -9,7 +9,7 @@
 // Re-export types from schemas
 export type {
   SeniorityLevel,
-  AvailabilityOption,
+  StartTimeline,
   ProficiencyLevel,
   TeamFocus,
   PreferredSalaryRange,
@@ -43,7 +43,7 @@ export interface CoreScores {
   skillMatch: number;
   confidence: number;
   experience: number;
-  availability: number;
+  startTimeline: number;
   salary: number;
 }
 
@@ -68,9 +68,9 @@ export interface PreferredDomainMatch {
   matchedDomains: string[];
 }
 
-export interface PreferredAvailabilityMatch {
+export interface PreferredStartTimelineMatch {
   score: number;
-  matchedAvailability: string;
+  matchedStartTimeline: string;
   rank: number;
 }
 
@@ -98,7 +98,7 @@ export interface PreferenceMatches {
   teamFocusMatch?: TeamFocusMatch;
   relatedSkillsMatch?: RelatedSkillsMatch;
   preferredDomainMatch?: PreferredDomainMatch;
-  preferredAvailabilityMatch?: PreferredAvailabilityMatch;
+  preferredStartTimelineMatch?: PreferredStartTimelineMatch;
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
   preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;
@@ -117,7 +117,7 @@ export interface EngineerMatch {
   headline: string;
   salary: number;
   yearsExperience: number;
-  availability: string;
+  startTimeline: string;
   timezone: string;
   matchedSkills: MatchedSkill[];
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];  // Skills in hierarchy but failing constraints
