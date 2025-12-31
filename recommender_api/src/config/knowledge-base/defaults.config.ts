@@ -18,8 +18,10 @@ import type { SearchDefaults } from '../../types/knowledge-base.types.js';
  * while maintaining reasonable quality thresholds.
  */
 export const defaults: SearchDefaults = {
-  requiredRiskTolerance: 'medium',
-  requiredMinProficiency: 'proficient',
+  // Confidence score is now internalized (equivalent to 'medium' risk tolerance)
+  defaultMinConfidenceScore: 0.70,
+  // Default proficiency for skills without explicit minProficiency
+  defaultMinProficiency: 'learning',
   requiredAvailability: ['immediate', 'two_weeks', 'one_month'], // excludes not_available
   limit: 20,
   offset: 0,

@@ -29,7 +29,6 @@ import { proficiencyMapping } from './filter-conditions.config.js';
 // Compatibility Constraints (Indirect Mappings)
 import {
   seniorityMapping,
-  riskToleranceMapping,
   teamFocusSkillAlignment,
 } from './compatibility-constraints.config.js';
 
@@ -55,7 +54,6 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
 
   // Compatibility Constraints (Section 5.2, p.174)
   seniorityMapping,
-  riskToleranceMapping,
   teamFocusSkillAlignment,
 
   // Default Values (Section 5.2.2, p.176-177)
@@ -71,7 +69,6 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
 export {
   proficiencyMapping,
   seniorityMapping,
-  riskToleranceMapping,
   teamFocusSkillAlignment,
   defaults,
   utilityWeights,

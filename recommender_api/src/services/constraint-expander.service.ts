@@ -2,18 +2,20 @@
  * Constraint Expander Service
  * Implements Section 5.2.1 - expanding user requirements into database constraints.
  *
- * This service translates manager language (seniorityLevel, riskTolerance, teamFocus)
+ * This service translates manager language (seniorityLevel, teamFocus)
  * into concrete database constraints using the knowledge base rules.
+ *
+ * Note: Risk tolerance and global proficiency have been replaced by per-skill
+ * proficiency requirements. Confidence score is now fixed at 0.70.
  */
 
 import type {
   SearchFilterRequest,
   AppliedConstraint,
-  ProficiencyLevel,
   AvailabilityOption,
   SeniorityLevel,
-  RiskTolerance,
   TeamFocus,
+  SkillRequirement,
 } from '../types/search.types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
@@ -26,9 +28,8 @@ export interface ExpandedConstraints {
   minYearsExperience: number;
   maxYearsExperience: number | null;
 
-  // Quality constraints
+  // Fixed confidence score (internalized from medium risk tolerance)
   minConfidenceScore: number;
-  allowedProficiencyLevels: ProficiencyLevel[];
 
   // Availability
   availability: AvailabilityOption[];
@@ -56,8 +57,6 @@ export interface ExpandedConstraints {
   preferredAvailability: AvailabilityOption[];
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
-  preferredConfidenceScore: number | null;
-  preferredProficiency: ProficiencyLevel | null;
 }
 
 interface ExpansionContext {
@@ -99,52 +98,6 @@ function expandSeniorityToYearsExperience(
   return { minYears, maxYears, context };
 }
 
-function expandRiskToleranceToConfidenceScore(
-  riskTolerance: RiskTolerance | undefined,
-  config: KnowledgeBaseConfig
-): { minConfidenceScore: number; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
-
-  const effectiveRiskTolerance = riskTolerance || config.defaults.requiredRiskTolerance;
-  if (!riskTolerance) {
-    context.defaults.push('requiredRiskTolerance');
-  }
-
-  const confidenceMapping = config.riskToleranceMapping[effectiveRiskTolerance];
-  const minConfidenceScore = confidenceMapping.minConfidenceScore;
-
-  context.constraints.push({
-    field: 'confidenceScore',
-    operator: '>=',
-    value: minConfidenceScore.toFixed(2),
-    source: riskTolerance ? 'user' : 'knowledge_base',
-  });
-
-  return { minConfidenceScore, context };
-}
-
-function expandMinProficiencyToAllowedLevels(
-  minProficiency: ProficiencyLevel | undefined,
-  config: KnowledgeBaseConfig
-): { allowedLevels: ProficiencyLevel[]; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
-
-  const effectiveProficiency = minProficiency || config.defaults.requiredMinProficiency;
-  if (!minProficiency) {
-    context.defaults.push('requiredMinProficiency');
-  }
-
-  const allowedLevels = config.proficiencyMapping[effectiveProficiency];
-
-  context.constraints.push({
-    field: 'proficiencyLevel',
-    operator: 'IN',
-    value: JSON.stringify(allowedLevels),
-    source: minProficiency ? 'user' : 'knowledge_base',
-  });
-
-  return { allowedLevels, context };
-}
 
 function expandAvailabilityConstraint(
   requiredAvailability: AvailabilityOption[] | undefined,
@@ -264,25 +217,39 @@ function expandPaginationConstraints(
 }
 
 function trackSkillsAsConstraints(
-  requiredSkills: string[] | undefined,
-  preferredSkills: string[] | undefined
+  requiredSkills: SkillRequirement[] | undefined,
+  preferredSkills: SkillRequirement[] | undefined
 ): ExpansionContext {
   const context: ExpansionContext = { constraints: [], defaults: [] };
 
   if (requiredSkills && requiredSkills.length > 0) {
+    // Track skill requirements with their proficiency levels
+    const skillSummary = requiredSkills.map((s) => {
+      const parts = [s.skill];
+      if (s.minProficiency) parts.push(`min:${s.minProficiency}`);
+      if (s.preferredMinProficiency) parts.push(`pref:${s.preferredMinProficiency}`);
+      return parts.join('|');
+    });
+
     context.constraints.push({
       field: 'requiredSkills',
       operator: 'IN',
-      value: JSON.stringify(requiredSkills),
+      value: JSON.stringify(skillSummary),
       source: 'user',
     });
   }
 
   if (preferredSkills && preferredSkills.length > 0) {
+    const skillSummary = preferredSkills.map((s) => {
+      const parts = [s.skill];
+      if (s.preferredMinProficiency) parts.push(`pref:${s.preferredMinProficiency}`);
+      return parts.join('|');
+    });
+
     context.constraints.push({
       field: 'preferredSkills',
       operator: 'BOOST',
-      value: JSON.stringify(preferredSkills),
+      value: JSON.stringify(skillSummary),
       source: 'user',
     });
   }
@@ -329,23 +296,9 @@ function trackPreferredValuesAsConstraints(request: SearchFilterRequest): Expans
     });
   }
 
-  if (request.preferredConfidenceScore !== undefined) {
-    context.constraints.push({
-      field: 'preferredConfidenceScore',
-      operator: 'BOOST',
-      value: request.preferredConfidenceScore.toString(),
-      source: 'user',
-    });
-  }
-
-  if (request.preferredProficiency) {
-    context.constraints.push({
-      field: 'preferredProficiency',
-      operator: 'BOOST',
-      value: request.preferredProficiency,
-      source: 'user',
-    });
-  }
+  // Note: preferredConfidenceScore and preferredProficiency have been removed.
+  // Per-skill proficiency preferences are now handled via preferredMinProficiency
+  // on each SkillRequirement in requiredSkills/preferredSkills.
 
   return context;
 }
@@ -369,13 +322,23 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
 
   // Expand each constraint type
   const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
-  const riskTolerance = expandRiskToleranceToConfidenceScore(request.requiredRiskTolerance, config);
-  const proficiency = expandMinProficiencyToAllowedLevels(request.requiredMinProficiency, config);
   const availability = expandAvailabilityConstraint(request.requiredAvailability, config);
   const timezone = expandTimezoneToPrefix(request.requiredTimezone);
   const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
   const pagination = expandPaginationConstraints(request.limit, request.offset, config);
+
+  // Fixed confidence score (internalized from medium risk tolerance)
+  const minConfidenceScore = config.defaults.defaultMinConfidenceScore;
+  const confidenceContext: ExpansionContext = {
+    constraints: [{
+      field: 'confidenceScore',
+      operator: '>=',
+      value: minConfidenceScore.toFixed(2),
+      source: 'knowledge_base',
+    }],
+    defaults: [],
+  };
 
   // Track skills and preferred values as constraints
   const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
@@ -384,8 +347,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // Merge all contexts
   const merged = mergeContexts(
     seniority.context,
-    riskTolerance.context,
-    proficiency.context,
+    confidenceContext,
     availability.context,
     timezone.context,
     salary.context,
@@ -398,8 +360,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   return {
     minYearsExperience: seniority.minYears,
     maxYearsExperience: seniority.maxYears,
-    minConfidenceScore: riskTolerance.minConfidenceScore,
-    allowedProficiencyLevels: proficiency.allowedLevels,
+    minConfidenceScore,
     availability: availability.availability,
     timezonePrefix: timezone.timezonePrefix,
     maxSalary: salary.maxSalary,
@@ -414,7 +375,5 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     preferredAvailability: request.preferredAvailability ?? [],
     preferredTimezone: request.preferredTimezone ?? [],
     preferredSalaryRange: request.preferredSalaryRange ?? null,
-    preferredConfidenceScore: request.preferredConfidenceScore ?? null,
-    preferredProficiency: request.preferredProficiency ?? null,
   };
 }

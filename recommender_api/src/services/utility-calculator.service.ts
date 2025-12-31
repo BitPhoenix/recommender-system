@@ -45,8 +45,8 @@ export interface UtilityContext {
   preferredAvailability: AvailabilityOption[];
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
-  preferredConfidenceScore: number | null;
-  preferredProficiency: ProficiencyLevel | null;
+  // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
+  preferredSkillProficiencies: Map<string, ProficiencyLevel>;
 }
 
 export interface ScoredEngineer extends EngineerData {
@@ -209,15 +209,6 @@ interface PreferredSalaryRangeMatchResult {
   inPreferredRange: boolean;
 }
 
-interface PreferredConfidenceMatchResult {
-  raw: number;
-  meetsPreferred: boolean;
-}
-
-interface PreferredProficiencyMatchResult {
-  raw: number;
-  matchedLevel: boolean;
-}
 
 /**
  * Calculates preferred availability match.
@@ -315,47 +306,44 @@ function calculatePreferredSalaryRangeMatch(
   return { raw: inPreferredRange ? maxMatch : 0, inPreferredRange };
 }
 
-/**
- * Calculates preferred confidence score match.
- * Full score if engineer's average confidence meets threshold.
- */
-function calculatePreferredConfidenceMatch(
-  avgConfidence: number,
-  preferredConfidenceScore: number | null,
-  maxMatch: number
-): PreferredConfidenceMatchResult {
-  if (preferredConfidenceScore === null || avgConfidence <= 0) {
-    return { raw: 0, meetsPreferred: false };
-  }
-
-  const meetsPreferred = avgConfidence >= preferredConfidenceScore;
-
-  return { raw: meetsPreferred ? maxMatch : 0, meetsPreferred };
+interface PreferredSkillProficiencyMatchResult {
+  raw: number;
+  skillsExceedingPreferred: string[];
 }
 
 /**
- * Calculates preferred proficiency match.
- * Full score if engineer has skills at or above preferred level.
+ * Calculates per-skill preferred proficiency match.
+ * For each skill with a preferredMinProficiency, checks if engineer exceeds it.
+ * Returns normalized score and list of skills exceeding their preferred level.
  */
-function calculatePreferredProficiencyMatch(
+function calculatePreferredSkillProficiencyMatch(
   matchedSkills: MatchedSkill[],
-  preferredProficiency: ProficiencyLevel | null,
+  preferredSkillProficiencies: Map<string, ProficiencyLevel>,
   maxMatch: number
-): PreferredProficiencyMatchResult {
-  if (!preferredProficiency || matchedSkills.length === 0) {
-    return { raw: 0, matchedLevel: false };
+): PreferredSkillProficiencyMatchResult {
+  if (preferredSkillProficiencies.size === 0 || matchedSkills.length === 0) {
+    return { raw: 0, skillsExceedingPreferred: [] };
   }
 
   const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
-  const preferredIndex = proficiencyOrder.indexOf(preferredProficiency);
+  const skillsExceedingPreferred: string[] = [];
 
-  // Check if any matched skill meets or exceeds preferred proficiency
-  const matchedLevel = matchedSkills.some((skill) => {
-    const skillIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
-    return skillIndex >= preferredIndex;
-  });
+  for (const skill of matchedSkills) {
+    const preferredLevel = preferredSkillProficiencies.get(skill.skillId);
+    if (preferredLevel) {
+      const preferredIndex = proficiencyOrder.indexOf(preferredLevel);
+      const actualIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
+      if (actualIndex >= preferredIndex) {
+        skillsExceedingPreferred.push(skill.skillName);
+      }
+    }
+  }
 
-  return { raw: matchedLevel ? maxMatch : 0, matchedLevel };
+  // Normalize by how many skills have preferred requirements
+  const matchRatio = skillsExceedingPreferred.length / preferredSkillProficiencies.size;
+  const raw = Math.min(matchRatio * maxMatch, maxMatch);
+
+  return { raw, skillsExceedingPreferred };
 }
 
 function calculateWeighted(raw: number, weight: number): number {
@@ -448,15 +436,9 @@ export function calculateUtilityWithBreakdown(
     params.preferredSalaryRangeMatchMax
   );
 
-  const preferredConfidenceResult = calculatePreferredConfidenceMatch(
-    engineer.avgConfidence,
-    context.preferredConfidenceScore,
-    params.preferredConfidenceMatchMax
-  );
-
-  const preferredProficiencyResult = calculatePreferredProficiencyMatch(
+  const preferredSkillProficiencyResult = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
-    context.preferredProficiency,
+    context.preferredSkillProficiencies,
     params.preferredProficiencyMatchMax
   );
 
@@ -479,8 +461,7 @@ export function calculateUtilityWithBreakdown(
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
     preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
-    preferredConfidenceMatch: calculateWeighted(preferredConfidenceResult.raw, weights.preferredConfidenceMatch),
-    preferredProficiencyMatch: calculateWeighted(preferredProficiencyResult.raw, weights.preferredProficiencyMatch),
+    preferredSkillProficiencyMatch: calculateWeighted(preferredSkillProficiencyResult.raw, weights.preferredProficiencyMatch),
   };
 
   // Sum all weighted scores
@@ -546,14 +527,10 @@ export function calculateUtilityWithBreakdown(
       score: matchScores.preferredSalaryRangeMatch,
     };
   }
-  if (matchScores.preferredConfidenceMatch > 0) {
-    preferenceMatches.preferredConfidenceMatch = {
-      score: matchScores.preferredConfidenceMatch,
-    };
-  }
-  if (matchScores.preferredProficiencyMatch > 0) {
-    preferenceMatches.preferredProficiencyMatch = {
-      score: matchScores.preferredProficiencyMatch,
+  if (matchScores.preferredSkillProficiencyMatch > 0) {
+    preferenceMatches.preferredSkillProficiencyMatch = {
+      score: matchScores.preferredSkillProficiencyMatch,
+      skillsExceedingPreferred: preferredSkillProficiencyResult.skillsExceedingPreferred,
     };
   }
 
@@ -655,15 +632,9 @@ export function calculateUtilityScore(
     params.preferredSalaryRangeMatchMax
   ).raw;
 
-  const preferredConfidenceUtility = calculatePreferredConfidenceMatch(
-    engineer.avgConfidence,
-    context.preferredConfidenceScore,
-    params.preferredConfidenceMatchMax
-  ).raw;
-
-  const preferredProficiencyUtility = calculatePreferredProficiencyMatch(
+  const preferredSkillProficiencyUtility = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
-    context.preferredProficiency,
+    context.preferredSkillProficiencies,
     params.preferredProficiencyMatchMax
   ).raw;
 
@@ -683,8 +654,7 @@ export function calculateUtilityScore(
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
     weights.preferredSeniorityMatch * preferredSeniorityUtility +
     weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility +
-    weights.preferredConfidenceMatch * preferredConfidenceUtility +
-    weights.preferredProficiencyMatch * preferredProficiencyUtility;
+    weights.preferredProficiencyMatch * preferredSkillProficiencyUtility;
 
   return Math.round(utilityScore * 100) / 100; // Round to 2 decimal places
 }

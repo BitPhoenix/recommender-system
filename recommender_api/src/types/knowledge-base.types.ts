@@ -9,7 +9,6 @@
 
 import type {
   SeniorityLevel,
-  RiskTolerance,
   TeamFocus,
   ProficiencyLevel,
   AvailabilityOption,
@@ -29,16 +28,6 @@ export interface ExperienceRange {
 }
 
 export type SeniorityMapping = Record<SeniorityLevel, ExperienceRange>;
-
-/**
- * Maps risk tolerance to confidence score thresholds.
- * Example: "medium" -> confidenceScore >= 0.70
- */
-export interface ConfidenceThreshold {
-  minConfidenceScore: number;
-}
-
-export type RiskToleranceMapping = Record<RiskTolerance, ConfidenceThreshold>;
 
 /**
  * Maps proficiency levels to allowed values.
@@ -69,9 +58,9 @@ export type TeamFocusSkillAlignmentMapping = Record<TeamFocus, TeamFocusSkillAli
  * Sensible defaults applied when fields are unspecified.
  */
 export interface SearchDefaults {
-  requiredRiskTolerance: RiskTolerance;      // was: riskTolerance
-  requiredMinProficiency: ProficiencyLevel;  // was: minProficiency
-  requiredAvailability: AvailabilityOption[]; // was: availability
+  defaultMinConfidenceScore: number;         // Fixed at 0.70 (medium risk equivalent)
+  defaultMinProficiency: ProficiencyLevel;   // Default for skills without explicit minProficiency
+  requiredAvailability: AvailabilityOption[];
   limit: number;
   offset: number;
 }
@@ -99,7 +88,7 @@ export interface UtilityWeights {
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
   preferredSalaryRangeMatch: number;
-  preferredConfidenceMatch: number;
+  // Per-skill preferred proficiency match
   preferredProficiencyMatch: number;
 
   // Team context alignment
@@ -128,7 +117,7 @@ export interface UtilityFunctionParams {
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;
   preferredSalaryRangeMatchMax: number;
-  preferredConfidenceMatchMax: number;
+  // Per-skill preferred proficiency match max
   preferredProficiencyMatchMax: number;
 }
 
@@ -143,7 +132,6 @@ export type AvailabilityUtility = Record<AvailabilityOption, number>;
 
 export interface KnowledgeBaseConfig {
   seniorityMapping: SeniorityMapping;
-  riskToleranceMapping: RiskToleranceMapping;
   proficiencyMapping: ProficiencyMapping;
   teamFocusSkillAlignment: TeamFocusSkillAlignmentMapping;
   defaults: SearchDefaults;

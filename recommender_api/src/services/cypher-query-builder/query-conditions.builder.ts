@@ -1,15 +1,17 @@
 /**
- * Builds shared engineer-level WHERE conditions and query params.
+ * Builds basic engineer filters (property-level WHERE conditions).
+ * These are direct property comparisons on the Engineer node (availability,
+ * experience, timezone, salary) - separate from skill-matching filters.
  */
 
 import type {
   CypherQueryParams,
-  EngineerConditionsResult,
+  BasicEngineerFilters,
 } from "./query-types.js";
 
-export function buildEngineerQueryConditions(
+export function buildBasicEngineerFilters(
   params: CypherQueryParams
-): EngineerConditionsResult {
+): BasicEngineerFilters {
   const queryParams: Record<string, unknown> = {
     availability: params.availability,
     minYearsExperience: params.minYearsExperience,

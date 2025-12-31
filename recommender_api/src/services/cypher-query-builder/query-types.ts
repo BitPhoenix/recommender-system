@@ -3,23 +3,34 @@
  */
 
 import type {
-  ProficiencyLevel,
   AvailabilityOption,
 } from "../../types/search.types.js";
 
 export interface CypherQueryParams {
-  expandedSkillIds: string[] | null;
-  requestedSkillIdentifiers: string[] | null;
+  // Per-skill proficiency buckets: skill IDs grouped by their minimum proficiency requirement
+  learningLevelSkillIds: string[];
+  proficientLevelSkillIds: string[];
+  expertLevelSkillIds: string[];
+
+  // Original skill identifiers from the request (for matchType classification)
+  originalSkillIdentifiers: string[] | null;
+
+  // Fixed confidence score threshold (internalized at 0.70)
+  minConfidenceScore: number;
+
+  // Basic engineer filters
   availability: AvailabilityOption[];
   minYearsExperience: number;
   maxYearsExperience: number | null;
-  minConfidenceScore: number;
-  allowedProficiencyLevels: ProficiencyLevel[];
   timezonePrefix: string | null;
   maxSalary: number | null;
   minSalary: number | null;
+
+  // Pagination
   offset: number;
   limit: number;
+
+  // Domain filtering
   requiredDomainIds?: string[];
   preferredDomainIds?: string[];
 }
@@ -29,7 +40,7 @@ export interface CypherQuery {
   params: Record<string, unknown>;
 }
 
-export interface EngineerConditionsResult {
+export interface BasicEngineerFilters {
   conditions: string[];
   queryParams: Record<string, unknown>;
 }

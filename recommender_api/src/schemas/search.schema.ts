@@ -17,8 +17,6 @@ export const AvailabilityOptionSchema = z.enum([
   'immediate', 'two_weeks', 'one_month', 'not_available'
 ]);
 
-export const RiskToleranceSchema = z.enum(['low', 'medium', 'high']);
-
 export const ProficiencyLevelSchema = z.enum(['learning', 'proficient', 'expert']);
 
 export const TeamFocusSchema = z.enum([
@@ -37,6 +35,17 @@ export const PreferredSalaryRangeSchema = z.object({
   { message: 'min must be less than or equal to max' }
 );
 
+/**
+ * Skill requirement with per-skill proficiency thresholds.
+ * - minProficiency: Hard filter (defaults to 'learning' = any level)
+ * - preferredMinProficiency: Ranking boost if exceeded
+ */
+export const SkillRequirementSchema = z.object({
+  skill: z.string(),
+  minProficiency: ProficiencyLevelSchema.optional(),
+  preferredMinProficiency: ProficiencyLevelSchema.optional(),
+});
+
 // ============================================
 // MAIN REQUEST SCHEMA
 // ============================================
@@ -46,9 +55,9 @@ export const SearchFilterRequestSchema = z.object({
   requiredSeniorityLevel: SeniorityLevelSchema.optional(),
   preferredSeniorityLevel: SeniorityLevelSchema.optional(),
 
-  // Skills
-  requiredSkills: z.array(z.string()).optional(),
-  preferredSkills: z.array(z.string()).optional(),
+  // Skills - now with per-skill proficiency requirements
+  requiredSkills: z.array(SkillRequirementSchema).optional(),
+  preferredSkills: z.array(SkillRequirementSchema).optional(),
 
   // Availability
   requiredAvailability: z.array(AvailabilityOptionSchema).optional(),
@@ -63,16 +72,10 @@ export const SearchFilterRequestSchema = z.object({
   requiredMinSalary: z.number().positive().optional(),
   preferredSalaryRange: PreferredSalaryRangeSchema.optional(),
 
-  // Quality metrics
-  requiredRiskTolerance: RiskToleranceSchema.optional(),
-  requiredMinProficiency: ProficiencyLevelSchema.optional(),
-  preferredProficiency: ProficiencyLevelSchema.optional(),
-  preferredConfidenceScore: z.number().min(0).max(1).optional(),
-
   // Context
   teamFocus: TeamFocusSchema.optional(),
 
-  // Domains
+  // Domains (no per-domain proficiency)
   requiredDomains: z.array(z.string()).optional(),
   preferredDomains: z.array(z.string()).optional(),
 
@@ -98,8 +101,8 @@ export const SearchFilterRequestSchema = z.object({
 
 export type SeniorityLevel = z.infer<typeof SeniorityLevelSchema>;
 export type AvailabilityOption = z.infer<typeof AvailabilityOptionSchema>;
-export type RiskTolerance = z.infer<typeof RiskToleranceSchema>;
 export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
 export type TeamFocus = z.infer<typeof TeamFocusSchema>;
 export type PreferredSalaryRange = z.infer<typeof PreferredSalaryRangeSchema>;
+export type SkillRequirement = z.infer<typeof SkillRequirementSchema>;
 export type SearchFilterRequest = z.infer<typeof SearchFilterRequestSchema>;

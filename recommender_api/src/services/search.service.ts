@@ -12,9 +12,15 @@ import type {
   MatchedSkill,
   UnmatchedRelatedSkill,
   ConstraintViolation,
+  ProficiencyLevel,
+  SkillRequirement,
 } from '../types/search.types.js';
 import { expandConstraints } from './constraint-expander.service.js';
-import { resolveSkillHierarchy } from './skill-resolver.service.js';
+import {
+  resolveSkillHierarchy,
+  resolveSkillRequirements,
+  type ResolvedSkillWithProficiency,
+} from './skill-resolver.service.js';
 import {
   buildSearchQuery,
   type CypherQueryParams,
@@ -24,6 +30,54 @@ import {
   type EngineerData,
   type UtilityContext,
 } from './utility-calculator.service.js';
+import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
+
+/**
+ * Groups resolved skills by their minProficiency level for efficient query filtering.
+ * Returns three arrays: skills requiring 'learning', 'proficient', or 'expert' minimum.
+ */
+function groupSkillsByProficiency(
+  resolvedSkills: ResolvedSkillWithProficiency[]
+): {
+  learningLevelSkillIds: string[];
+  proficientLevelSkillIds: string[];
+  expertLevelSkillIds: string[];
+} {
+  const learningLevelSkillIds: string[] = [];
+  const proficientLevelSkillIds: string[] = [];
+  const expertLevelSkillIds: string[] = [];
+
+  for (const skill of resolvedSkills) {
+    switch (skill.minProficiency) {
+      case 'learning':
+        learningLevelSkillIds.push(skill.skillId);
+        break;
+      case 'proficient':
+        proficientLevelSkillIds.push(skill.skillId);
+        break;
+      case 'expert':
+        expertLevelSkillIds.push(skill.skillId);
+        break;
+    }
+  }
+
+  return { learningLevelSkillIds, proficientLevelSkillIds, expertLevelSkillIds };
+}
+
+/**
+ * Extracts skills with preferredMinProficiency for utility calculation.
+ */
+function extractPreferredSkillProficiencies(
+  resolvedSkills: ResolvedSkillWithProficiency[]
+): Map<string, ProficiencyLevel> {
+  const result = new Map<string, ProficiencyLevel>();
+  for (const skill of resolvedSkills) {
+    if (skill.preferredMinProficiency) {
+      result.set(skill.skillId, skill.preferredMinProficiency);
+    }
+  }
+  return result;
+}
 
 // Raw skill data from Cypher query (before splitting into matched/unmatched)
 interface RawSkillData {
@@ -61,41 +115,69 @@ export async function executeSearch(
   request: SearchFilterRequest
 ): Promise<SearchFilterResponse> {
   const startTime = Date.now();
+  const config = knowledgeBaseConfig;
 
   // Step 1: Expand constraints using knowledge base rules
   const expanded = expandConstraints(request);
 
-  // Step 2: Resolve skill hierarchy if skills are specified
-  let expandedSkillIds: string[] | null = null;
+  // Step 2: Resolve skill requirements with per-skill proficiency
+  let skillGroups = {
+    learningLevelSkillIds: [] as string[],
+    proficientLevelSkillIds: [] as string[],
+    expertLevelSkillIds: [] as string[],
+  };
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
-  const requestedSkillIdentifiers = request.requiredSkills || null;
-  const skillsWereRequested = requestedSkillIdentifiers !== null && requestedSkillIdentifiers.length > 0;
+  let originalSkillIdentifiers: string[] = [];
+  let preferredSkillProficiencies = new Map<string, ProficiencyLevel>();
+
+  const requiredSkillRequests = request.requiredSkills || [];
+  const skillsWereRequested = requiredSkillRequests.length > 0;
 
   if (skillsWereRequested) {
-    const skillResolution = await resolveSkillHierarchy(session, requestedSkillIdentifiers);
-    expandedSkillIds = skillResolution.resolvedSkills.map((s) => s.skillId);
-    expandedSkillNames = skillResolution.expandedSkillNames;
-
-    // Track which requested skills didn't resolve to anything
-    // Use matchedIdentifiers which includes categories that matched
-    const matchedSet = new Set(
-      skillResolution.matchedIdentifiers.map((id) => id.toLowerCase())
+    const skillResolution = await resolveSkillRequirements(
+      session,
+      requiredSkillRequests,
+      config.defaults.defaultMinProficiency
     );
-    unresolvedSkills = requestedSkillIdentifiers.filter(
-      (id) => !matchedSet.has(id.toLowerCase())
+
+    skillGroups = groupSkillsByProficiency(skillResolution.resolvedSkills);
+    expandedSkillNames = skillResolution.expandedSkillNames;
+    unresolvedSkills = skillResolution.unresolvedIdentifiers;
+    originalSkillIdentifiers = skillResolution.originalIdentifiers;
+
+    // Extract preferred proficiencies for utility calculation
+    preferredSkillProficiencies = extractPreferredSkillProficiencies(
+      skillResolution.resolvedSkills
     );
   }
 
-  // Step 2b: Resolve preferred skills hierarchy
+  // Step 2b: Resolve preferred skills with proficiency
   let preferredSkillIds: string[] = [];
-  const preferredIdentifiers = request.preferredSkills || null;
-  const preferredSkillsWereRequested =
-    preferredIdentifiers !== null && preferredIdentifiers.length > 0;
+  let preferredSkillProficienciesFromPreferred = new Map<string, ProficiencyLevel>();
+
+  const preferredSkillRequests = request.preferredSkills || [];
+  const preferredSkillsWereRequested = preferredSkillRequests.length > 0;
 
   if (preferredSkillsWereRequested) {
-    const preferredResolution = await resolveSkillHierarchy(session, preferredIdentifiers);
+    const preferredResolution = await resolveSkillRequirements(
+      session,
+      preferredSkillRequests,
+      config.defaults.defaultMinProficiency
+    );
     preferredSkillIds = preferredResolution.resolvedSkills.map((s) => s.skillId);
+
+    // Extract preferred proficiencies from preferred skills
+    preferredSkillProficienciesFromPreferred = extractPreferredSkillProficiencies(
+      preferredResolution.resolvedSkills
+    );
+  }
+
+  // Merge preferred proficiencies from both required and preferred skills
+  for (const [skillId, proficiency] of preferredSkillProficienciesFromPreferred) {
+    if (!preferredSkillProficiencies.has(skillId)) {
+      preferredSkillProficiencies.set(skillId, proficiency);
+    }
   }
 
   // Step 2c: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
@@ -114,15 +196,18 @@ export async function executeSearch(
     preferredDomainIds = domainResolution.resolvedSkills.map((s) => s.skillId);
   }
 
-  // Step 3: Build query parameters
+  // Step 3: Build query parameters with per-skill proficiency buckets
   const queryParams: CypherQueryParams = {
-    expandedSkillIds,
-    requestedSkillIdentifiers,
+    // Per-skill proficiency buckets
+    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
+    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
+    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
+    originalSkillIdentifiers: originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
+    minConfidenceScore: expanded.minConfidenceScore,
+    // Basic engineer filters
     availability: expanded.availability,
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
-    minConfidenceScore: expanded.minConfidenceScore,
-    allowedProficiencyLevels: expanded.allowedProficiencyLevels,
     timezonePrefix: expanded.timezonePrefix,
     maxSalary: expanded.maxSalary,
     minSalary: expanded.minSalary,
@@ -134,7 +219,12 @@ export async function executeSearch(
   };
 
   // Step 4: Execute main query (unified for skill-filtered and unfiltered search)
-  const hasResolvedSkills = expandedSkillIds !== null && expandedSkillIds.length > 0;
+  const allSkillIds = [
+    ...skillGroups.learningLevelSkillIds,
+    ...skillGroups.proficientLevelSkillIds,
+    ...skillGroups.expertLevelSkillIds,
+  ];
+  const hasResolvedSkills = allSkillIds.length > 0;
   const mainQuery = buildSearchQuery(queryParams);
 
   // Run main query (now includes totalCount computed before pagination)
@@ -244,7 +334,7 @@ export async function executeSearch(
 
   // Step 6: Calculate utility scores and rank
   const utilityContext: UtilityContext = {
-    requestedSkillIds: expandedSkillIds || [],
+    requestedSkillIds: allSkillIds,
     preferredSkillIds,
     preferredDomainIds,
     alignedSkillIds: expanded.alignedSkillIds,
@@ -254,8 +344,8 @@ export async function executeSearch(
     preferredAvailability: expanded.preferredAvailability,
     preferredTimezone: expanded.preferredTimezone,
     preferredSalaryRange: expanded.preferredSalaryRange,
-    preferredConfidenceScore: expanded.preferredConfidenceScore,
-    preferredProficiency: expanded.preferredProficiency,
+    // Per-skill preferred proficiencies for ranking boost
+    preferredSkillProficiencies,
   };
 
   const engineerData: EngineerData[] = rawEngineers.map((raw) => ({

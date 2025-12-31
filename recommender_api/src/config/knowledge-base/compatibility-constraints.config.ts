@@ -14,7 +14,6 @@
 
 import type {
   SeniorityMapping,
-  RiskToleranceMapping,
   TeamFocusSkillAlignmentMapping,
 } from '../../types/knowledge-base.types.js';
 
@@ -33,21 +32,6 @@ export const seniorityMapping: SeniorityMapping = {
   senior: { minYears: 6, maxYears: 10 },
   staff: { minYears: 10, maxYears: null },
   principal: { minYears: 15, maxYears: null },
-};
-
-/**
- * Risk Tolerance Mappings (Section 5.2, p.174)
- *
- * Maps manager's risk tolerance to confidence score thresholds.
- * This is an indirect mapping because "risk tolerance" is a customer
- * attribute that influences what confidence levels are acceptable.
- *
- * Indirect mapping: requiredRiskTolerance=low ⇒ confidenceScore≥0.85
- */
-export const riskToleranceMapping: RiskToleranceMapping = {
-  low: { minConfidenceScore: 0.85 },
-  medium: { minConfidenceScore: 0.70 },
-  high: { minConfidenceScore: 0.50 },
 };
 
 /**

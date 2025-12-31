@@ -10,10 +10,10 @@
 export type {
   SeniorityLevel,
   AvailabilityOption,
-  RiskTolerance,
   ProficiencyLevel,
   TeamFocus,
   PreferredSalaryRange,
+  SkillRequirement,
   SearchFilterRequest,
 } from '../schemas/search.schema.js';
 
@@ -88,12 +88,9 @@ export interface PreferredSalaryRangeMatch {
   score: number;
 }
 
-export interface PreferredConfidenceMatch {
+export interface PreferredSkillProficiencyMatch {
   score: number;
-}
-
-export interface PreferredProficiencyMatch {
-  score: number;
+  skillsExceedingPreferred: string[];
 }
 
 export interface PreferenceMatches {
@@ -105,8 +102,7 @@ export interface PreferenceMatches {
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
   preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;
-  preferredConfidenceMatch?: PreferredConfidenceMatch;
-  preferredProficiencyMatch?: PreferredProficiencyMatch;
+  preferredSkillProficiencyMatch?: PreferredSkillProficiencyMatch;
 }
 
 export interface ScoreBreakdown {

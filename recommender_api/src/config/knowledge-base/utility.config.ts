@@ -45,8 +45,8 @@ export const utilityWeights: UtilityWeights = {
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
-  preferredConfidenceMatch: 0.02,
-  preferredProficiencyMatch: 0.02,
+  // Per-skill preferred proficiency (replaces global preferredConfidenceMatch + preferredProficiencyMatch)
+  preferredProficiencyMatch: 0.04,
 
   // Team context alignment
   teamFocusMatch: 0.04,
@@ -79,7 +79,7 @@ export const utilityParams: UtilityFunctionParams = {
   preferredTimezoneMatchMax: 1.0,
   preferredSeniorityMatchMax: 1.0,
   preferredSalaryRangeMatchMax: 1.0,
-  preferredConfidenceMatchMax: 1.0,
+  // Per-skill preferred proficiency match max
   preferredProficiencyMatchMax: 1.0,
 };
 

@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "search-filter-api-tests",
 		"name": "Search Filter API Tests",
-		"description": "Comprehensive test scenarios for POST /api/search/filter endpoint covering constraint expansion, skill resolution, knowledge base defaults, and utility scoring.",
+		"description": "Comprehensive test scenarios for POST /api/search/filter endpoint covering constraint expansion, skill resolution, knowledge base defaults, and utility scoring.\n\nUpdated for per-skill proficiency requirements:\n- requiredSkills/preferredSkills now take SkillRequirement objects with per-skill minProficiency\n- Confidence score is fixed at 0.70 (no longer configurable)\n- Global proficiency settings removed in favor of per-skill control",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -27,7 +27,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (empty)\n\n## Expected matches\n\n- All engineers except those with `not_available` availability\n- Only engineers with proficient or expert proficiency levels\n- Sorted by `utilityScore` descending\n- Default pagination: 20 results starting at offset 0"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (empty)\n\n## Expected matches\n\n- All engineers except those with `not_available` availability\n- Sorted by `utilityScore` descending\n- Default pagination: 20 results starting at offset 0\n\n## Notes\n\n- Confidence score is fixed at 0.70 internally (medium risk equivalent)\n- No proficiency filter without skill requirements"
 			}
 		},
 		{
@@ -51,7 +51,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Seniority mapping:\n  - junior: 0-3 years\n  - mid: 3-6 years\n  - **senior: 6-10 years**\n  - staff: 10+ years\n  - principal: 15+ years"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Seniority mapping:\n  - junior: 0-3 years\n  - mid: 3-6 years\n  - **senior: 6-10 years**\n  - staff: 10+ years\n  - principal: 15+ years"
 			}
 		},
 		{
@@ -75,7 +75,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 0 AND 3 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **0-3 years experience**\n- Entry-level engineers"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 0 AND 3 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **0-3 years experience**\n- Entry-level engineers"
 			}
 		},
 		{
@@ -90,7 +90,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Backend\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Backend\"}]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -99,7 +99,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include ALL descendants of \"Backend\" category:\n  - **Languages:** Node.js, Express, NestJS, Python, Django, FastAPI, Java, Spring Boot, Go, Rust\n  - **Databases:** PostgreSQL, MySQL, MongoDB, Redis, DynamoDB, Neo4j, Kafka\n  - **Architecture:** API Design, REST API, GraphQL, gRPC, System Design, Microservices, Event-Driven, Distributed Systems\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Backend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Backend category\n- `matchedSkills` array populated with matching skills\n- `matchType` should be `descendant` for inherited skills"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include ALL descendants of \"Backend\" category:\n  - **Languages:** Node.js, Express, NestJS, Python, Django, FastAPI, Java, Spring Boot, Go, Rust\n  - **Databases:** PostgreSQL, MySQL, MongoDB, Redis, DynamoDB, Neo4j, Kafka\n  - **Architecture:** API Design, REST API, GraphQL, gRPC, System Design, Microservices, Event-Driven, Distributed Systems\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Backend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Backend category\n- Default proficiency: 'learning' (all levels qualify)\n- `matchedSkills` array populated with matching skills\n- `matchType` should be `descendant` for inherited skills"
 			}
 		},
 		{
@@ -114,7 +114,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Frontend\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Frontend\"}]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -123,7 +123,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Frontend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include descendants of \"Frontend\" category:\n  - JavaScript, TypeScript, React, Next.js, Vue, Angular\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Frontend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Frontend category\n- `matchedSkills` populated with matching skills\n- Smaller expansion set compared to Backend"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Frontend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include descendants of \"Frontend\" category:\n  - JavaScript, TypeScript, React, Next.js, Vue, Angular\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Frontend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Frontend category\n- `matchedSkills` populated with matching skills\n- Smaller expansion set compared to Backend"
 			}
 		},
 		{
@@ -138,7 +138,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Node.js\", \"TypeScript\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Node.js\"},\n    {\"skill\": \"TypeScript\"}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -147,11 +147,83 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"TypeScript\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\", \"TypeScript\"]` (leaf skills, no expansion)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]`\n\n## Expected matches\n\n- Engineers must have **BOTH** Node.js AND TypeScript skills\n- `matchedSkills` array shows both skills with `matchType: \"direct\"`\n- Higher `skillMatch` utility for engineers proficient in both"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"TypeScript\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\", \"TypeScript\"]` (leaf skills, no expansion)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]`\n\n## Expected matches\n\n- Engineers must have **at least one** of Node.js OR TypeScript skills\n- `matchedSkills` array shows skills with `matchType: \"direct\"`\n- Higher `skillMatch` utility for engineers proficient in both"
 			}
 		},
 		{
-			"name": "07 - Timezone Filter: America/*",
+			"name": "07 - Per-Skill Proficiency: Expert TypeScript",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"TypeScript\", \"minProficiency\": \"expert\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Per-Skill Proficiency Feature\n\nThis tests the new per-skill proficiency requirement where each skill can have its own minProficiency.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"TypeScript\"]` | user |\n| TypeScript.minProficiency | `=` | expert | user |\n\n## Expected matches\n\n- Only engineers with **expert-level TypeScript** proficiency\n- Excludes 'proficient' and 'learning' levels for TypeScript\n\n## Proficiency Hierarchy\n\n| Min Level | Includes |\n|-----------|----------|\n| learning | learning, proficient, expert |\n| proficient | proficient, expert |\n| expert | expert only |"
+			}
+		},
+		{
+			"name": "08 - Per-Skill Proficiency: Mixed Requirements",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"TypeScript\", \"minProficiency\": \"expert\"},\n    {\"skill\": \"React\", \"minProficiency\": \"proficient\"},\n    {\"skill\": \"GraphQL\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Per-Skill Proficiency: Mixed Requirements\n\nDemonstrates different proficiency requirements per skill:\n- TypeScript: requires **expert** level\n- React: requires **proficient** or higher\n- GraphQL: accepts **any level** (default: learning)\n\n## Expected behavior\n\n- Engineers must meet each skill's specific proficiency requirement\n- TypeScript: only 'expert' qualifies\n- React: 'proficient' or 'expert' qualifies\n- GraphQL: 'learning', 'proficient', or 'expert' qualifies\n\n## Use Case\n\n> \"Need someone who is an expert in TypeScript, proficient in React, and has at least some GraphQL experience\""
+			}
+		},
+		{
+			"name": "09 - Per-Skill Preferred Proficiency (Ranking Boost)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [\n    {\n      \"skill\": \"Node.js\",\n      \"minProficiency\": \"proficient\",\n      \"preferredMinProficiency\": \"expert\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Per-Skill Preferred Proficiency\n\nDemonstrates the preferredMinProficiency feature:\n- **minProficiency: proficient** = Hard filter (must be at least proficient)\n- **preferredMinProficiency: expert** = Ranking boost (experts rank higher)\n\n## Expected behavior\n\n- All engineers with 'proficient' OR 'expert' Node.js qualify\n- Engineers with 'expert' Node.js get a ranking boost\n- Uses `preferredProficiencyMatch` weight (4%)\n\n## Use Case\n\n> \"Must be proficient in Node.js, but would prefer an expert\""
+			}
+		},
+		{
+			"name": "10 - Timezone Filter: America/*",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -171,11 +243,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| timezone | `STARTS WITH` | America/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| timezone | `STARTS WITH` | America/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
 			}
 		},
 		{
-			"name": "08 - Timezone Filter: Europe/*",
+			"name": "11 - Timezone Filter: Europe/*",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -195,11 +267,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
 			}
 		},
 		{
-			"name": "09 - Availability: Immediate Only",
+			"name": "12 - Availability: Immediate Only",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -219,11 +291,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"limit\", \"offset\"]`\n- **Note:** `availability` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers available **immediately**\n- Excludes: `two_weeks`, `one_month`, `not_available`\n- Maximum availability utility score (1.0) for all matches"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `availability` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers available **immediately**\n- Excludes: `two_weeks`, `one_month`, `not_available`\n- Maximum availability utility score (1.0) for all matches"
 			}
 		},
 		{
-			"name": "10 - Include Unavailable Engineers",
+			"name": "13 - Include Unavailable Engineers",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -243,107 +315,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"not_available\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"limit\", \"offset\"]`\n- **Note:** `availability` NOT in defaultsApplied (user specified all options)\n\n## Expected matches\n\n- Includes **ALL engineers** regardless of availability\n- `not_available` engineers will have availability utility = 0.0\n- Can be used for planning/forecasting purposes"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"not_available\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `availability` NOT in defaultsApplied (user specified all options)\n\n## Expected matches\n\n- Includes **ALL engineers** regardless of availability\n- `not_available` engineers will have availability utility = 0.0\n- Can be used for planning/forecasting purposes"
 			}
 		},
 		{
-			"name": "11 - Risk Tolerance: Low (Strict)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"requiredRiskTolerance\": \"low\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:4025/api/search/filter",
-					"protocol": "http",
-					"host": ["localhost"],
-					"port": "4025",
-					"path": ["api", "search", "filter"]
-				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | **0.85** | user |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **Note:** `riskTolerance` NOT in defaultsApplied (user specified `low`)\n\n## Expected matches\n\n- Only **high-confidence matches** (>= 85%)\n- Stricter filtering than default medium (70%)\n- Fewer results but higher confidence\n\n## Risk Tolerance Mapping\n\n| Level | Min Confidence Score |\n|-------|---------------------|\n| low | 0.85 |\n| medium | 0.70 (default) |\n| high | 0.50 |"
-			}
-		},
-		{
-			"name": "12 - Risk Tolerance: High (Relaxed)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"requiredRiskTolerance\": \"high\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:4025/api/search/filter",
-					"protocol": "http",
-					"host": ["localhost"],
-					"port": "4025",
-					"path": ["api", "search", "filter"]
-				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | **0.50** | user |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **Note:** `riskTolerance` NOT in defaultsApplied (user specified `high`)\n\n## Expected matches\n\n- Includes **lower-confidence matches** (>= 50%)\n- More permissive than default medium (70%)\n- More results but potentially less reliable\n\n## Risk Tolerance Mapping\n\n| Level | Min Confidence Score |\n|-------|---------------------|\n| low | 0.85 |\n| medium | 0.70 (default) |\n| high | 0.50 |"
-			}
-		},
-		{
-			"name": "13 - Min Proficiency: Expert Only",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"requiredMinProficiency\": \"expert\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:4025/api/search/filter",
-					"protocol": "http",
-					"host": ["localhost"],
-					"port": "4025",
-					"path": ["api", "search", "filter"]
-				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"expert\"]` | user |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"availability\", \"limit\", \"offset\"]`\n- **Note:** `minProficiency` NOT in defaultsApplied (user specified `expert`)\n\n## Expected matches\n\n- Only engineers with **expert-level proficiency**\n- Excludes `proficient` and `learning` levels\n- Strictest proficiency filter available\n\n## Proficiency Hierarchy\n\n| Min Level | Includes |\n|-----------|----------|\n| learning | learning, proficient, expert |\n| proficient | proficient, expert (default) |\n| expert | expert only |"
-			}
-		},
-		{
-			"name": "14 - Min Proficiency: Learning (All Levels)",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"requiredMinProficiency\": \"learning\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:4025/api/search/filter",
-					"protocol": "http",
-					"host": ["localhost"],
-					"port": "4025",
-					"path": ["api", "search", "filter"]
-				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"learning\",\"proficient\",\"expert\"]` | user |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"availability\", \"limit\", \"offset\"]`\n- **Note:** `minProficiency` NOT in defaultsApplied (user specified `learning`)\n\n## Expected matches\n\n- **All proficiency levels** included\n- Most permissive proficiency filter\n- Useful for finding candidates who are learning new skills"
-			}
-		},
-		{
-			"name": "15 - Team Focus: Scaling",
+			"name": "14 - Team Focus: Scaling",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -363,11 +339,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with scaling-related skills get **ranking BOOST**\n- Engineers with more bonus skills rank higher\n- Max team focus bonus: 0.5 utility points (5% weight)\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| greenfield | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| **scaling** | distributed, system_design, monitoring, kafka |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with scaling-related skills get **ranking BOOST**\n- Engineers with more bonus skills rank higher\n- Max team focus bonus: 0.5 utility points (4% weight)\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| greenfield | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| **scaling** | distributed, system_design, monitoring, kafka |"
 			}
 		},
 		{
-			"name": "16 - Team Focus: Greenfield",
+			"name": "15 - Team Focus: Greenfield",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -387,11 +363,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[ambiguity, creativity, ownership, system_design]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with greenfield-related skills get **ranking BOOST**\n- Good for new projects with unclear requirements\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| **greenfield** | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| scaling | distributed, system_design, monitoring, kafka |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[ambiguity, creativity, ownership, system_design]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with greenfield-related skills get **ranking BOOST**\n- Good for new projects with unclear requirements\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| **greenfield** | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| scaling | distributed, system_design, monitoring, kafka |"
 			}
 		},
 		{
-			"name": "17 - Salary Range Filter",
+			"name": "16 - Salary Range Filter",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -411,11 +387,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| minSalary | `>=` | 100000 | user |\n| maxSalary | `<=` | 180000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **between $100k-$180k**\n- Engineers closer to minSalary have **HIGHER** salary utility\n- Salary utility is inverse: lower salary = better budget fit\n\n## Salary Utility Notes\n\n- Normalization range: $80k (min) to $300k (max)\n- Salary weight: 10% of total utility score"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| minSalary | `>=` | 100000 | user |\n| maxSalary | `<=` | 180000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **between $100k-$180k**\n- Engineers closer to minSalary have **HIGHER** salary utility\n- Salary utility is inverse: lower salary = better budget fit\n\n## Salary Utility Notes\n\n- Normalization range: $80k (min) to $300k (max)\n- Salary weight: 7% of total utility score"
 			}
 		},
 		{
-			"name": "18 - Max Salary Only (Budget Cap)",
+			"name": "17 - Max Salary Only (Budget Cap)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -435,11 +411,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| maxSalary | `<=` | 150000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **<= $150k**\n- Useful for budget-constrained searches\n- No minimum salary floor applied"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| maxSalary | `<=` | 150000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **<= $150k**\n- Useful for budget-constrained searches\n- No minimum salary floor applied"
 			}
 		},
 		{
-			"name": "19 - Preferred Skills (Ranking Boost)",
+			"name": "18 - Preferred Skills (Ranking Boost)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -450,7 +426,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Node.js\"],\n  \"preferredSkills\": [\"TypeScript\", \"PostgreSQL\", \"Docker\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Node.js\"}],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\"},\n    {\"skill\": \"PostgreSQL\"},\n    {\"skill\": \"Docker\"}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -459,7 +435,31 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (required) + `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` (preferred)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- All matches **MUST have Node.js** (hard filter)\n- Engineers with preferred skills **rank HIGHER**\n- Preferred skills are nice-to-have, not requirements\n\n## Use Case\n\n> \"Must know Node.js, bonus if they know TypeScript/Postgres/Docker\""
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (required) + `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` (preferred)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- All matches **MUST have Node.js** (hard filter)\n- Engineers with preferred skills **rank HIGHER**\n- Preferred skills are nice-to-have, not requirements\n\n## Use Case\n\n> \"Must know Node.js, bonus if they know TypeScript/Postgres/Docker\""
+			}
+		},
+		{
+			"name": "19 - Preferred Skills with Proficiency",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Node.js\", \"minProficiency\": \"proficient\"}],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\", \"preferredMinProficiency\": \"proficient\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Per-Skill Proficiency on Preferred Skills\n\nDemonstrates preferredMinProficiency on preferred skills (ranking boost only).\n\n## Request Breakdown\n\n- **Node.js**: Required, must be proficient or better (hard filter)\n- **TypeScript**: Preferred, bonus if expert level\n- **PostgreSQL**: Preferred, bonus if proficient or better\n\n## Expected behavior\n\n- Must have proficient Node.js (hard filter)\n- Extra ranking boost for expert TypeScript\n- Extra ranking boost for proficient+ PostgreSQL\n\n## Use Case\n\n> \"Must be proficient in Node.js. Would prefer an expert TypeScript developer and someone proficient in PostgreSQL.\""
 			}
 		},
 		{
@@ -483,7 +483,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\"]`\n- **Note:** `limit` and `offset` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Returns results **11-20** (second page of 10)\n- `totalCount` shows full count before pagination\n\n## Pagination Defaults\n\n| Field | Default | Max |\n|-------|---------|-----|\n| limit | 20 | 100 |\n| offset | 0 | - |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\"]`\n- **Note:** `limit` and `offset` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Returns results **11-20** (second page of 10)\n- `totalCount` shows full count before pagination\n\n## Pagination Defaults\n\n| Field | Default | Max |\n|-------|---------|-----|\n| limit | 20 | 100 |\n| offset | 0 | - |"
 			}
 		},
 		{
@@ -498,7 +498,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [\"Backend\"],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredAvailability\": [\"immediate\", \"two_weeks\"]\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredAvailability\": [\"immediate\", \"two_weeks\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -507,7 +507,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers with **immediate or two_weeks** availability\n- Must have at least one **Backend skill**"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers with **immediate or two_weeks** availability\n- Must have at least one **Backend skill** at **proficient** level or higher"
 			}
 		},
 		{
@@ -522,7 +522,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Full Stack\"],\n  \"teamFocus\": \"scaling\",\n  \"requiredRiskTolerance\": \"low\",\n  \"requiredMinProficiency\": \"expert\",\n  \"requiredMaxSalary\": 200000\n}"
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Full Stack\", \"minProficiency\": \"expert\"}],\n  \"teamFocus\": \"scaling\",\n  \"requiredMaxSalary\": 200000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -531,7 +531,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.85 | user |\n| proficiencyLevel | `IN` | `[\"expert\"]` | user |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| maxSalary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **High-confidence matches only** (>= 85%)\n- **Expert proficiency only**\n- Salary **<= $200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Very strict filters - may return fewer results"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| maxSalary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Salary **<= $200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
 			}
 		},
 		{
@@ -546,7 +546,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Node.js\", \"FakeSkill123\", \"NonExistentTech\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Node.js\"},\n    {\"skill\": \"FakeSkill123\"},\n    {\"skill\": \"NonExistentTech\"}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -555,11 +555,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"FakeSkill123\",\"NonExistentTech\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (only valid skill expanded)\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[\"FakeSkill123\", \"NonExistentTech\"]`\n\n## Expected behavior\n\n- API should **NOT fail**\n- Only valid skills are used for filtering\n- `unresolvedSkills` array reports skills not found in database\n- Useful for debugging skill name mismatches"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"FakeSkill123\",\"NonExistentTech\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (only valid skill expanded)\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[\"FakeSkill123\", \"NonExistentTech\"]`\n\n## Expected behavior\n\n- API should **NOT fail**\n- Only valid skills are used for filtering\n- `unresolvedSkills` array reports skills not found in database\n- Useful for debugging skill name mismatches"
 			}
 		},
 		{
-			"name": "24 - Domain Preference Filter",
+			"name": "24 - Required Domain Filter",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -570,7 +570,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"domainPreference\": [\"fintech\", \"healthcare\"]\n}"
+					"raw": "{\n  \"requiredDomains\": [\"fintech\", \"healthcare\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -579,11 +579,35 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| domainPreference | `IN` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Engineers with experience in **fintech or healthcare** domains\n- Domain preference may be a soft constraint (ranking boost) or hard filter\n- Check response to determine actual behavior"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredDomains | `IN` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with experience in **fintech OR healthcare** domains\n- Domain is a hard filter\n- `matchedDomains` array in response shows which domains matched"
 			}
 		},
 		{
-			"name": "25 - Staff+ Seniority Levels",
+			"name": "25 - Preferred Domain Filter (Ranking Boost)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredDomains\": [\"fintech\", \"healthcare\"]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredDomains | `BOOST` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with fintech/healthcare experience **rank higher**\n- Uses `preferredDomainMatch` weight (4%)"
+			}
+		},
+		{
+			"name": "26 - Staff+ Seniority Levels",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -603,11 +627,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"minProficiency\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **10+ years experience**\n- Staff level has **no upper bound** (minYears: 10, maxYears: null)\n- Compare to senior (6-10 years bounded range)\n\n## Seniority Experience Mapping\n\n| Level | Min Years | Max Years |\n|-------|-----------|----------|\n| junior | 0 | 3 |\n| mid | 3 | 6 |\n| senior | 6 | 10 |\n| **staff** | 10 | none |\n| principal | 15 | none |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **10+ years experience**\n- Staff level has **no upper bound** (minYears: 10, maxYears: null)\n- Compare to senior (6-10 years bounded range)\n\n## Seniority Experience Mapping\n\n| Level | Min Years | Max Years |\n|-------|-----------|----------|\n| junior | 0 | 3 |\n| mid | 3 | 6 |\n| senior | 6 | 10 |\n| **staff** | 10 | none |\n| principal | 15 | none |"
 			}
 		},
 		{
-			"name": "26 - Principal Level Engineers",
+			"name": "27 - Principal Level with Expert Skills",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -618,7 +642,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"requiredMinProficiency\": \"expert\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"requiredSkills\": [{\"skill\": \"System Design\", \"minProficiency\": \"expert\"}]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -627,11 +651,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"expert\"]` | user |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"riskTolerance\", \"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert proficiency only**\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| System Design.minProficiency | `>=` | expert | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"availability\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert-level System Design** required\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
 			}
 		},
 		{
-			"name": "27 - Preferred Availability (Ranking Boost)",
+			"name": "28 - Preferred Availability (Ranking Boost)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -651,11 +675,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredAvailability | `BOOST` | `[\"immediate\",\"two_weeks\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all available engineers returned\n- Engineers with `immediate` availability rank higher than `two_weeks`\n- Ordered preference: first item in array has highest priority\n- Uses `preferredAvailabilityBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredAvailabilityBonus` component appears\n- Max bonus: 1.0 for first preference match\n- Second preference: 0.5 bonus\n- No match: 0.0 bonus"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredAvailability | `BOOST` | `[\"immediate\",\"two_weeks\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all available engineers returned\n- Engineers with `immediate` availability rank higher than `two_weeks`\n- Ordered preference: first item in array has highest priority\n- Uses `preferredAvailabilityMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredAvailabilityMatch` component appears\n- Max bonus: 1.0 for first preference match\n- Second preference: 0.5 bonus\n- No match: 0.0 bonus"
 			}
 		},
 		{
-			"name": "28 - Preferred Timezone (Ranking Boost)",
+			"name": "29 - Preferred Timezone (Ranking Boost)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -675,11 +699,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"America/Chicago\",\"Europe/London\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneBonus` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"America/Chicago\",\"Europe/London\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneMatch` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneMatch` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
 			}
 		},
 		{
-			"name": "29 - Preferred Seniority (Staff Preferred)",
+			"name": "30 - Preferred Seniority (Staff Preferred)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -699,11 +723,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSeniorityLevel | `BOOST` | staff | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all seniority levels returned\n- Engineers with 10+ years experience (staff level) rank higher\n- Uses `preferredSeniorityBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSeniorityBonus` component appears\n- Exact match (10+ years): 1.0 bonus\n- Nearby levels get partial bonus\n- Far from preferred: 0.0 bonus"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSeniorityLevel | `BOOST` | staff | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all seniority levels returned\n- Engineers with 10+ years experience (staff level) rank higher\n- Uses `preferredSeniorityMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSeniorityMatch` component appears\n- Exact match (10+ years): 1.0 bonus\n- Nearby levels get partial bonus\n- Far from preferred: 0.0 bonus"
 			}
 		},
 		{
-			"name": "30 - Preferred Salary Range",
+			"name": "31 - Preferred Salary Range",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -723,11 +747,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSalaryRange | `BOOST` | `{\"min\":120000,\"max\":160000}` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all salary ranges returned\n- Engineers with salary in $120k-$160k range rank higher\n- Uses `preferredSalaryRangeBonus` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSalaryRangeBonus` component appears\n- Salary within range: 1.0 bonus\n- Salary outside range: 0.0 bonus"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredSalaryRange | `BOOST` | `{\"min\":120000,\"max\":160000}` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all salary ranges returned\n- Engineers with salary in $120k-$160k range rank higher\n- Uses `preferredSalaryRangeMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSalaryRangeMatch` component appears\n- Salary within range: 1.0 bonus\n- Salary outside range: 0.0 bonus"
 			}
 		},
 		{
-			"name": "31 - Preferred Confidence Score",
+			"name": "32 - Combined: All Preferred Properties",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -738,7 +762,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"preferredConfidenceScore\": 0.90\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredAvailability\": [\"immediate\"],\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredDomains\": [\"fintech\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -747,11 +771,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredConfidenceScore | `BOOST` | 0.90 | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - default minConfidence (0.70) still applies\n- Engineers with >= 90% confidence get ranking boost\n- Uses `preferredConfidenceBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredConfidenceBonus` component appears\n- Confidence >= 0.90: 1.0 bonus\n- Confidence < 0.90: 0.0 bonus"
+				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate availability\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - preferredAvailabilityMatch: 3%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
 			}
 		},
 		{
-			"name": "32 - Preferred Proficiency (Expert Preferred)",
+			"name": "33 - Validation Error: Invalid Request",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -762,7 +786,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"preferredProficiency\": \"expert\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"invalid_level\",\n  \"limit\": 500,\n  \"requiredMinSalary\": -100,\n  \"requiredSkills\": [{\"skill\": \"Node.js\", \"minProficiency\": \"invalid_level\"}]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -771,11 +795,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| preferredProficiency | `BOOST` | expert | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - default minProficiency (proficient) still applies\n- Engineers with expert-level skills rank higher\n- Uses `preferredProficiencyBonus` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredProficiencyBonus` component appears\n- Expert level: 1.0 bonus\n- Proficient level: 0.0 bonus (or partial depending on implementation)"
+				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"requiredMinSalary\"]\n      },\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSkills\", 0, \"minProficiency\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| requiredMinSalary | -100 | Must be a positive number |\n| requiredSkills[0].minProficiency | \"invalid_level\" | Must be one of: learning, proficient, expert |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Per-skill proficiency validation included"
 			}
 		},
 		{
-			"name": "33 - Combined: All Preferred Properties",
+			"name": "34 - Skill Hierarchy with Inherited Proficiency",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -786,7 +810,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\"Backend\"],\n  \"preferredSkills\": [\"TypeScript\", \"PostgreSQL\"],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredAvailability\": [\"immediate\"],\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredConfidenceScore\": 0.85,\n  \"preferredProficiency\": \"expert\"\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -795,31 +819,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\"]` | user |\n| preferredSeniorityLevel | `BOOST` | senior | user |\n| preferredAvailability | `BOOST` | `[\"immediate\"]` | user |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"Europe/London\"]` | user |\n| preferredSalaryRange | `BOOST` | `{\"min\":100000,\"max\":150000}` | user |\n| preferredConfidenceScore | `BOOST` | 0.85 | user |\n| preferredProficiency | `BOOST` | expert | user |\n\n## Expected behavior\n\n- **Hard filter:** Must have Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Combined bonus weights: ~15% of total score\n- Utility weights:\n  - preferredAvailabilityBonus: 3%\n  - preferredTimezoneBonus: 2%\n  - preferredSeniorityBonus: 3%\n  - preferredSalaryRangeBonus: 3%\n  - preferredConfidenceBonus: 2%\n  - preferredProficiencyBonus: 2%\n\n## Expected scoreBreakdown\n\n- All 6 preferred bonus components present\n- Engineers matching more preferences rank higher\n- Perfect match on all preferences: maximum combined bonus"
-			}
-		},
-		{
-			"name": "34 - Validation Error: Invalid Request",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"invalid_level\",\n  \"limit\": 500,\n  \"preferredConfidenceScore\": 1.5,\n  \"requiredMinSalary\": -100\n}"
-				},
-				"url": {
-					"raw": "http://localhost:4025/api/search/filter",
-					"protocol": "http",
-					"host": ["localhost"],
-					"port": "4025",
-					"path": ["api", "search", "filter"]
-				},
-				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 1\",\n        \"path\": [\"preferredConfidenceScore\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"requiredMinSalary\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| preferredConfidenceScore | 1.5 | Must be between 0 and 1 |\n| requiredMinSalary | -100 | Must be a positive number |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Response format is Zod's default error structure"
+				"description": "## Skill Hierarchy Inheritance\n\nWhen a category skill (like \"Backend\") is requested with a minProficiency, ALL expanded skills inherit that proficiency requirement.\n\n## Request\n\n- Backend with minProficiency: proficient\n\n## Expected behavior\n\n- Backend expands to: Node.js, Express, Python, Django, PostgreSQL, etc.\n- ALL expanded skills require 'proficient' or 'expert' level\n- Engineers with only 'learning' level in Backend skills are excluded\n\n## Use Case\n\n> \"Need someone proficient in any Backend technology\""
 			}
 		}
 	]
