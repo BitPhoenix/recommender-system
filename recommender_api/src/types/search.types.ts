@@ -2,58 +2,20 @@
  * Search API Types
  * Implements Chapter 5.2.1-5.2.3 (Constraint-Based Recommender Systems)
  * from "Recommender Systems: The Textbook" by Charu Aggarwal.
+ *
+ * Types are now inferred from Zod schemas (single source of truth).
  */
 
-// ============================================
-// REQUEST TYPES
-// ============================================
-
-export type SeniorityLevel = 'junior' | 'mid' | 'senior' | 'staff' | 'principal';
-export type AvailabilityOption = 'immediate' | 'two_weeks' | 'one_month' | 'not_available';
-export type RiskTolerance = 'low' | 'medium' | 'high';
-export type ProficiencyLevel = 'learning' | 'proficient' | 'expert';
-export type TeamFocus = 'greenfield' | 'migration' | 'maintenance' | 'scaling';
-
-export interface PreferredSalaryRange {
-  min: number;
-  max: number;
-}
-
-export interface SearchFilterRequest {
-  // Core constraints - RENAMED to use required prefix
-  requiredSeniorityLevel?: SeniorityLevel;      // was: seniorityLevel
-  requiredSkills?: string[];                     // unchanged
-  preferredSkills?: string[];                    // unchanged
-  requiredAvailability?: AvailabilityOption[];   // was: availability
-  requiredTimezone?: string;                     // was: timezone
-
-  // Budget constraints - RENAMED
-  requiredMaxSalary?: number;   // was: maxSalary
-  requiredMinSalary?: number;   // was: minSalary
-
-  // Quality constraints - RENAMED
-  requiredRiskTolerance?: RiskTolerance;         // was: riskTolerance
-  requiredMinProficiency?: ProficiencyLevel;     // was: minProficiency
-
-  // Context constraints (for ranking preference matches) - unchanged
-  teamFocus?: TeamFocus;
-
-  // Domain filtering - unchanged
-  requiredDomains?: string[];    // Hard filter - must match at least one domain
-  preferredDomains?: string[];   // Ranking boost - optional, increases score
-
-  // NEW: Preferred properties for ranking boosts
-  preferredSeniorityLevel?: SeniorityLevel;
-  preferredAvailability?: AvailabilityOption[];  // ordered preference list
-  preferredTimezone?: string[];                  // ordered preference list
-  preferredSalaryRange?: PreferredSalaryRange;   // ideal salary range
-  preferredConfidenceScore?: number;             // threshold for match (0-1)
-  preferredProficiency?: ProficiencyLevel;
-
-  // Pagination - unchanged
-  limit?: number;   // Default: 20, max: 100
-  offset?: number;  // Default: 0
-}
+// Re-export types from schemas
+export type {
+  SeniorityLevel,
+  AvailabilityOption,
+  RiskTolerance,
+  ProficiencyLevel,
+  TeamFocus,
+  PreferredSalaryRange,
+  SearchFilterRequest,
+} from '../schemas/search.schema.js';
 
 // ============================================
 // RESPONSE TYPES

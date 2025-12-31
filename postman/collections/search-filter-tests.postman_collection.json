@@ -797,6 +797,30 @@
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| proficiencyLevel | `IN` | `[\"proficient\",\"expert\"]` | knowledge_base |\n| availability | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\"]` | user |\n| preferredSeniorityLevel | `BOOST` | senior | user |\n| preferredAvailability | `BOOST` | `[\"immediate\"]` | user |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"Europe/London\"]` | user |\n| preferredSalaryRange | `BOOST` | `{\"min\":100000,\"max\":150000}` | user |\n| preferredConfidenceScore | `BOOST` | 0.85 | user |\n| preferredProficiency | `BOOST` | expert | user |\n\n## Expected behavior\n\n- **Hard filter:** Must have Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Combined bonus weights: ~15% of total score\n- Utility weights:\n  - preferredAvailabilityBonus: 3%\n  - preferredTimezoneBonus: 2%\n  - preferredSeniorityBonus: 3%\n  - preferredSalaryRangeBonus: 3%\n  - preferredConfidenceBonus: 2%\n  - preferredProficiencyBonus: 2%\n\n## Expected scoreBreakdown\n\n- All 6 preferred bonus components present\n- Engineers matching more preferences rank higher\n- Perfect match on all preferences: maximum combined bonus"
 			}
+		},
+		{
+			"name": "34 - Validation Error: Invalid Request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSeniorityLevel\": \"invalid_level\",\n  \"limit\": 500,\n  \"preferredConfidenceScore\": 1.5,\n  \"requiredMinSalary\": -100\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 1\",\n        \"path\": [\"preferredConfidenceScore\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"requiredMinSalary\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| preferredConfidenceScore | 1.5 | Must be between 0 and 1 |\n| requiredMinSalary | -100 | Must be a positive number |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Response format is Zod's default error structure"
+			}
 		}
 	]
 }

@@ -1,0 +1,105 @@
+/**
+ * Search API Schemas
+ * Zod schemas are the single source of truth for both validation and types.
+ */
+
+import { z } from 'zod';
+
+// ============================================
+// ENUM SCHEMAS
+// ============================================
+
+export const SeniorityLevelSchema = z.enum([
+  'junior', 'mid', 'senior', 'staff', 'principal'
+]);
+
+export const AvailabilityOptionSchema = z.enum([
+  'immediate', 'two_weeks', 'one_month', 'not_available'
+]);
+
+export const RiskToleranceSchema = z.enum(['low', 'medium', 'high']);
+
+export const ProficiencyLevelSchema = z.enum(['learning', 'proficient', 'expert']);
+
+export const TeamFocusSchema = z.enum([
+  'greenfield', 'migration', 'maintenance', 'scaling'
+]);
+
+// ============================================
+// NESTED OBJECT SCHEMAS
+// ============================================
+
+export const PreferredSalaryRangeSchema = z.object({
+  min: z.number().positive(),
+  max: z.number().positive(),
+}).refine(
+  (data) => data.min <= data.max,
+  { message: 'min must be less than or equal to max' }
+);
+
+// ============================================
+// MAIN REQUEST SCHEMA
+// ============================================
+
+export const SearchFilterRequestSchema = z.object({
+  // Seniority
+  requiredSeniorityLevel: SeniorityLevelSchema.optional(),
+  preferredSeniorityLevel: SeniorityLevelSchema.optional(),
+
+  // Skills
+  requiredSkills: z.array(z.string()).optional(),
+  preferredSkills: z.array(z.string()).optional(),
+
+  // Availability
+  requiredAvailability: z.array(AvailabilityOptionSchema).optional(),
+  preferredAvailability: z.array(AvailabilityOptionSchema).optional(),
+
+  // Timezone
+  requiredTimezone: z.string().optional(),
+  preferredTimezone: z.array(z.string()).optional(),
+
+  // Salary (hard constraints)
+  requiredMaxSalary: z.number().positive().optional(),
+  requiredMinSalary: z.number().positive().optional(),
+  preferredSalaryRange: PreferredSalaryRangeSchema.optional(),
+
+  // Quality metrics
+  requiredRiskTolerance: RiskToleranceSchema.optional(),
+  requiredMinProficiency: ProficiencyLevelSchema.optional(),
+  preferredProficiency: ProficiencyLevelSchema.optional(),
+  preferredConfidenceScore: z.number().min(0).max(1).optional(),
+
+  // Context
+  teamFocus: TeamFocusSchema.optional(),
+
+  // Domains
+  requiredDomains: z.array(z.string()).optional(),
+  preferredDomains: z.array(z.string()).optional(),
+
+  // Pagination
+  limit: z.number().int().min(1).max(100).optional(),
+  offset: z.number().int().min(0).optional(),
+}).refine(
+  (data) => {
+    if (data.requiredMinSalary !== undefined && data.requiredMaxSalary !== undefined) {
+      return data.requiredMinSalary <= data.requiredMaxSalary;
+    }
+    return true;
+  },
+  {
+    message: 'requiredMinSalary must be less than or equal to requiredMaxSalary',
+    path: ['requiredMinSalary'],
+  }
+);
+
+// ============================================
+// INFERRED TYPES
+// ============================================
+
+export type SeniorityLevel = z.infer<typeof SeniorityLevelSchema>;
+export type AvailabilityOption = z.infer<typeof AvailabilityOptionSchema>;
+export type RiskTolerance = z.infer<typeof RiskToleranceSchema>;
+export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
+export type TeamFocus = z.infer<typeof TeamFocusSchema>;
+export type PreferredSalaryRange = z.infer<typeof PreferredSalaryRangeSchema>;
+export type SearchFilterRequest = z.infer<typeof SearchFilterRequestSchema>;

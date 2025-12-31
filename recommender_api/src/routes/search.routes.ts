@@ -5,7 +5,8 @@
 
 import { Router } from 'express';
 import { filterSearch } from '../controllers/search.controller.js';
-import { validateSearchRequest } from '../middleware/validate-search.middleware.js';
+import { validate } from '../middleware/zod-validate.middleware.js';
+import { SearchFilterRequestSchema } from '../schemas/search.schema.js';
 
 const router = Router();
 
@@ -15,6 +16,6 @@ const router = Router();
  *
  * Implements Chapter 5.2.1-5.2.3 (Constraint-Based Recommender Systems)
  */
-router.post('/filter', validateSearchRequest, filterSearch);
+router.post('/filter', validate(SearchFilterRequestSchema), filterSearch);
 
 export default router;
