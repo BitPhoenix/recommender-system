@@ -19,7 +19,7 @@ import {
   buildSearchQuery,
   buildCountQuery,
   type CypherQueryParams,
-} from './cypher-builder.service.js';
+} from './cypher-query-builder/index.js';
 import {
   scoreAndSortEngineers,
   type EngineerData,
