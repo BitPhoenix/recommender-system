@@ -1,19 +1,31 @@
 /**
  * Knowledge Base Configuration
  * Contains all rules for the constraint-based recommender system.
- * Implements Section 5.2.1-5.2.3 from the textbook.
+ * Implements Section 5.2-5.2.3 from the textbook.
+ *
+ * Knowledge Base Structure (Section 5.2, p.174):
+ * - DIRECT mappings (Filter Conditions): Rules that relate customer requirements
+ *   to hard requirements on product attributes.
+ *   Example: "Min-Bedrooms≥3 ⇒ Bedrooms≥3"
+ *
+ * - INDIRECT mappings (Compatibility Constraints): Rules that relate customer
+ *   attributes/requirements to typically expected product requirements.
+ *   Example: "Family-Size≥5 ⇒ Min-Bedrooms≥3"
  */
 
 import type { KnowledgeBaseConfig } from '../types/knowledge-base.types.js';
 
 export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // ============================================
-  // FILTER CONDITIONS (Section 5.2.1)
+  // FILTER CONDITIONS - Direct Mappings (Section 5.2, p.174)
   // ============================================
+  // These rules directly map user requirements to product attribute constraints.
+  // "Such rules are also referred to as filter conditions."
 
   /**
    * Seniority Level Mappings
    * Maps manager's seniority requirements to years of experience constraints.
+   * Direct mapping: requiredSeniority=senior ⇒ yearsExperience≥6
    */
   seniorityMapping: {
     junior: { minYears: 0, maxYears: 3 },
@@ -26,6 +38,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   /**
    * Risk Tolerance Mappings
    * Maps manager's risk tolerance to confidence score thresholds.
+   * Direct mapping: requiredRiskTolerance=low ⇒ confidenceScore≥0.85
    */
   riskToleranceMapping: {
     low: { minConfidenceScore: 0.85 },
@@ -36,6 +49,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   /**
    * Proficiency Level Mappings
    * Maps minimum proficiency to allowed proficiency levels.
+   * Direct mapping: requiredMinProficiency=proficient ⇒ proficiency∈['proficient','expert']
    */
   proficiencyMapping: {
     learning: ['learning', 'proficient', 'expert'],
@@ -44,12 +58,16 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   },
 
   // ============================================
-  // COMPATIBILITY CONSTRAINTS (Section 5.2.1)
+  // COMPATIBILITY CONSTRAINTS - Indirect Mappings (Section 5.2, p.174)
   // ============================================
+  // These rules relate customer attributes to typically expected product requirements.
+  // "Such conditions are also referred to as compatibility conditions, because they
+  // can be used to quickly discover inconsistencies in the user-specified requirements."
 
   /**
    * Team Focus Skill Bonuses
    * Maps team focus to skills that provide ranking boosts.
+   * Indirect mapping: teamFocus=greenfield ⇒ bonus for ambiguity/creativity skills
    */
   teamFocusBonusMapping: {
     greenfield: {
@@ -91,8 +109,10 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   },
 
   // ============================================
-  // DEFAULT VALUES (Section 5.2.2)
+  // DEFAULT VALUES (Section 5.2.2, p.176-177)
   // ============================================
+  // "In some cases, default values may be suggested to the user to provide guidance."
+  // Default values help when users don't specify all requirements upfront.
 
   defaults: {
     requiredRiskTolerance: 'medium',      // was: riskTolerance
@@ -103,12 +123,16 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   },
 
   // ============================================
-  // UTILITY FUNCTION CONFIG (Section 5.2.3)
+  // UTILITY FUNCTION CONFIG (Section 5.2.3, p.178)
   // ============================================
+  // "Utility functions may be defined as weighted functions of the utilities of
+  // individual attributes." Used to rank matched items after filtering.
+  // Formula: U(V) = Σ w_j * f_j(v_j)
 
   /**
    * Attribute Weights for U(V) = Σ w_j * f_j(v_j)
    * Weights sum to 1.0 for normalized scoring.
+   * w_j regulates the relative importance of the jth attribute (Section 5.2.3, p.178)
    */
   utilityWeights: {
     // Core attributes (reduced slightly to make room for new bonuses)
@@ -132,7 +156,9 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   },
 
   /**
-   * Parameters for utility functions
+   * Parameters for utility functions f_j(v_j)
+   * These define the contribution of each attribute value to the utility score.
+   * "The design of effective utility functions often requires domain-specific knowledge."
    */
   utilityParams: {
     // Confidence score linear range
@@ -162,6 +188,8 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
 
   /**
    * Availability Step Function Values
+   * Discrete utility values for categorical availability attribute.
+   * Similar to how categorical attributes have domain-specific utility mappings.
    */
   availabilityUtility: {
     immediate: 1.0,
@@ -172,6 +200,8 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
 
   /**
    * Match Strength Classification Thresholds
+   * Used to classify candidates into strong/moderate/weak matches.
+   * Provides users with intuitive quality indicators for results.
    */
   matchStrengthThresholds: {
     strong: 0.7,   // >= 0.7 is strong
