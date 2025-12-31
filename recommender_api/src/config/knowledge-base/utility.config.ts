@@ -90,44 +90,58 @@ export const utilityWeights: UtilityWeights = {
  */
 export const utilityParams: UtilityFunctionParams = {
   // LINEAR: (confidence - 0.5) / (1.0 - 0.5)
-  // Maps ML confidence [0.5, 1.0] to utility [0, 1]. Below 0.5 is filtered out,
-  // so this range represents "acceptable" to "highly confident" skill matches.
+  // WHY LINEAR: ML confidence scores are already calibrated probabilities. A 0.7→0.8
+  // jump represents a genuine 10% improvement in match certainty. Unlike experience
+  // (where gains diminish), each point of confidence means more reliable skill inference.
+  // Below 0.5 is filtered out, so this range is "acceptable" to "highly confident."
   confidenceMin: 0.5,
   confidenceMax: 1.0,
 
   // LOGARITHMIC: log(1 + years) / log(1 + 20)
-  // Diminishing returns after ~20 years. A 5-year engineer vs 0-year is a big
-  // difference; 25-year vs 20-year is marginal. Reflects real hiring value.
+  // WHY LOGARITHMIC: Early career years add distinct capabilities - junior→mid gains
+  // project ownership, mid→senior gains mentorship and architectural judgment. But
+  // 15→20 years adds polish, not fundamentally new capabilities. Hiring managers
+  // confirm: "5 years vs 0" is a different conversation than "22 years vs 17."
   yearsExperienceMax: 20,
 
   // INVERSE LINEAR: (300k - salary) / (300k - 80k)
-  // Lower salary = higher utility (budget fit). Range covers typical market.
-  // When maxBudget is specified, uses that as ceiling instead.
+  // WHY INVERSE LINEAR: Budget fit matters linearly - $20k saved could fund tooling
+  // or partial headcount elsewhere. We don't use logarithmic because a $150k engineer
+  // isn't "half as good a deal" as $75k - budget math is linear. When maxBudget is
+  // specified, uses that as ceiling instead of salaryMax.
   salaryMin: 80000,
   salaryMax: 300000,
 
   // RATIO: matched / requested, capped at max
-  // These represent "what fraction of preferred items did we match?"
-  preferredSkillsMatchMax: 1.0, // Preferred skills coverage
-  preferredDomainMatchMax: 1.0, // Preferred domains coverage
-  preferredSkillProficiencyMatchMax: 1.0, // Skills meeting proficiency requirements
+  // WHY RATIO: Each preferred item is an explicit user wish with equal weight.
+  // Matching 2 of 4 preferred skills is genuinely twice as good as matching 1 of 4 -
+  // there's no diminishing returns on satisfying stated preferences.
+  preferredSkillsMatchMax: 1.0,
+  preferredDomainMatchMax: 1.0,
+  preferredSkillProficiencyMatchMax: 1.0,
 
-  // RATIO with lower max: team focus is a smaller bonus, not a primary criterion
+  // RATIO with lower max (0.5)
+  // WHY LOWER MAX: Team alignment is a tiebreaker, not a primary criterion. We don't
+  // want "matches team stack" to outweigh "has the actual required skills."
   teamFocusMatchMax: 0.5,
 
   // EXPONENTIAL DECAY: (1 - e^(-count/5)) * 5
-  // Related skills beyond ~5 provide diminishing value. Having 1-2 related
-  // skills is valuable; having 10 vs 8 matters less.
+  // WHY EXPONENTIAL DECAY: Having 1-2 related skills signals learning agility and
+  // T-shaped breadth. But accumulating 10+ doesn't make someone twice as valuable as
+  // having 5 - it just means a longer resume. We reward breadth but don't let it dominate.
   relatedSkillsMatchMax: 5,
 
   // POSITION-BASED: (1 - index / length) * max
-  // Earlier positions in preference list score higher. First choice = 100%,
-  // second = 75%, third = 50%, etc.
+  // WHY POSITION-BASED: The user explicitly ordered these preferences. First choice
+  // means "this is what we actually want," second choice means "acceptable fallback."
+  // Position order carries signal - flattening to binary "match/no-match" loses info.
   preferredStartTimelineMatchMax: 1.0,
   preferredTimezoneMatchMax: 1.0,
 
   // BINARY: meets threshold ? max : 0
-  // Either matches the requirement or doesn't - no partial credit.
+  // WHY BINARY: These are qualification thresholds, not gradients. A mid-level engineer
+  // isn't "60% of a senior" - they either meet the seniority bar or don't. Similarly,
+  // salary either fits the preferred range or doesn't. Partial credit doesn't make sense.
   preferredSeniorityMatchMax: 1.0,
   preferredSalaryRangeMatchMax: 1.0,
 };
