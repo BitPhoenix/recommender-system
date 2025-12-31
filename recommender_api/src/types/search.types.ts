@@ -43,7 +43,6 @@ export interface CoreScores {
   skillMatch: number;
   confidence: number;
   experience: number;
-  startTimeline: number;
   salary: number;
 }
 
@@ -68,10 +67,10 @@ export interface PreferredDomainMatch {
   matchedDomains: string[];
 }
 
-export interface PreferredStartTimelineMatch {
+export interface StartTimelineMatch {
   score: number;
   matchedStartTimeline: string;
-  rank: number;
+  withinPreferred: boolean;
 }
 
 export interface PreferredTimezoneMatch {
@@ -98,7 +97,7 @@ export interface PreferenceMatches {
   teamFocusMatch?: TeamFocusMatch;
   relatedSkillsMatch?: RelatedSkillsMatch;
   preferredDomainMatch?: PreferredDomainMatch;
-  preferredStartTimelineMatch?: PreferredStartTimelineMatch;
+  startTimelineMatch?: StartTimelineMatch;
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
   preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;

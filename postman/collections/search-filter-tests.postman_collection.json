@@ -27,7 +27,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (empty)\n\n## Expected matches\n\n- All engineers (default includes all timeline options)\n- Sorted by `utilityScore` descending\n- Default pagination: 20 results starting at offset 0\n\n## Notes\n\n- Confidence score is fixed at 0.70 internally (medium risk equivalent)\n- No proficiency filter without skill requirements"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (empty)\n\n## Expected matches\n\n- All engineers (default includes all timeline options)\n- Sorted by `utilityScore` descending\n- Default pagination: 20 results starting at offset 0\n\n## Notes\n\n- Confidence score is fixed at 0.70 internally (medium risk equivalent)\n- No proficiency filter without skill requirements"
 			}
 		},
 		{
@@ -51,7 +51,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Seniority mapping:\n  - junior: 0-3 years\n  - mid: 3-6 years\n  - **senior: 6-10 years**\n  - staff: 10+ years\n  - principal: 15+ years"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Seniority mapping:\n  - junior: 0-3 years\n  - mid: 3-6 years\n  - **senior: 6-10 years**\n  - staff: 10+ years\n  - principal: 15+ years"
 			}
 		},
 		{
@@ -75,7 +75,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 0 AND 3 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **0-3 years experience**\n- Entry-level engineers"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 0 AND 3 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **0-3 years experience**\n- Entry-level engineers"
 			}
 		},
 		{
@@ -99,7 +99,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include ALL descendants of \"Backend\" category:\n  - **Languages:** Node.js, Express, NestJS, Python, Django, FastAPI, Java, Spring Boot, Go, Rust\n  - **Databases:** PostgreSQL, MySQL, MongoDB, Redis, DynamoDB, Neo4j, Kafka\n  - **Architecture:** API Design, REST API, GraphQL, gRPC, System Design, Microservices, Event-Driven, Distributed Systems\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Backend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Backend category\n- Default proficiency: 'learning' (all levels qualify)\n- `matchedSkills` array populated with matching skills\n- `matchType` should be `descendant` for inherited skills"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include ALL descendants of \"Backend\" category:\n  - **Languages:** Node.js, Express, NestJS, Python, Django, FastAPI, Java, Spring Boot, Go, Rust\n  - **Databases:** PostgreSQL, MySQL, MongoDB, Redis, DynamoDB, Neo4j, Kafka\n  - **Architecture:** API Design, REST API, GraphQL, gRPC, System Design, Microservices, Event-Driven, Distributed Systems\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Backend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Backend category\n- Default proficiency: 'learning' (all levels qualify)\n- `matchedSkills` array populated with matching skills\n- `matchType` should be `descendant` for inherited skills"
 			}
 		},
 		{
@@ -123,7 +123,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Frontend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include descendants of \"Frontend\" category:\n  - JavaScript, TypeScript, React, Next.js, Vue, Angular\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Frontend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Frontend category\n- `matchedSkills` populated with matching skills\n- Smaller expansion set compared to Backend"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Frontend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include descendants of \"Frontend\" category:\n  - JavaScript, TypeScript, React, Next.js, Vue, Angular\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Frontend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Frontend category\n- `matchedSkills` populated with matching skills\n- Smaller expansion set compared to Backend"
 			}
 		},
 		{
@@ -147,7 +147,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"TypeScript\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\", \"TypeScript\"]` (leaf skills, no expansion)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]`\n\n## Expected matches\n\n- Engineers must have **at least one** of Node.js OR TypeScript skills\n- `matchedSkills` array shows skills with `matchType: \"direct\"`\n- Higher `skillMatch` utility for engineers proficient in both"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"TypeScript\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\", \"TypeScript\"]` (leaf skills, no expansion)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]`\n\n## Expected matches\n\n- Engineers must have **at least one** of Node.js OR TypeScript skills\n- `matchedSkills` array shows skills with `matchType: \"direct\"`\n- Higher `skillMatch` utility for engineers proficient in both"
 			}
 		},
 		{
@@ -243,7 +243,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | America/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | America/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
 			}
 		},
 		{
@@ -267,7 +267,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
 			}
 		},
 		{
@@ -282,7 +282,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredStartTimeline\": [\"immediate\"]\n}"
+					"raw": "{\n  \"requiredMaxStartTime\": \"immediate\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -291,7 +291,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredStartTimeline` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start **immediately**\n- Excludes: `two_weeks`, `one_month`, `three_months`, `six_months`, `one_year`\n- Maximum startTimeline utility score (1.0) for all matches"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredMaxStartTime` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start **immediately**\n- Excludes: `two_weeks`, `one_month`, `three_months`, `six_months`, `one_year`\n- Threshold-based filtering: requiredMaxStartTime = 'immediate'"
 			}
 		},
 		{
@@ -306,7 +306,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredStartTimeline\": [\"immediate\", \"two_weeks\", \"one_month\"]\n}"
+					"raw": "{\n  \"requiredMaxStartTime\": \"one_month\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -315,7 +315,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredStartTimeline` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start within **one month**\n- Excludes: `three_months`, `six_months`, `one_year`\n- Use this to filter for candidates with shorter notice periods"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredMaxStartTime` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start within **one month**\n- Excludes: `three_months`, `six_months`, `one_year`\n- Threshold-based filtering: requiredMaxStartTime = 'one_month'"
 			}
 		},
 		{
@@ -339,7 +339,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with scaling-related skills get **ranking BOOST**\n- Engineers with more bonus skills rank higher\n- Max team focus bonus: 0.5 utility points (4% weight)\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| greenfield | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| **scaling** | distributed, system_design, monitoring, kafka |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with scaling-related skills get **ranking BOOST**\n- Engineers with more bonus skills rank higher\n- Max team focus bonus: 0.5 utility points (4% weight)\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| greenfield | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| **scaling** | distributed, system_design, monitoring, kafka |"
 			}
 		},
 		{
@@ -363,7 +363,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[ambiguity, creativity, ownership, system_design]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with greenfield-related skills get **ranking BOOST**\n- Good for new projects with unclear requirements\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| **greenfield** | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| scaling | distributed, system_design, monitoring, kafka |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[ambiguity, creativity, ownership, system_design]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with greenfield-related skills get **ranking BOOST**\n- Good for new projects with unclear requirements\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| **greenfield** | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| scaling | distributed, system_design, monitoring, kafka |"
 			}
 		},
 		{
@@ -387,7 +387,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| minSalary | `>=` | 100000 | user |\n| maxSalary | `<=` | 180000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **between $100k-$180k**\n- Engineers closer to minSalary have **HIGHER** salary utility\n- Salary utility is inverse: lower salary = better budget fit\n\n## Salary Utility Notes\n\n- Normalization range: $80k (min) to $300k (max)\n- Salary weight: 7% of total utility score"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| minSalary | `>=` | 100000 | user |\n| maxSalary | `<=` | 180000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **between $100k-$180k**\n- Engineers closer to minSalary have **HIGHER** salary utility\n- Salary utility is inverse: lower salary = better budget fit\n\n## Salary Utility Notes\n\n- Normalization range: $80k (min) to $300k (max)\n- Salary weight: 7% of total utility score"
 			}
 		},
 		{
@@ -411,7 +411,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| maxSalary | `<=` | 150000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **<= $150k**\n- Useful for budget-constrained searches\n- No minimum salary floor applied"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| maxSalary | `<=` | 150000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **<= $150k**\n- Useful for budget-constrained searches\n- No minimum salary floor applied"
 			}
 		},
 		{
@@ -435,7 +435,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (required) + `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` (preferred)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- All matches **MUST have Node.js** (hard filter)\n- Engineers with preferred skills **rank HIGHER**\n- Preferred skills are nice-to-have, not requirements\n\n## Use Case\n\n> \"Must know Node.js, bonus if they know TypeScript/Postgres/Docker\""
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (required) + `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` (preferred)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- All matches **MUST have Node.js** (hard filter)\n- Engineers with preferred skills **rank HIGHER**\n- Preferred skills are nice-to-have, not requirements\n\n## Use Case\n\n> \"Must know Node.js, bonus if they know TypeScript/Postgres/Docker\""
 			}
 		},
 		{
@@ -483,7 +483,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\"]`\n- **Note:** `limit` and `offset` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Returns results **11-20** (second page of 10)\n- `totalCount` shows full count before pagination\n\n## Pagination Defaults\n\n| Field | Default | Max |\n|-------|---------|-----|\n| limit | 20 | 100 |\n| offset | 0 | - |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\"]`\n- **Note:** `limit` and `offset` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Returns results **11-20** (second page of 10)\n- `totalCount` shows full count before pagination\n\n## Pagination Defaults\n\n| Field | Default | Max |\n|-------|---------|-----|\n| limit | 20 | 100 |\n| offset | 0 | - |"
 			}
 		},
 		{
@@ -498,7 +498,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredStartTimeline\": [\"immediate\", \"two_weeks\"]\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredMaxStartTime\": \"two_weeks\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -507,7 +507,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers who can start within **two weeks**\n- Must have at least one **Backend skill** at **proficient** level or higher"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers who can start within **two weeks** (threshold-based)\n- Must have at least one **Backend skill** at **proficient** level or higher"
 			}
 		},
 		{
@@ -531,7 +531,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| maxSalary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Salary **<= $200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| maxSalary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Salary **<= $200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
 			}
 		},
 		{
@@ -555,7 +555,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"FakeSkill123\",\"NonExistentTech\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (only valid skill expanded)\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[\"FakeSkill123\", \"NonExistentTech\"]`\n\n## Expected behavior\n\n- API should **NOT fail**\n- Only valid skills are used for filtering\n- `unresolvedSkills` array reports skills not found in database\n- Useful for debugging skill name mismatches"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"FakeSkill123\",\"NonExistentTech\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (only valid skill expanded)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[\"FakeSkill123\", \"NonExistentTech\"]`\n\n## Expected behavior\n\n- API should **NOT fail**\n- Only valid skills are used for filtering\n- `unresolvedSkills` array reports skills not found in database\n- Useful for debugging skill name mismatches"
 			}
 		},
 		{
@@ -579,7 +579,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredDomains | `IN` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with experience in **fintech OR healthcare** domains\n- Domain is a hard filter\n- `matchedDomains` array in response shows which domains matched"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredDomains | `IN` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with experience in **fintech OR healthcare** domains\n- Domain is a hard filter\n- `matchedDomains` array in response shows which domains matched"
 			}
 		},
 		{
@@ -627,7 +627,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **10+ years experience**\n- Staff level has **no upper bound** (minYears: 10, maxYears: null)\n- Compare to senior (6-10 years bounded range)\n\n## Seniority Experience Mapping\n\n| Level | Min Years | Max Years |\n|-------|-----------|----------|\n| junior | 0 | 3 |\n| mid | 3 | 6 |\n| senior | 6 | 10 |\n| **staff** | 10 | none |\n| principal | 15 | none |"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **10+ years experience**\n- Staff level has **no upper bound** (minYears: 10, maxYears: null)\n- Compare to senior (6-10 years bounded range)\n\n## Seniority Experience Mapping\n\n| Level | Min Years | Max Years |\n|-------|-----------|----------|\n| junior | 0 | 3 |\n| mid | 3 | 6 |\n| senior | 6 | 10 |\n| **staff** | 10 | none |\n| principal | 15 | none |"
 			}
 		},
 		{
@@ -651,7 +651,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| System Design.minProficiency | `>=` | expert | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredStartTimeline\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert-level System Design** required\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| System Design.minProficiency | `>=` | expert | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert-level System Design** required\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
 			}
 		},
 		{
@@ -666,7 +666,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"preferredStartTimeline\": [\"immediate\", \"two_weeks\"]\n}"
+					"raw": "{\n  \"preferredMaxStartTime\": \"two_weeks\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -675,7 +675,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredStartTimeline | `BOOST` | `[\"immediate\",\"two_weeks\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with `immediate` start timeline rank higher than `two_weeks`\n- Ordered preference: first item in array has highest priority\n- Uses `preferredStartTimelineMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredStartTimelineMatch` component appears\n- Max bonus: 1.0 for first preference match\n- Second preference: 0.5 bonus\n- No match: 0.0 bonus"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredMaxStartTime | `BOOST` | `two_weeks` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned (default allows all timelines)\n- Engineers within the preferred threshold (immediate or two_weeks) get full score\n- Uses `startTimelineMatch` weight (10%)\n\n## Threshold-based scoring\n\n- Engineers with `immediate` or `two_weeks` start: full score (within threshold)\n- Engineers with later timelines: no boost (only preference, no required filter)\n- This demonstrates preferredMaxStartTime without requiredMaxStartTime\n\n## Expected scoreBreakdown\n\n- `startTimelineMatch` component appears with `withinPreferred: true/false`"
 			}
 		},
 		{
@@ -762,7 +762,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredStartTimeline\": [\"immediate\"],\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredDomains\": [\"fintech\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredDomains\": [\"fintech\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -771,7 +771,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - preferredStartTimelineMatch: 3%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
+				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
 			}
 		},
 		{

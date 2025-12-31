@@ -28,7 +28,7 @@ export interface ExpandedConstraints {
   minYearsExperience: number;
   maxYearsExperience: number | null;
 
-  // Start timeline (when candidate could start)
+  // Start timeline (when candidate could start) - array for Cypher IN filter
   startTimeline: StartTimeline[];
 
   // Timezone
@@ -51,7 +51,8 @@ export interface ExpandedConstraints {
 
   // Pass-through preferred values for utility calculation
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredStartTimeline: StartTimeline[];
+  preferredMaxStartTime: StartTimeline | null;  // Threshold for full score
+  requiredMaxStartTime: StartTimeline | null;   // Threshold for filtering
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
 }
@@ -96,25 +97,34 @@ function expandSeniorityToYearsExperience(
 }
 
 
+/**
+ * Expands start timeline threshold to array of allowed values.
+ * Converts "I need someone within X time" to array for Cypher IN filter.
+ */
 function expandStartTimelineConstraint(
-  requiredStartTimeline: StartTimeline[] | undefined,
+  requiredMaxStartTime: StartTimeline | undefined,
   config: KnowledgeBaseConfig
-): { startTimeline: StartTimeline[]; context: ExpansionContext } {
+): { startTimeline: StartTimeline[]; requiredMaxStartTime: StartTimeline; context: ExpansionContext } {
   const context: ExpansionContext = { constraints: [], defaults: [] };
 
-  const startTimeline = requiredStartTimeline || config.defaults.requiredStartTimeline;
-  if (!requiredStartTimeline) {
-    context.defaults.push('requiredStartTimeline');
+  const threshold = requiredMaxStartTime || config.defaults.requiredMaxStartTime;
+  if (!requiredMaxStartTime) {
+    context.defaults.push('requiredMaxStartTime');
   }
+
+  // Convert threshold to array: all values up to and including the threshold
+  const timelineOrder: StartTimeline[] = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
+  const thresholdIndex = timelineOrder.indexOf(threshold);
+  const allowedTimelines = timelineOrder.slice(0, thresholdIndex + 1);
 
   context.constraints.push({
     field: 'startTimeline',
     operator: 'IN',
-    value: JSON.stringify(startTimeline),
-    source: requiredStartTimeline ? 'user' : 'knowledge_base',
+    value: JSON.stringify(allowedTimelines),
+    source: requiredMaxStartTime ? 'user' : 'knowledge_base',
   });
 
-  return { startTimeline, context };
+  return { startTimeline: allowedTimelines, requiredMaxStartTime: threshold, context };
 }
 
 function expandTimezoneToPrefix(
@@ -266,11 +276,11 @@ function trackPreferredValuesAsConstraints(request: SearchFilterRequest): Expans
     });
   }
 
-  if (request.preferredStartTimeline && request.preferredStartTimeline.length > 0) {
+  if (request.preferredMaxStartTime) {
     context.constraints.push({
-      field: 'preferredStartTimeline',
+      field: 'preferredMaxStartTime',
       operator: 'BOOST',
-      value: JSON.stringify(request.preferredStartTimeline),
+      value: request.preferredMaxStartTime,
       source: 'user',
     });
   }
@@ -319,7 +329,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
 
   // Expand each constraint type
   const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
-  const timeline = expandStartTimelineConstraint(request.requiredStartTimeline, config);
+  const timeline = expandStartTimelineConstraint(request.requiredMaxStartTime, config);
   const timezone = expandTimezoneToPrefix(request.requiredTimezone);
   const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
@@ -353,9 +363,10 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     offset: pagination.offset,
     appliedConstraints: merged.constraints,
     defaultsApplied: merged.defaults,
-    // Pass-through preferred values
+    // Pass-through preferred/required values for utility calculation
     preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
-    preferredStartTimeline: request.preferredStartTimeline ?? [],
+    preferredMaxStartTime: request.preferredMaxStartTime ?? null,
+    requiredMaxStartTime: timeline.requiredMaxStartTime,
     preferredTimezone: request.preferredTimezone ?? [],
     preferredSalaryRange: request.preferredSalaryRange ?? null,
   };

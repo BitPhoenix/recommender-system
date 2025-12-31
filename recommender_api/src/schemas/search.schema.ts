@@ -59,9 +59,9 @@ export const SearchFilterRequestSchema = z.object({
   requiredSkills: z.array(SkillRequirementSchema).optional(),
   preferredSkills: z.array(SkillRequirementSchema).optional(),
 
-  // Start timeline (when candidate could start if they accepted an offer)
-  requiredStartTimeline: z.array(StartTimelineSchema).optional(),
-  preferredStartTimeline: z.array(StartTimelineSchema).optional(),
+  // Start timeline (threshold-based: "I need someone within X time")
+  requiredMaxStartTime: StartTimelineSchema.optional(),
+  preferredMaxStartTime: StartTimelineSchema.optional(),
 
   // Timezone
   requiredTimezone: z.string().optional(),
@@ -92,6 +92,18 @@ export const SearchFilterRequestSchema = z.object({
   {
     message: 'requiredMinSalary must be less than or equal to requiredMaxSalary',
     path: ['requiredMinSalary'],
+  }
+).refine(
+  (data) => {
+    if (data.preferredMaxStartTime && data.requiredMaxStartTime) {
+      const order = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
+      return order.indexOf(data.preferredMaxStartTime) <= order.indexOf(data.requiredMaxStartTime);
+    }
+    return true;
+  },
+  {
+    message: 'preferredMaxStartTime must be at or faster than requiredMaxStartTime',
+    path: ['preferredMaxStartTime'],
   }
 );
 

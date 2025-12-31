@@ -42,7 +42,8 @@ export interface UtilityContext {
   maxSalaryBudget: number | null;
   // Preferred values for match calculation
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredStartTimeline: StartTimeline[];
+  preferredMaxStartTime: StartTimeline | null;  // Threshold for full score
+  requiredMaxStartTime: StartTimeline | null;   // Threshold for filtering (also used for degradation)
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
@@ -187,11 +188,13 @@ function calculatePreferredDomainMatchWithDetails(
 // PREFERENCE MATCH CALCULATION FUNCTIONS
 // ============================================
 
-interface PreferredStartTimelineMatchResult {
+interface StartTimelineMatchResult {
   raw: number;
   matchedStartTimeline: string | null;
-  rank: number;
+  withinPreferred: boolean;
 }
+
+const TIMELINE_ORDER: StartTimeline[] = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
 
 interface PreferredTimezoneMatchResult {
   raw: number;
@@ -211,28 +214,58 @@ interface PreferredSalaryRangeMatchResult {
 
 
 /**
- * Calculates preferred start timeline match.
- * Higher score for earlier positions in preference list.
+ * Calculates start timeline match using threshold-based scoring.
+ *
+ * Scoring logic:
+ * - Neither specified: No scoring (returns 0)
+ * - Only preferred: Full score if at/faster than preferred, else 0
+ * - Only required: No scoring (filtering only, no ranking boost)
+ * - Both: Full score at/faster than preferred, linear degradation to required
  */
-function calculatePreferredStartTimelineMatch(
+function calculateStartTimelineMatch(
   engineerStartTimeline: StartTimeline,
-  preferredStartTimeline: StartTimeline[],
+  preferredMaxStartTime: StartTimeline | null,
+  requiredMaxStartTime: StartTimeline | null,
   maxMatch: number
-): PreferredStartTimelineMatchResult {
-  if (preferredStartTimeline.length === 0) {
-    return { raw: 0, matchedStartTimeline: null, rank: -1 };
+): StartTimelineMatchResult {
+  // Neither specified → no timeline scoring
+  if (!preferredMaxStartTime && !requiredMaxStartTime) {
+    return { raw: 0, matchedStartTimeline: null, withinPreferred: false };
   }
 
-  const index = preferredStartTimeline.indexOf(engineerStartTimeline);
-  if (index === -1) {
-    return { raw: 0, matchedStartTimeline: null, rank: -1 };
+  const engineerIdx = TIMELINE_ORDER.indexOf(engineerStartTimeline);
+
+  // Only preferred specified → soft boost only
+  if (preferredMaxStartTime && !requiredMaxStartTime) {
+    const preferredIdx = TIMELINE_ORDER.indexOf(preferredMaxStartTime);
+    const withinPreferred = engineerIdx <= preferredIdx;
+    return {
+      raw: withinPreferred ? maxMatch : 0,
+      matchedStartTimeline: engineerStartTimeline,
+      withinPreferred,
+    };
   }
 
-  // Higher score for earlier positions: 1st = full, 2nd = 75%, 3rd = 50%, 4th = 25%
-  const positionMultiplier = 1 - (index / preferredStartTimeline.length);
-  const raw = positionMultiplier * maxMatch;
+  // Only required specified → hard filter (already done by query), no scoring boost
+  if (!preferredMaxStartTime && requiredMaxStartTime) {
+    return { raw: 0, matchedStartTimeline: engineerStartTimeline, withinPreferred: false };
+  }
 
-  return { raw, matchedStartTimeline: engineerStartTimeline, rank: index };
+  // Both specified → linear degradation between preferred and required
+  const preferredIdx = TIMELINE_ORDER.indexOf(preferredMaxStartTime!);
+  const requiredIdx = TIMELINE_ORDER.indexOf(requiredMaxStartTime!);
+
+  if (engineerIdx <= preferredIdx) {
+    // At or faster than preferred → full score
+    return { raw: maxMatch, matchedStartTimeline: engineerStartTimeline, withinPreferred: true };
+  } else if (engineerIdx <= requiredIdx) {
+    // Between preferred and required → linear degradation
+    const score = maxMatch * (1 - (engineerIdx - preferredIdx) / (requiredIdx - preferredIdx));
+    return { raw: score, matchedStartTimeline: engineerStartTimeline, withinPreferred: false };
+  }
+
+  // Beyond required (shouldn't happen - filtered by query)
+  return { raw: 0, matchedStartTimeline: engineerStartTimeline, withinPreferred: false };
 }
 
 /**
@@ -377,10 +410,6 @@ export function calculateUtilityWithBreakdown(
     params.yearsExperienceMax
   );
 
-  const startTimelineRaw = calculateStartTimelineUtility(
-    engineer.startTimeline as StartTimeline
-  );
-
   const salaryRaw = calculateSalaryUtility(
     engineer.salary,
     context.maxSalaryBudget,
@@ -412,10 +441,11 @@ export function calculateUtilityWithBreakdown(
   );
 
   // Calculate preference matches
-  const preferredStartTimelineResult = calculatePreferredStartTimelineMatch(
+  const startTimelineResult = calculateStartTimelineMatch(
     engineer.startTimeline as StartTimeline,
-    context.preferredStartTimeline,
-    params.preferredStartTimelineMatchMax
+    context.preferredMaxStartTime,
+    context.requiredMaxStartTime,
+    params.startTimelineMatchMax
   );
 
   const preferredTimezoneResult = calculatePreferredTimezoneMatch(
@@ -442,12 +472,11 @@ export function calculateUtilityWithBreakdown(
     params.preferredSkillProficiencyMatchMax
   );
 
-  // Calculate core weighted scores
+  // Calculate core weighted scores (startTimeline removed - now in preference matches)
   const coreScores: CoreScores = {
     skillMatch: calculateWeighted(skillMatchRaw, weights.skillMatch),
     confidence: calculateWeighted(confidenceRaw, weights.confidenceScore),
     experience: calculateWeighted(experienceRaw, weights.yearsExperience),
-    startTimeline: calculateWeighted(startTimelineRaw, weights.startTimeline),
     salary: calculateWeighted(salaryRaw, weights.salary),
   };
 
@@ -457,7 +486,7 @@ export function calculateUtilityWithBreakdown(
     teamFocusMatch: calculateWeighted(teamFocusResult.raw, weights.teamFocusMatch),
     relatedSkillsMatch: calculateWeighted(relatedSkillsResult.raw, weights.relatedSkillsMatch),
     preferredDomainMatch: calculateWeighted(preferredDomainResult.raw, weights.preferredDomainMatch),
-    preferredStartTimelineMatch: calculateWeighted(preferredStartTimelineResult.raw, weights.preferredStartTimelineMatch),
+    startTimelineMatch: calculateWeighted(startTimelineResult.raw, weights.startTimelineMatch),
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
     preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
@@ -503,11 +532,11 @@ export function calculateUtilityWithBreakdown(
       matchedDomains: preferredDomainResult.matchedDomainNames,
     };
   }
-  if (matchScores.preferredStartTimelineMatch > 0) {
-    preferenceMatches.preferredStartTimelineMatch = {
-      score: matchScores.preferredStartTimelineMatch,
-      matchedStartTimeline: preferredStartTimelineResult.matchedStartTimeline!,
-      rank: preferredStartTimelineResult.rank,
+  if (matchScores.startTimelineMatch > 0) {
+    preferenceMatches.startTimelineMatch = {
+      score: matchScores.startTimelineMatch,
+      matchedStartTimeline: startTimelineResult.matchedStartTimeline!,
+      withinPreferred: startTimelineResult.withinPreferred,
     };
   }
   if (matchScores.preferredTimezoneMatch > 0) {
@@ -573,10 +602,6 @@ export function calculateUtilityScore(
     params.yearsExperienceMax
   );
 
-  const startTimelineUtility = calculateStartTimelineUtility(
-    engineer.startTimeline as StartTimeline
-  );
-
   const salaryUtility = calculateSalaryUtility(
     engineer.salary,
     context.maxSalaryBudget,
@@ -608,10 +633,11 @@ export function calculateUtilityScore(
   );
 
   // Calculate preference match utilities
-  const preferredStartTimelineUtility = calculatePreferredStartTimelineMatch(
+  const startTimelineMatchUtility = calculateStartTimelineMatch(
     engineer.startTimeline as StartTimeline,
-    context.preferredStartTimeline,
-    params.preferredStartTimelineMatchMax
+    context.preferredMaxStartTime,
+    context.requiredMaxStartTime,
+    params.startTimelineMatchMax
   ).raw;
 
   const preferredTimezoneUtility = calculatePreferredTimezoneMatch(
@@ -643,14 +669,13 @@ export function calculateUtilityScore(
     weights.skillMatch * skillMatchUtility +
     weights.confidenceScore * confidenceUtility +
     weights.yearsExperience * experienceUtility +
-    weights.startTimeline * startTimelineUtility +
     weights.salary * salaryUtility +
     weights.preferredSkillsMatch * preferredSkillsMatchUtility +
     weights.teamFocusMatch * teamFocusMatchUtility +
     weights.relatedSkillsMatch * relatedSkillsMatchUtility +
     weights.preferredDomainMatch * preferredDomainMatchUtility +
     // Preference matches
-    weights.preferredStartTimelineMatch * preferredStartTimelineUtility +
+    weights.startTimelineMatch * startTimelineMatchUtility +
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
     weights.preferredSeniorityMatch * preferredSeniorityUtility +
     weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility +
@@ -719,15 +744,6 @@ function calculateExperienceUtility(
   return Math.min(logYears / logMax, 1);
 }
 
-/**
- * Calculates start timeline utility.
- * Step function based on timeline value.
- */
-function calculateStartTimelineUtility(
-  startTimeline: StartTimeline
-): number {
-  return config.startTimelineUtility[startTimeline] ?? 0;
-}
 
 /**
  * Calculates salary utility.

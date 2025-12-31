@@ -338,9 +338,10 @@ export async function executeSearch(
     preferredDomainIds,
     alignedSkillIds: expanded.alignedSkillIds,
     maxSalaryBudget: expanded.maxSalary,
-    // Pass through preferred values
+    // Pass through preferred/required values
     preferredSeniorityLevel: expanded.preferredSeniorityLevel,
-    preferredStartTimeline: expanded.preferredStartTimeline,
+    preferredMaxStartTime: expanded.preferredMaxStartTime,
+    requiredMaxStartTime: expanded.requiredMaxStartTime,
     preferredTimezone: expanded.preferredTimezone,
     preferredSalaryRange: expanded.preferredSalaryRange,
     // Per-skill preferred proficiencies for ranking boost

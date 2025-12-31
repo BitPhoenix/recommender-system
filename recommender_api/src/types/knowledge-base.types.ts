@@ -60,7 +60,7 @@ export type TeamFocusSkillAlignmentMapping = Record<TeamFocus, TeamFocusSkillAli
  */
 export interface SearchDefaults {
   defaultMinProficiency: ProficiencyLevel;   // Default for skills without explicit minProficiency
-  requiredStartTimeline: StartTimeline[];
+  requiredMaxStartTime: StartTimeline;       // Default: 'one_year' allows all timelines
   limit: number;
   offset: number;
 }
@@ -78,13 +78,12 @@ export interface UtilityWeights {
   relatedSkillsMatch: number;
   confidenceScore: number;
   yearsExperience: number;
-  startTimeline: number;
   salary: number;
 
   // Preference matches (conditional on request specifying them)
   preferredSkillsMatch: number;
   preferredDomainMatch: number;
-  preferredStartTimelineMatch: number;
+  startTimelineMatch: number;  // Threshold-based: full score if within preferred, degrades to required
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
   preferredSalaryRangeMatch: number;
@@ -113,19 +112,13 @@ export interface UtilityFunctionParams {
   teamFocusMatchMax: number;
   relatedSkillsMatchMax: number;
   preferredDomainMatchMax: number;
-  preferredStartTimelineMatchMax: number;
+  startTimelineMatchMax: number;
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;
   preferredSalaryRangeMatchMax: number;
   // Per-skill preferred proficiency match max
   preferredSkillProficiencyMatchMax: number;
 }
-
-/**
- * Start timeline step function values.
- * Maps each timeline option to a utility score (longer = lower score).
- */
-export type StartTimelineUtility = Record<StartTimeline, number>;
 
 // ============================================
 // COMPLETE KNOWLEDGE BASE CONFIG
@@ -138,5 +131,4 @@ export interface KnowledgeBaseConfig {
   defaults: SearchDefaults;
   utilityWeights: UtilityWeights;
   utilityParams: UtilityFunctionParams;
-  startTimelineUtility: StartTimelineUtility;
 }

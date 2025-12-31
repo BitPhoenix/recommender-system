@@ -17,7 +17,6 @@
 import type {
   UtilityWeights,
   UtilityFunctionParams,
-  StartTimelineUtility,
 } from '../../types/knowledge-base.types.js';
 
 /**
@@ -30,18 +29,28 @@ import type {
  * "w_j regulates the relative importance of the jth attribute"
  */
 export const utilityWeights: UtilityWeights = {
-  /* Candidate attributes (always evaluated) */
-  skillMatch: 0.22,
+  /*
+   * Candidate attributes (always evaluated)
+   * Note: startTimeline was removed - timeline scoring is now purely user-driven
+   * via startTimelineMatch (threshold-based). The 0.11 weight was redistributed:
+   * - 0.04 added to skillMatch (0.22 → 0.26)
+   * - 0.07 added to startTimelineMatch (0.03 → 0.10)
+   */
+  skillMatch: 0.26,
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
   yearsExperience: 0.11,
-  startTimeline: 0.11,
   salary: 0.07,
 
   /* Preference matches (conditional on request specifying them) */
   preferredSkillsMatch: 0.08,
   preferredDomainMatch: 0.04,
-  preferredStartTimelineMatch: 0.03,
+  /*
+   * THRESHOLD-BASED: Full score if engineer's timeline is at or faster than
+   * preferredMaxStartTime, linear degradation to requiredMaxStartTime, zero beyond.
+   * No preference specified = no timeline-based ranking at all.
+   */
+  startTimelineMatch: 0.10,
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
@@ -145,12 +154,18 @@ export const utilityParams: UtilityFunctionParams = {
   relatedSkillsMatchMax: 5,
 
   /*
+   * THRESHOLD-BASED with LINEAR DEGRADATION
+   * WHY: Managers think "I need someone within X time" - threshold is intuitive.
+   * Full score at/faster than preferred, linear degradation to required, zero beyond.
+   * Position-based arrays replaced with threshold semantics.
+   */
+  startTimelineMatchMax: 1.0,
+  /*
    * POSITION-BASED: (1 - index / length) * max
    * WHY POSITION-BASED: The user explicitly ordered these preferences. First choice
    * means "this is what we actually want," second choice means "acceptable fallback."
    * Position order carries signal - flattening to binary "match/no-match" loses info.
    */
-  preferredStartTimelineMatchMax: 1.0,
   preferredTimezoneMatchMax: 1.0,
 
   /*
@@ -163,21 +178,3 @@ export const utilityParams: UtilityFunctionParams = {
   preferredSalaryRangeMatchMax: 1.0,
 };
 
-/**
- * Start Timeline Step Function Values (Section 5.2.3, p.178)
- *
- * Discrete utility values for categorical start timeline attribute.
- * Step functions are appropriate for categorical attributes where
- * each value has a distinct, non-interpolatable utility.
- *
- * Note: All options have positive utility - even candidates who need a year
- * are valuable to include in results, just ranked lower.
- */
-export const startTimelineUtility: StartTimelineUtility = {
-  immediate: 1.0,
-  two_weeks: 0.9,
-  one_month: 0.75,
-  three_months: 0.5,
-  six_months: 0.25,
-  one_year: 0.1,
-};
