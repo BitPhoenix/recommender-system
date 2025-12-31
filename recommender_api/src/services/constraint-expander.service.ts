@@ -6,7 +6,7 @@
  * into concrete database constraints using the knowledge base rules.
  *
  * Note: Risk tolerance and global proficiency have been replaced by per-skill
- * proficiency requirements. Confidence score is now fixed at 0.70.
+ * proficiency requirements. Confidence score is used for ranking only, not filtering.
  */
 
 import type {
@@ -27,9 +27,6 @@ export interface ExpandedConstraints {
   // Experience constraints
   minYearsExperience: number;
   maxYearsExperience: number | null;
-
-  // Fixed confidence score (internalized from medium risk tolerance)
-  minConfidenceScore: number;
 
   // Availability
   availability: AvailabilityOption[];
@@ -328,18 +325,6 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
   const pagination = expandPaginationConstraints(request.limit, request.offset, config);
 
-  // Fixed confidence score (internalized from medium risk tolerance)
-  const minConfidenceScore = config.defaults.defaultMinConfidenceScore;
-  const confidenceContext: ExpansionContext = {
-    constraints: [{
-      field: 'confidenceScore',
-      operator: '>=',
-      value: minConfidenceScore.toFixed(2),
-      source: 'knowledge_base',
-    }],
-    defaults: [],
-  };
-
   // Track skills and preferred values as constraints
   const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
   const preferredContext = trackPreferredValuesAsConstraints(request);
@@ -347,7 +332,6 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // Merge all contexts
   const merged = mergeContexts(
     seniority.context,
-    confidenceContext,
     availability.context,
     timezone.context,
     salary.context,
@@ -360,7 +344,6 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   return {
     minYearsExperience: seniority.minYears,
     maxYearsExperience: seniority.maxYears,
-    minConfidenceScore,
     availability: availability.availability,
     timezonePrefix: timezone.timezonePrefix,
     maxSalary: salary.maxSalary,

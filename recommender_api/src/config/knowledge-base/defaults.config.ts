@@ -14,12 +14,12 @@ import type { SearchDefaults } from '../../types/knowledge-base.types.js';
  * Search Defaults (Section 5.2.2, p.176-177)
  *
  * Sensible defaults applied when fields are unspecified in a search request.
- * These defaults ensure the system can return results even with minimal input
- * while maintaining reasonable quality thresholds.
+ * These defaults ensure the system can return results even with minimal input.
+ *
+ * Note: Confidence score is no longer used for filtering - it only affects
+ * ranking via the utility calculation (14% weight).
  */
 export const defaults: SearchDefaults = {
-  // Confidence score is now internalized (equivalent to 'medium' risk tolerance)
-  defaultMinConfidenceScore: 0.70,
   // Default proficiency for skills without explicit minProficiency
   defaultMinProficiency: 'learning',
   requiredAvailability: ['immediate', 'two_weeks', 'one_month'], // excludes not_available

@@ -203,7 +203,6 @@ export async function executeSearch(
     proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
     expertLevelSkillIds: skillGroups.expertLevelSkillIds,
     originalSkillIdentifiers: originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
-    minConfidenceScore: expanded.minConfidenceScore,
     // Basic engineer filters
     availability: expanded.availability,
     minYearsExperience: expanded.minYearsExperience,

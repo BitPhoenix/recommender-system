@@ -49,7 +49,6 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 
   queryParams.offset = int(params.offset);
   queryParams.limit = int(params.limit);
-  queryParams.minConfidenceScore = params.minConfidenceScore;
 
   addDomainQueryParams(queryParams, params, domainContext);
 
@@ -78,15 +77,13 @@ WHERE ${whereClause}`;
   const qualificationClause = hasSkillFilter
     ? `
 // Check which engineers have at least one skill meeting per-skill proficiency constraints
+// Note: confidence score is used for ranking only, not exclusion
 WITH e, COLLECT(DISTINCT CASE
-  WHEN s.id IN $learningLevelSkillIds
-   AND es.confidenceScore >= $minConfidenceScore THEN s.id
+  WHEN s.id IN $learningLevelSkillIds THEN s.id
   WHEN s.id IN $proficientLevelSkillIds
-   AND es.proficiencyLevel IN ['proficient', 'expert']
-   AND es.confidenceScore >= $minConfidenceScore THEN s.id
+   AND es.proficiencyLevel IN ['proficient', 'expert'] THEN s.id
   WHEN s.id IN $expertLevelSkillIds
-   AND es.proficiencyLevel = 'expert'
-   AND es.confidenceScore >= $minConfidenceScore THEN s.id
+   AND es.proficiencyLevel = 'expert' THEN s.id
 END) AS qualifyingSkillIds
 WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`
     : "";
@@ -151,6 +148,7 @@ SKIP $offset LIMIT $limit`;
   const skillCollectionClause = hasSkillFilter
     ? `
 // Collect all skills with per-skill proficiency check (now only for paginated subset)
+// Confidence score is collected for ranking but not used to filter/exclude engineers
 MATCH (e)-[:HAS]->(es2:EngineerSkill)-[:FOR]->(s2:Skill)
 WHERE s2.id IN $allSkillIds
 
@@ -165,7 +163,6 @@ WITH e, totalCount,
          WHEN s2.id IN $originalSkillIdentifiers OR s2.name IN $originalSkillIdentifiers THEN 'direct'
          ELSE 'descendant'
        END,
-       meetsConfidence: es2.confidenceScore >= $minConfidenceScore,
        meetsProficiency: CASE
          WHEN s2.id IN $learningLevelSkillIds THEN true
          WHEN s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] THEN true
@@ -174,20 +171,20 @@ WITH e, totalCount,
        END
      }) AS allRelevantSkills,
      SIZE([x IN COLLECT(DISTINCT CASE
-       WHEN s2.id IN $learningLevelSkillIds AND es2.confidenceScore >= $minConfidenceScore THEN s2.id
-       WHEN s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] AND es2.confidenceScore >= $minConfidenceScore THEN s2.id
-       WHEN s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert' AND es2.confidenceScore >= $minConfidenceScore THEN s2.id
+       WHEN s2.id IN $learningLevelSkillIds THEN s2.id
+       WHEN s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] THEN s2.id
+       WHEN s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert' THEN s2.id
      END) WHERE x IS NOT NULL]) AS matchedSkillCount,
      AVG(CASE
-       WHEN (s2.id IN $learningLevelSkillIds AND es2.confidenceScore >= $minConfidenceScore)
-         OR (s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] AND es2.confidenceScore >= $minConfidenceScore)
-         OR (s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert' AND es2.confidenceScore >= $minConfidenceScore)
+       WHEN s2.id IN $learningLevelSkillIds
+         OR (s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'])
+         OR (s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert')
        THEN es2.confidenceScore END) AS avgConfidence`
     : `
 // Get all skills for display (now only for paginated subset)
+// Confidence score is collected for ranking but not used to filter/exclude engineers
 OPTIONAL MATCH (e)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
 WHERE s.isCategory = false
-  AND es.confidenceScore >= $minConfidenceScore
 
 WITH e, totalCount,
      COLLECT(

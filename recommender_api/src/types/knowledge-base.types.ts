@@ -56,9 +56,9 @@ export type TeamFocusSkillAlignmentMapping = Record<TeamFocus, TeamFocusSkillAli
 
 /**
  * Sensible defaults applied when fields are unspecified.
+ * Note: Confidence score is used for ranking only (via utility), not filtering.
  */
 export interface SearchDefaults {
-  defaultMinConfidenceScore: number;         // Fixed at 0.70 (medium risk equivalent)
   defaultMinProficiency: ProficiencyLevel;   // Default for skills without explicit minProficiency
   requiredAvailability: AvailabilityOption[];
   limit: number;

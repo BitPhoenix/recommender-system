@@ -15,9 +15,6 @@ export interface CypherQueryParams {
   // Original skill identifiers from the request (for matchType classification)
   originalSkillIdentifiers: string[] | null;
 
-  // Fixed confidence score threshold (internalized at 0.70)
-  minConfidenceScore: number;
-
   // Basic engineer filters
   availability: AvailabilityOption[];
   minYearsExperience: number;
