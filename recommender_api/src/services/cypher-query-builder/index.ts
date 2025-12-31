@@ -6,6 +6,5 @@
 export type { CypherQueryParams, CypherQuery } from "./query-types.js";
 
 import { buildSearchQuery } from "./search-query.builder.js";
-import { buildCountQuery } from "./count-query.builder.js";
 
-export { buildSearchQuery, buildCountQuery };
+export { buildSearchQuery };

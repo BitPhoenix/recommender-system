@@ -17,7 +17,6 @@ import { expandConstraints } from './constraint-expander.service.js';
 import { resolveSkillHierarchy } from './skill-resolver.service.js';
 import {
   buildSearchQuery,
-  buildCountQuery,
   type CypherQueryParams,
 } from './cypher-query-builder/index.js';
 import {
@@ -138,13 +137,8 @@ export async function executeSearch(
   const hasResolvedSkills = targetSkillIds !== null && targetSkillIds.length > 0;
   const mainQuery = buildSearchQuery(queryParams);
 
-  // Run queries sequentially (Neo4j sessions don't support concurrent queries)
+  // Run main query (now includes totalCount computed before pagination)
   const mainResult = await session.run(mainQuery.query, mainQuery.params);
-
-  // Separate count query for pagination - main query has LIMIT so .length only
-  // gives paginated count, not total. This returns totalCount for "1-20 of 156".
-  const countQuery = buildCountQuery(queryParams);
-  const countResult = await session.run(countQuery.query, countQuery.params);
 
   // Step 5: Process results
   // Determine how to handle skills based on search mode:
@@ -243,7 +237,10 @@ export async function executeSearch(
     };
   });
 
-  const totalCount = toNumber(countResult.records[0]?.get('totalCount') || 0);
+  // Extract totalCount from first record (all records have same value from early count step)
+  const totalCount = mainResult.records.length > 0
+    ? toNumber(mainResult.records[0].get('totalCount'))
+    : 0;
 
   // Step 6: Calculate utility scores and rank
   const utilityContext: UtilityContext = {

@@ -60,15 +60,61 @@ WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`
     !hasSkillFilter // useDistinct only for non-skill-filtered queries
   );
 
-  // === BUILD SKILL COLLECTION ===
+  /*
+   * COUNT AND EARLY PAGINATION
+   *
+   * This is a performance optimization. Previously, we ran two queries:
+   * 1. Main query: collected skills for ALL matching engineers, then paginated
+   * 2. Count query: separate query just to get totalCount for pagination UI
+   *
+   * Now we do it in one query by:
+   * 1. Collecting all qualifying engineers into a list
+   * 2. Computing SIZE(list) as totalCount BEFORE pagination
+   * 3. Paginating (ORDER BY, SKIP, LIMIT) immediately
+   * 4. Only THEN running expensive skill/domain collection on the small page
+   *
+   * This means skill collection runs for ~20 engineers instead of potentially
+   * hundreds, significantly reducing query time for large result sets.
+   */
+  const countAndPaginateClause = hasSkillFilter
+    ? `
+// Count all qualifying engineers, then paginate early
+WITH COLLECT({
+  e: e,
+  qualifyingSkillIds: qualifyingSkillIds
+}) AS allResults
+WITH allResults, SIZE(allResults) AS totalCount
+UNWIND allResults AS row
+WITH row.e AS e, row.qualifyingSkillIds AS qualifyingSkillIds, totalCount
+ORDER BY SIZE(qualifyingSkillIds) DESC, e.yearsExperience DESC
+SKIP $offset LIMIT $limit`
+    : `
+// Count all matching engineers, then paginate early
+WITH COLLECT(e) AS allResults
+WITH allResults, SIZE(allResults) AS totalCount
+UNWIND allResults AS e
+WITH e, totalCount
+ORDER BY e.yearsExperience DESC
+SKIP $offset LIMIT $limit`;
+
+  /*
+   * SKILL COLLECTION
+   *
+   * Collects detailed skill data for each engineer. This only runs for the
+   * paginated subset (e.g., 20 engineers) rather than all matches.
+   *
+   * We must include `totalCount` in every WITH clause from here forward.
+   * Cypher's WITH acts like a pipeline - any variable not explicitly passed
+   * through is lost. Since totalCount was computed earlier and we need it
+   * in the final RETURN, we carry it through each stage.
+   */
   const skillCollectionClause = hasSkillFilter
     ? `
-// Stage 2: Get ALL skills in hierarchy for qualifying engineers
+// Collect all skills with constraint check info (now only for paginated subset)
 MATCH (e)-[:HAS]->(es2:EngineerSkill)-[:FOR]->(s2:Skill)
 WHERE s2.id IN $targetSkillIds
 
-// Collect all skills with constraint check info
-WITH e,
+WITH e, totalCount,
      COLLECT({
        skillId: s2.id,
        skillName: s2.name,
@@ -91,13 +137,13 @@ WITH e,
         AND es2.proficiencyLevel IN $allowedProficiencyLevels
        THEN es2.confidenceScore END) AS avgConfidence`
     : `
-// Get all skills for display (not filtering)
+// Get all skills for display (now only for paginated subset)
 OPTIONAL MATCH (e)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
 WHERE s.isCategory = false
   AND es.proficiencyLevel IN $allowedProficiencyLevels
   AND es.confidenceScore >= $minConfidenceScore
 
-WITH e,
+WITH e, totalCount,
      COLLECT(
        CASE WHEN s IS NOT NULL THEN {
          skillId: s.id,
@@ -109,24 +155,27 @@ WITH e,
        } ELSE NULL END
      ) AS rawSkills
 
-WITH e,
+WITH e, totalCount,
      [skill IN rawSkills WHERE skill IS NOT NULL] AS allRelevantSkills,
      0 AS matchedSkillCount,
      0.0 AS avgConfidence`;
 
-  // === BUILD DOMAIN COLLECTION (shared) ===
-  const carryoverFields = ["allRelevantSkills", "matchedSkillCount", "avgConfidence"];
+  /*
+   * DOMAIN COLLECTION
+   *
+   * The domain collection helper needs to know which fields to preserve in its
+   * WITH clauses. These "carryover fields" are variables computed in earlier
+   * stages that must survive through the domain collection to reach RETURN.
+   * Without explicitly listing them, Cypher would drop them from scope.
+   */
+  const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
   const domainCollectionClause = buildPreferredDomainCollectionClause(
     domainContext,
     carryoverFields
   );
 
-  // === BUILD ORDER BY (conditional) ===
-  const orderByClause = hasSkillFilter
-    ? "ORDER BY matchedSkillCount DESC, avgConfidence DESC, e.yearsExperience DESC"
-    : "ORDER BY e.yearsExperience DESC";
-
   // === SHARED RETURN CLAUSE ===
+  // Note: ORDER BY, SKIP, LIMIT already applied in count/pagination step
   const returnClause = `
 RETURN e.id AS id,
        e.name AS name,
@@ -138,7 +187,8 @@ RETURN e.id AS id,
        allRelevantSkills,
        matchedSkillCount,
        COALESCE(avgConfidence, 0.0) AS avgConfidence,
-       matchedDomainNames`;
+       matchedDomainNames,
+       totalCount`;
 
   // === ASSEMBLE FINAL QUERY ===
   const query = `
@@ -146,13 +196,10 @@ RETURN e.id AS id,
 ${matchClause}
 ${qualificationClause}
 ${domainFilterClause}
+${countAndPaginateClause}
 ${skillCollectionClause}
 ${domainCollectionClause}
 ${returnClause}
-
-${orderByClause}
-SKIP $offset
-LIMIT $limit
 `;
 
   return { query, params: queryParams };
