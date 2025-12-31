@@ -34,7 +34,7 @@ interface RawSkillData {
   confidenceScore: number;
   yearsUsed: number;
   matchType: 'direct' | 'descendant' | 'none';
-  // These fields only exist in skill search mode, not browse mode
+  // These fields only exist when skill filtering is active
   meetsConfidence?: boolean;
   meetsProficiency?: boolean;
 }
@@ -134,7 +134,7 @@ export async function executeSearch(
     preferredDomainIds: preferredDomainIds.length > 0 ? preferredDomainIds : undefined,
   };
 
-  // Step 4: Execute main query (unified for both skill search and browse modes)
+  // Step 4: Execute main query (unified for skill-filtered and unfiltered search)
   const hasResolvedSkills = targetSkillIds !== null && targetSkillIds.length > 0;
   const mainQuery = buildSearchQuery(queryParams);
 
@@ -147,7 +147,7 @@ export async function executeSearch(
   // Determine how to handle skills based on search mode:
   // - requiredSkills specified → split skills into matched/unmatched based on constraints
   // - teamFocus only → show only aligned skills (filter to alignedSkillIds)
-  // - neither specified → clear skills (pure browse mode)
+  // - neither specified → clear skills (unfiltered search)
   const isTeamFocusOnlyMode = !hasResolvedSkills && expanded.alignedSkillIds.length > 0;
   const shouldClearSkills = !hasResolvedSkills && expanded.alignedSkillIds.length === 0;
 
@@ -195,7 +195,7 @@ export async function executeSearch(
             });
           }
         } else {
-          // No constraint checks (browse mode) - treat as matched
+          // No constraint checks (unfiltered search) - include as matched
           matchedSkills.push({
             skillId: skill.skillId,
             skillName: skill.skillName,

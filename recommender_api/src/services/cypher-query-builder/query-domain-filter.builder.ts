@@ -1,6 +1,6 @@
 /**
  * Builds domain filtering clauses for Cypher queries.
- * Consolidates the domain filter logic used across skill search, browse, and count queries.
+ * Consolidates the domain filter logic used across search and count queries.
  */
 
 import type { CypherQueryParams } from "./query-types.js";

@@ -13,7 +13,7 @@ import { ZodSchema, ZodError } from 'zod';
 export function validate<T>(schema: ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Empty objects are valid (browse mode)
+      // Empty objects are valid (unfiltered search)
       const body = req.body && Object.keys(req.body).length > 0
         ? req.body
         : {};

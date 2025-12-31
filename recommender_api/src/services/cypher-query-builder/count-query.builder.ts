@@ -11,66 +11,55 @@ import {
   buildRequiredDomainFilterClause,
 } from "./query-domain-filter.builder.js";
 
-function buildSkillSearchCountQuery(params: CypherQueryParams): CypherQuery {
-  const { conditions, queryParams } = buildEngineerQueryConditions(params);
-  const domainContext = getDomainFilterContext(params);
-
-  queryParams.targetSkillIds = params.targetSkillIds;
-  queryParams.minConfidenceScore = params.minConfidenceScore;
-  queryParams.allowedProficiencyLevels = params.allowedProficiencyLevels;
-
-  addDomainQueryParams(queryParams, params, domainContext);
-
-  const whereClause = conditions.join("\n  AND ");
-  const domainFilterClause = buildRequiredDomainFilterClause(
-    domainContext,
-    false
-  );
-
-  const query = `
-MATCH (e:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
-WHERE s.id IN $targetSkillIds
-  AND ${whereClause}
-WITH e, COLLECT(DISTINCT CASE
-  WHEN es.confidenceScore >= $minConfidenceScore
-   AND es.proficiencyLevel IN $allowedProficiencyLevels
-  THEN s.id END) AS qualifyingSkillIds
-WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0
-${domainFilterClause}
-RETURN COUNT(DISTINCT e) AS totalCount
-`;
-
-  return { query, params: queryParams };
-}
-
-function buildBrowseCountQuery(params: CypherQueryParams): CypherQuery {
-  const { conditions, queryParams } = buildEngineerQueryConditions(params);
-  const domainContext = getDomainFilterContext(params);
-
-  addDomainQueryParams(queryParams, params, domainContext);
-
-  const whereClause = conditions.join("\n  AND ");
-  const domainFilterClause = buildRequiredDomainFilterClause(
-    domainContext,
-    true
-  );
-
-  const query = `
-MATCH (e:Engineer)
-WHERE ${whereClause}
-${domainFilterClause}
-RETURN COUNT(DISTINCT e) AS totalCount
-`;
-
-  return { query, params: queryParams };
-}
-
 export function buildCountQuery(params: CypherQueryParams): CypherQuery {
   const hasSkillFilter =
     params.targetSkillIds !== null && params.targetSkillIds.length > 0;
 
+  // === SHARED SETUP ===
+  const { conditions, queryParams } = buildEngineerQueryConditions(params);
+  const domainContext = getDomainFilterContext(params);
+  const whereClause = conditions.join("\n  AND ");
+
+  addDomainQueryParams(queryParams, params, domainContext);
+
+  // === CONDITIONAL: Skill-specific params ===
   if (hasSkillFilter) {
-    return buildSkillSearchCountQuery(params);
+    queryParams.targetSkillIds = params.targetSkillIds;
+    queryParams.minConfidenceScore = params.minConfidenceScore;
+    queryParams.allowedProficiencyLevels = params.allowedProficiencyLevels;
   }
-  return buildBrowseCountQuery(params);
+
+  // === BUILD MATCH CLAUSE ===
+  const matchClause = hasSkillFilter
+    ? `MATCH (e:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
+WHERE s.id IN $targetSkillIds
+  AND ${whereClause}`
+    : `MATCH (e:Engineer)
+WHERE ${whereClause}`;
+
+  // === BUILD QUALIFICATION CHECK (skill search only) ===
+  const qualificationClause = hasSkillFilter
+    ? `
+WITH e, COLLECT(DISTINCT CASE
+  WHEN es.confidenceScore >= $minConfidenceScore
+   AND es.proficiencyLevel IN $allowedProficiencyLevels
+  THEN s.id END) AS qualifyingSkillIds
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`
+    : "";
+
+  // === BUILD DOMAIN FILTER ===
+  const domainFilterClause = buildRequiredDomainFilterClause(
+    domainContext,
+    !hasSkillFilter // useDistinct only for non-skill-filtered queries
+  );
+
+  // === ASSEMBLE FINAL QUERY ===
+  const query = `
+${matchClause}
+${qualificationClause}
+${domainFilterClause}
+RETURN COUNT(DISTINCT e) AS totalCount
+`;
+
+  return { query, params: queryParams };
 }

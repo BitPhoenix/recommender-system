@@ -730,7 +730,7 @@ function calculateConfidenceUtility(
   max: number
 ): number {
   if (avgConfidence <= 0) {
-    return 0.5; // Neutral for browse mode
+    return 0.5; // Neutral when no skill filtering is applied
   }
   return normalizeLinear(avgConfidence, min, max);
 }
