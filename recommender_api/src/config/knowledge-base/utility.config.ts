@@ -30,7 +30,7 @@ import type {
  * "w_j regulates the relative importance of the jth attribute"
  */
 export const utilityWeights: UtilityWeights = {
-  // Candidate attributes (always evaluated)
+  /* Candidate attributes (always evaluated) */
   skillMatch: 0.22,
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
@@ -38,17 +38,17 @@ export const utilityWeights: UtilityWeights = {
   startTimeline: 0.11,
   salary: 0.07,
 
-  // Preference matches (conditional on request specifying them)
+  /* Preference matches (conditional on request specifying them) */
   preferredSkillsMatch: 0.08,
   preferredDomainMatch: 0.04,
   preferredStartTimelineMatch: 0.03,
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
-  // Per-skill preferred proficiency (replaces global preferredConfidenceMatch + preferredProficiencyMatch)
+  /* Per-skill preferred proficiency (replaces global preferredConfidenceMatch + preferredProficiencyMatch) */
   preferredSkillProficiencyMatch: 0.04,
 
-  // Team context alignment
+  /* Team context alignment */
   teamFocusMatch: 0.04,
 };
 
@@ -89,59 +89,75 @@ export const utilityWeights: UtilityWeights = {
  * "The design of effective utility functions often requires domain-specific knowledge."
  */
 export const utilityParams: UtilityFunctionParams = {
-  // LINEAR: (confidence - 0.5) / (1.0 - 0.5)
-  // WHY LINEAR: ML confidence scores are already calibrated probabilities. A 0.7→0.8
-  // jump represents a genuine 10% improvement in match certainty. Unlike experience
-  // (where gains diminish), each point of confidence means more reliable skill inference.
-  // Below 0.5 is filtered out, so this range is "acceptable" to "highly confident."
+  /*
+   * LINEAR: (confidence - 0.5) / (1.0 - 0.5)
+   * WHY LINEAR: ML confidence scores are already calibrated probabilities. A 0.7→0.8
+   * jump represents a genuine 10% improvement in match certainty. Unlike experience
+   * (where gains diminish), each point of confidence means more reliable skill inference.
+   * Below 0.5 is filtered out, so this range is "acceptable" to "highly confident."
+   */
   confidenceMin: 0.5,
   confidenceMax: 1.0,
 
-  // LOGARITHMIC: log(1 + years) / log(1 + 20)
-  // WHY LOGARITHMIC: Early career years add distinct capabilities - junior→mid gains
-  // project ownership, mid→senior gains mentorship and architectural judgment. But
-  // 15→20 years adds polish, not fundamentally new capabilities. Hiring managers
-  // confirm: "5 years vs 0" is a different conversation than "22 years vs 17."
+  /*
+   * LOGARITHMIC: log(1 + years) / log(1 + 20)
+   * WHY LOGARITHMIC: Early career years add distinct capabilities - junior→mid gains
+   * project ownership, mid→senior gains mentorship and architectural judgment. But
+   * 15→20 years adds polish, not fundamentally new capabilities. Hiring managers
+   * confirm: "5 years vs 0" is a different conversation than "22 years vs 17."
+   */
   yearsExperienceMax: 20,
 
-  // INVERSE LINEAR: (300k - salary) / (300k - 80k)
-  // WHY INVERSE LINEAR: Budget fit matters linearly - $20k saved could fund tooling
-  // or partial headcount elsewhere. We don't use logarithmic because a $150k engineer
-  // isn't "half as good a deal" as $75k - budget math is linear. When maxBudget is
-  // specified, uses that as ceiling instead of salaryMax.
+  /*
+   * INVERSE LINEAR: (300k - salary) / (300k - 80k)
+   * WHY INVERSE LINEAR: Budget fit matters linearly - $20k saved could fund tooling
+   * or partial headcount elsewhere. We don't use logarithmic because a $150k engineer
+   * isn't "half as good a deal" as $75k - budget math is linear. When maxBudget is
+   * specified, uses that as ceiling instead of salaryMax.
+   */
   salaryMin: 80000,
   salaryMax: 300000,
 
-  // RATIO: matched / requested, capped at max
-  // WHY RATIO: Each preferred item is an explicit user wish with equal weight.
-  // Matching 2 of 4 preferred skills is genuinely twice as good as matching 1 of 4 -
-  // there's no diminishing returns on satisfying stated preferences.
+  /*
+   * RATIO: matched / requested, capped at max
+   * WHY RATIO: Each preferred item is an explicit user wish with equal weight.
+   * Matching 2 of 4 preferred skills is genuinely twice as good as matching 1 of 4 -
+   * there's no diminishing returns on satisfying stated preferences.
+   */
   preferredSkillsMatchMax: 1.0,
   preferredDomainMatchMax: 1.0,
   preferredSkillProficiencyMatchMax: 1.0,
 
-  // RATIO with lower max (0.5)
-  // WHY LOWER MAX: Team alignment is a tiebreaker, not a primary criterion. We don't
-  // want "matches team stack" to outweigh "has the actual required skills."
+  /*
+   * RATIO with lower max (0.5)
+   * WHY LOWER MAX: Team alignment is a tiebreaker, not a primary criterion. We don't
+   * want "matches team stack" to outweigh "has the actual required skills."
+   */
   teamFocusMatchMax: 0.5,
 
-  // EXPONENTIAL DECAY: (1 - e^(-count/5)) * 5
-  // WHY EXPONENTIAL DECAY: Having 1-2 related skills signals learning agility and
-  // T-shaped breadth. But accumulating 10+ doesn't make someone twice as valuable as
-  // having 5 - it just means a longer resume. We reward breadth but don't let it dominate.
+  /*
+   * EXPONENTIAL DECAY: (1 - e^(-count/5)) * 5
+   * WHY EXPONENTIAL DECAY: Having 1-2 related skills signals learning agility and
+   * T-shaped breadth. But accumulating 10+ doesn't make someone twice as valuable as
+   * having 5 - it just means a longer resume. We reward breadth but don't let it dominate.
+   */
   relatedSkillsMatchMax: 5,
 
-  // POSITION-BASED: (1 - index / length) * max
-  // WHY POSITION-BASED: The user explicitly ordered these preferences. First choice
-  // means "this is what we actually want," second choice means "acceptable fallback."
-  // Position order carries signal - flattening to binary "match/no-match" loses info.
+  /*
+   * POSITION-BASED: (1 - index / length) * max
+   * WHY POSITION-BASED: The user explicitly ordered these preferences. First choice
+   * means "this is what we actually want," second choice means "acceptable fallback."
+   * Position order carries signal - flattening to binary "match/no-match" loses info.
+   */
   preferredStartTimelineMatchMax: 1.0,
   preferredTimezoneMatchMax: 1.0,
 
-  // BINARY: meets threshold ? max : 0
-  // WHY BINARY: These are qualification thresholds, not gradients. A mid-level engineer
-  // isn't "60% of a senior" - they either meet the seniority bar or don't. Similarly,
-  // salary either fits the preferred range or doesn't. Partial credit doesn't make sense.
+  /*
+   * BINARY: meets threshold ? max : 0
+   * WHY BINARY: These are qualification thresholds, not gradients. A mid-level engineer
+   * isn't "60% of a senior" - they either meet the seniority bar or don't. Similarly,
+   * salary either fits the preferred range or doesn't. Partial credit doesn't make sense.
+   */
   preferredSeniorityMatchMax: 1.0,
   preferredSalaryRangeMatchMax: 1.0,
 };
