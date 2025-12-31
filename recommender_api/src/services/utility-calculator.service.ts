@@ -19,7 +19,7 @@ import type {
   SeniorityLevel,
   ProficiencyLevel,
 } from '../types/search.types.js';
-import { knowledgeBaseConfig } from '../config/knowledge-base.config.js';
+import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 export interface EngineerData {
   id: string;

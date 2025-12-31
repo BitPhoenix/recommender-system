@@ -13,7 +13,7 @@ import type {
   AvailabilityOption,
   SeniorityLevel,
 } from '../types/search.types.js';
-import { knowledgeBaseConfig } from '../config/knowledge-base.config.js';
+import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 export interface ExpandedConstraints {
   // Experience constraints
