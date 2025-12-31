@@ -58,29 +58,78 @@ export const utilityWeights: UtilityWeights = {
  * Parameters for individual utility functions f_j(v_j).
  * These define the contribution of each attribute value to the utility score.
  *
+ * Scaling function types used:
+ *
+ * LINEAR: f(x) = (x - min) / (max - min)
+ *   Maps value linearly to [0, 1]. Simple and intuitive - each unit increase
+ *   contributes equally. Used when the attribute has consistent marginal value.
+ *
+ * INVERSE LINEAR: f(x) = (max - x) / (max - min)
+ *   Lower values score higher. Used for cost attributes where less is better.
+ *
+ * LOGARITHMIC: f(x) = log(1 + x) / log(1 + max)
+ *   Diminishing returns - early gains matter more. Used for experience where
+ *   the jump from 0→5 years matters more than 15→20 years.
+ *
+ * EXPONENTIAL DECAY: f(x) = (1 - e^(-x/scale)) * max
+ *   Quickly approaches max then plateaus. Used for bonus attributes where
+ *   having "some" matters, but piling on more has diminishing benefit.
+ *
+ * RATIO: f(x) = min(matched / requested, max)
+ *   Proportion of requested items matched, capped. Used for preference lists
+ *   where matching all requested items = full score.
+ *
+ * POSITION-BASED: f(x) = (1 - index / length) * max
+ *   Higher score for earlier matches in ordered preference list.
+ *
+ * BINARY (STEP): f(x) = x meets threshold ? max : 0
+ *   All-or-nothing. Used when partial matches aren't meaningful.
+ *
  * From the textbook:
  * "The design of effective utility functions often requires domain-specific knowledge."
  */
 export const utilityParams: UtilityFunctionParams = {
-  // Confidence score linear range
+  // LINEAR: (confidence - 0.5) / (1.0 - 0.5)
+  // Maps ML confidence [0.5, 1.0] to utility [0, 1]. Below 0.5 is filtered out,
+  // so this range represents "acceptable" to "highly confident" skill matches.
   confidenceMin: 0.5,
   confidenceMax: 1.0,
-  // Years experience logarithmic max (diminishing returns after 20)
+
+  // LOGARITHMIC: log(1 + years) / log(1 + 20)
+  // Diminishing returns after ~20 years. A 5-year engineer vs 0-year is a big
+  // difference; 25-year vs 20-year is marginal. Reflects real hiring value.
   yearsExperienceMax: 20,
-  // Salary inverse linear range
+
+  // INVERSE LINEAR: (300k - salary) / (300k - 80k)
+  // Lower salary = higher utility (budget fit). Range covers typical market.
+  // When maxBudget is specified, uses that as ceiling instead.
   salaryMin: 80000,
   salaryMax: 300000,
-  // Preference match maximums
-  preferredSkillsMatchMax: 1.0,
+
+  // RATIO: matched / requested, capped at max
+  // These represent "what fraction of preferred items did we match?"
+  preferredSkillsMatchMax: 1.0, // Preferred skills coverage
+  preferredDomainMatchMax: 1.0, // Preferred domains coverage
+  preferredSkillProficiencyMatchMax: 1.0, // Skills meeting proficiency requirements
+
+  // RATIO with lower max: team focus is a smaller bonus, not a primary criterion
   teamFocusMatchMax: 0.5,
+
+  // EXPONENTIAL DECAY: (1 - e^(-count/5)) * 5
+  // Related skills beyond ~5 provide diminishing value. Having 1-2 related
+  // skills is valuable; having 10 vs 8 matters less.
   relatedSkillsMatchMax: 5,
-  preferredDomainMatchMax: 1.0,
+
+  // POSITION-BASED: (1 - index / length) * max
+  // Earlier positions in preference list score higher. First choice = 100%,
+  // second = 75%, third = 50%, etc.
   preferredStartTimelineMatchMax: 1.0,
   preferredTimezoneMatchMax: 1.0,
+
+  // BINARY: meets threshold ? max : 0
+  // Either matches the requirement or doesn't - no partial credit.
   preferredSeniorityMatchMax: 1.0,
   preferredSalaryRangeMatchMax: 1.0,
-  // Per-skill preferred proficiency match max
-  preferredSkillProficiencyMatchMax: 1.0,
 };
 
 /**
