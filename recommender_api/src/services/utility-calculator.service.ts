@@ -439,7 +439,7 @@ export function calculateUtilityWithBreakdown(
   const preferredSkillProficiencyResult = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
     context.preferredSkillProficiencies,
-    params.preferredProficiencyMatchMax
+    params.preferredSkillProficiencyMatchMax
   );
 
   // Calculate core weighted scores
@@ -461,7 +461,7 @@ export function calculateUtilityWithBreakdown(
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
     preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
-    preferredSkillProficiencyMatch: calculateWeighted(preferredSkillProficiencyResult.raw, weights.preferredProficiencyMatch),
+    preferredSkillProficiencyMatch: calculateWeighted(preferredSkillProficiencyResult.raw, weights.preferredSkillProficiencyMatch),
   };
 
   // Sum all weighted scores
@@ -635,7 +635,7 @@ export function calculateUtilityScore(
   const preferredSkillProficiencyUtility = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
     context.preferredSkillProficiencies,
-    params.preferredProficiencyMatchMax
+    params.preferredSkillProficiencyMatchMax
   ).raw;
 
   // Weighted sum: U(V) = Σ w_j * f_j(v_j)
@@ -654,7 +654,7 @@ export function calculateUtilityScore(
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
     weights.preferredSeniorityMatch * preferredSeniorityUtility +
     weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility +
-    weights.preferredProficiencyMatch * preferredSkillProficiencyUtility;
+    weights.preferredSkillProficiencyMatch * preferredSkillProficiencyUtility;
 
   return Math.round(utilityScore * 100) / 100; // Round to 2 decimal places
 }

@@ -219,7 +219,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Per-Skill Preferred Proficiency\n\nDemonstrates the preferredMinProficiency feature:\n- **minProficiency: proficient** = Hard filter (must be at least proficient)\n- **preferredMinProficiency: expert** = Ranking boost (experts rank higher)\n\n## Expected behavior\n\n- All engineers with 'proficient' OR 'expert' Node.js qualify\n- Engineers with 'expert' Node.js get a ranking boost\n- Uses `preferredProficiencyMatch` weight (4%)\n\n## Use Case\n\n> \"Must be proficient in Node.js, but would prefer an expert\""
+				"description": "## Per-Skill Preferred Proficiency\n\nDemonstrates the preferredMinProficiency feature:\n- **minProficiency: proficient** = Hard filter (must be at least proficient)\n- **preferredMinProficiency: expert** = Ranking boost (experts rank higher)\n\n## Expected behavior\n\n- All engineers with 'proficient' OR 'expert' Node.js qualify\n- Engineers with 'expert' Node.js get a ranking boost\n- Uses `preferredSkillProficiencyMatch` weight (4%)\n\n## Use Case\n\n> \"Must be proficient in Node.js, but would prefer an expert\""
 			}
 		},
 		{
@@ -771,7 +771,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - preferredStartTimelineMatch: 3%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
+				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - preferredStartTimelineMatch: 3%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
 			}
 		},
 		{

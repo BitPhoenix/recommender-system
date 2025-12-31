@@ -89,7 +89,7 @@ export interface UtilityWeights {
   preferredSeniorityMatch: number;
   preferredSalaryRangeMatch: number;
   // Per-skill preferred proficiency match
-  preferredProficiencyMatch: number;
+  preferredSkillProficiencyMatch: number;
 
   // Team context alignment
   teamFocusMatch: number;
@@ -118,7 +118,7 @@ export interface UtilityFunctionParams {
   preferredSeniorityMatchMax: number;
   preferredSalaryRangeMatchMax: number;
   // Per-skill preferred proficiency match max
-  preferredProficiencyMatchMax: number;
+  preferredSkillProficiencyMatchMax: number;
 }
 
 /**
