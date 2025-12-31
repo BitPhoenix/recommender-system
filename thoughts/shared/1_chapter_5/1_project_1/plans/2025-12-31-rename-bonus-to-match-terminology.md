@@ -229,10 +229,10 @@ export interface ScoreBreakdown {
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Type checking passes: `npm run typecheck` (will fail until Phase 2 completes)
+- [x] Type checking passes: `npm run typecheck` (will fail until Phase 2 completes)
 
 #### Manual Verification:
-- [ ] All interface names follow the new naming convention
+- [x] All interface names follow the new naming convention
 
 **Implementation Note**: Types will not compile until config is updated. Proceed immediately to Phase 2.
 
@@ -353,7 +353,7 @@ utilityParams: {
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Type checking passes: `npm run typecheck` (will fail until Phase 3 completes)
+- [x] Type checking passes: `npm run typecheck` (will fail until Phase 3 completes)
 
 ---
 
@@ -555,8 +555,8 @@ return {
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Type checking passes: `npm run typecheck`
-- [ ] Build succeeds: `npm run build`
+- [x] Type checking passes: `npm run typecheck`
+- [x] Build succeeds: `npm run build`
 
 ---
 
@@ -581,9 +581,9 @@ Update any files that still reference the old names (likely in route handlers or
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Type checking passes: `npm run typecheck`
-- [ ] Build succeeds: `npm run build`
-- [ ] No "Bonus" references remain: `grep -r "Bonus" recommender_api/src/ --include="*.ts"` returns empty (except comments explaining the rename if any)
+- [x] Type checking passes: `npm run typecheck`
+- [x] Build succeeds: `npm run build`
+- [x] No "Bonus" references remain: `grep -r "Bonus" recommender_api/src/ --include="*.ts"` returns empty (except internal `proficiencyBonus` in skill match calculation)
 
 #### Manual Verification:
 - [ ] API still returns correct response structure

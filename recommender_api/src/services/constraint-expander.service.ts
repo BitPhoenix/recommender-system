@@ -34,8 +34,8 @@ export interface ExpandedConstraints {
   maxSalary: number | null;
   minSalary: number | null;
 
-  // Team focus bonus skills
-  bonusSkillIds: string[];
+  // Team focus aligned skills
+  alignedSkillIds: string[];
 
   // Pagination
   limit: number;
@@ -178,18 +178,18 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   }
 
   // ============================================
-  // TEAM FOCUS -> BONUS SKILLS
+  // TEAM FOCUS -> ALIGNED SKILLS
   // ============================================
-  let bonusSkillIds: string[] = [];
+  let alignedSkillIds: string[] = [];
 
   if (request.teamFocus) {
-    const bonus = config.teamFocusBonusMapping[request.teamFocus];
-    bonusSkillIds = bonus.bonusSkillIds;
+    const alignment = config.teamFocusSkillAlignment[request.teamFocus];
+    alignedSkillIds = alignment.alignedSkillIds;
 
     appliedConstraints.push({
-      field: 'teamFocusBonus',
+      field: 'teamFocusMatch',
       operator: 'BOOST',
-      value: bonusSkillIds.join(', '),
+      value: alignedSkillIds.join(', '),
       source: 'knowledge_base',
     });
   }
@@ -297,7 +297,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     timezonePrefix,
     maxSalary,
     minSalary,
-    bonusSkillIds,
+    alignedSkillIds,
     limit,
     offset,
     appliedConstraints,

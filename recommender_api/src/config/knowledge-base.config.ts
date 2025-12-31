@@ -65,13 +65,13 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // can be used to quickly discover inconsistencies in the user-specified requirements."
 
   /**
-   * Team Focus Skill Bonuses
-   * Maps team focus to skills that provide ranking boosts.
-   * Indirect mapping: teamFocus=greenfield ⇒ bonus for ambiguity/creativity skills
+   * Team Focus Skill Alignment
+   * Maps team focus to skills that are contextually relevant.
+   * Indirect mapping: teamFocus=greenfield ⇒ boost for ambiguity/creativity skills
    */
-  teamFocusBonusMapping: {
+  teamFocusSkillAlignment: {
     greenfield: {
-      bonusSkillIds: [
+      alignedSkillIds: [
         'skill_ambiguity',
         'skill_creativity',
         'skill_ownership',
@@ -80,7 +80,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
       rationale: 'New projects require navigating unclear requirements',
     },
     migration: {
-      bonusSkillIds: [
+      alignedSkillIds: [
         'skill_system_design',
         'skill_debugging',
         'skill_attention_detail',
@@ -89,7 +89,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
       rationale: 'Understanding both old and new systems',
     },
     maintenance: {
-      bonusSkillIds: [
+      alignedSkillIds: [
         'skill_debugging',
         'skill_root_cause',
         'skill_documentation',
@@ -98,7 +98,7 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
       rationale: 'Bug fixing and quality gates',
     },
     scaling: {
-      bonusSkillIds: [
+      alignedSkillIds: [
         'skill_distributed',
         'skill_system_design',
         'skill_monitoring',
@@ -135,24 +135,26 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
    * w_j regulates the relative importance of the jth attribute (Section 5.2.3, p.178)
    */
   utilityWeights: {
-    // Core attributes (reduced slightly to make room for new bonuses)
-    skillMatch: 0.22,              // was 0.25
-    confidenceScore: 0.14,         // was 0.16
-    yearsExperience: 0.11,         // was 0.13
-    availability: 0.11,            // was 0.13
-    salary: 0.07,                  // was 0.08
-    // Existing bonuses
-    preferredSkillsBonus: 0.08,    // was 0.10
-    teamFocusBonus: 0.04,          // was 0.05
-    relatedSkillsBonus: 0.04,      // was 0.05
-    domainBonus: 0.04,             // was 0.05
-    // NEW bonuses (total: 0.15)
-    preferredAvailabilityBonus: 0.03,
-    preferredTimezoneBonus: 0.02,
-    preferredSeniorityBonus: 0.03,
-    preferredSalaryRangeBonus: 0.03,
-    preferredConfidenceBonus: 0.02,
-    preferredProficiencyBonus: 0.02,
+    // Candidate attributes (always evaluated)
+    skillMatch: 0.22,
+    relatedSkillsMatch: 0.04,
+    confidenceScore: 0.14,
+    yearsExperience: 0.11,
+    availability: 0.11,
+    salary: 0.07,
+
+    // Preference matches (conditional on request specifying them)
+    preferredSkillsMatch: 0.08,
+    preferredDomainMatch: 0.04,
+    preferredAvailabilityMatch: 0.03,
+    preferredTimezoneMatch: 0.02,
+    preferredSeniorityMatch: 0.03,
+    preferredSalaryRangeMatch: 0.03,
+    preferredConfidenceMatch: 0.02,
+    preferredProficiencyMatch: 0.02,
+
+    // Team context alignment
+    teamFocusMatch: 0.04,
   },
 
   /**
@@ -169,21 +171,17 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
     // Salary inverse linear range
     salaryMin: 80000,
     salaryMax: 300000,
-    // Max preferred skills bonus (accumulated from user-specified preferred skills)
-    preferredSkillsBonusMax: 1.0,
-    // Max team focus bonus (accumulated from compatibility rules)
-    teamFocusBonusMax: 0.5,
-    // Related skills bonus: number of unmatched skills for max bonus (diminishing returns)
-    relatedSkillsBonusMax: 5,
-    // Max domain bonus (accumulated from matched preferred domains)
-    domainBonusMax: 1.0,
-    // NEW params for preferred properties
-    preferredAvailabilityBonusMax: 1.0,   // Full bonus for top preference
-    preferredTimezoneBonusMax: 1.0,
-    preferredSeniorityBonusMax: 1.0,
-    preferredSalaryRangeBonusMax: 1.0,
-    preferredConfidenceBonusMax: 1.0,
-    preferredProficiencyBonusMax: 1.0,
+    // Preference match maximums
+    preferredSkillsMatchMax: 1.0,
+    teamFocusMatchMax: 0.5,
+    relatedSkillsMatchMax: 5,
+    preferredDomainMatchMax: 1.0,
+    preferredAvailabilityMatchMax: 1.0,
+    preferredTimezoneMatchMax: 1.0,
+    preferredSeniorityMatchMax: 1.0,
+    preferredSalaryRangeMatchMax: 1.0,
+    preferredConfidenceMatchMax: 1.0,
+    preferredProficiencyMatchMax: 1.0,
   },
 
   /**

@@ -123,23 +123,23 @@ RETURN identifier, s IS NOT NULL AS exists
 }
 
 /**
- * Gets bonus skill IDs for team focus, validating they exist in the database.
+ * Gets aligned skill IDs for team focus, validating they exist in the database.
  */
-export async function resolveBonusSkills(
+export async function resolveAlignedSkills(
   session: Session,
-  bonusSkillIds: string[]
+  alignedSkillIds: string[]
 ): Promise<string[]> {
-  if (!bonusSkillIds || bonusSkillIds.length === 0) {
+  if (!alignedSkillIds || alignedSkillIds.length === 0) {
     return [];
   }
 
   const query = `
 MATCH (s:Skill)
-WHERE s.id IN $bonusSkillIds
+WHERE s.id IN $alignedSkillIds
 RETURN s.id AS skillId
 `;
 
-  const result = await session.run(query, { bonusSkillIds });
+  const result = await session.run(query, { alignedSkillIds });
 
   return result.records.map((record) => record.get('skillId') as string);
 }

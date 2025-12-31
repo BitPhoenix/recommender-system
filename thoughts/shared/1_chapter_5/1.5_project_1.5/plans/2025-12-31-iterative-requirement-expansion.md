@@ -34,6 +34,57 @@ A forward-chaining inference engine that:
 - API response includes `derivedConstraints` with explanation chains
 - No performance regression (< 10ms expansion time for typical requests)
 
+## Design Decisions and Rationale
+
+This section explains the reasoning behind our key architectural decisions.
+
+### Decision 1: Boost Semantics (Not Filtering)
+
+**Decision**: Derived constraints affect ranking only, not retrieval filtering.
+
+**Rationale**:
+1. **User didn't explicitly request them** - If a user asks for `teamFocus=greenfield`, they didn't explicitly say "exclude anyone without ambiguity tolerance skills." Using derived constraints as hard filters could eliminate valid candidates the user would want to see.
+
+2. **Keeps options open** - Boosts surface the "better-fit" candidates at the top while still allowing the user to see alternatives. A senior engineer without documented leadership skills might still be excellent for the role.
+
+3. **Forgiving of imperfect rule design** - Our rules encode general domain heuristics, not absolute truths. If a rule is slightly wrong (e.g., not all scaling projects need Kafka expertise), boosts degrade gracefully while filters would wrongly exclude candidates.
+
+4. **Matches user expectations** - Users expect the system to be helpful, not restrictive. Boosts feel like "smart suggestions" while filters feel like "the system deciding for me."
+
+5. **Reversible and transparent** - Users can see why candidates rank higher via the explanation chain. With filters, eliminated candidates are invisible, making the system opaque.
+
+### Decision 2: User Intent Overrides Inference
+
+**Decision**: When a user explicitly sets a preference, inferred rules targeting that field are blocked.
+
+**Rationale**:
+1. **Users know their context better** - A manager asking for `preferredSeniorityLevel=junior` on a greenfield project might have good reasons: training opportunity, budget constraints, or team composition needs. Our general rule "greenfield prefers senior" shouldn't override their specific knowledge.
+
+2. **Maintains trust** - If the system silently overrode user input, users would feel the system "knows better" than them. This erodes trust and makes the system frustrating to use.
+
+3. **Explicit is better than implicit** - The Zen of Python applies here. When there's a conflict between what the user said and what we infer, the explicit statement wins.
+
+4. **Transparency via tracking** - We still track which rules WOULD have fired but were overridden (`overriddenByUser: true`). This lets the UI show "We noticed you prefer junior, but greenfield projects often benefit from senior experience" - informative without being pushy.
+
+5. **Avoids unexpected behavior** - Users should never be surprised by results. If they asked for X and got Y because of hidden inference, that's a bug in their mental model of the system.
+
+### Decision 3: Provenance Chain Tracking
+
+**Decision**: Every derived constraint includes an explanation chain showing which rules led to it.
+
+**Rationale**:
+1. **User confusion prevention** - Without explanations, users see recommendations they didn't ask for. "Why is the system boosting distributed systems skills?" The explanation "Because you selected teamFocus=scaling, which typically requires distributed systems expertise" answers this.
+
+2. **Debuggability** - When rules produce unexpected results, developers and product managers need to trace the reasoning. The derivation chain makes this possible without digging through code.
+
+3. **Trust through transparency** - Knowledge-based systems are only trusted when users understand their reasoning. Black-box recommendations feel arbitrary; explained recommendations feel intelligent.
+
+4. **Educational value** - Users learn domain relationships through explanations. "Oh, scaling projects DO need monitoring skills - I hadn't thought of that." This makes the system a teacher, not just a tool.
+
+5. **Feedback loop enablement** - When users disagree with a derived constraint, they can report WHY. "This rule doesn't apply to my team because X." The explanation makes this feedback actionable.
+
+6. **Alignment with textbook** - Section 5.2.1 emphasizes that constraint-based systems should be explainable. The derivation chain implements this principle.
+
 ## What We're NOT Doing
 
 - **Not changing filter semantics** - Derived constraints are boosts only, not hard filters

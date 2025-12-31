@@ -35,7 +35,7 @@ export interface SearchFilterRequest {
   requiredRiskTolerance?: RiskTolerance;         // was: riskTolerance
   requiredMinProficiency?: ProficiencyLevel;     // was: minProficiency
 
-  // Context constraints (for ranking bonuses) - unchanged
+  // Context constraints (for ranking preference matches) - unchanged
   teamFocus?: TeamFocus;
 
   // Domain filtering - unchanged
@@ -47,7 +47,7 @@ export interface SearchFilterRequest {
   preferredAvailability?: AvailabilityOption[];  // ordered preference list
   preferredTimezone?: string[];                  // ordered preference list
   preferredSalaryRange?: PreferredSalaryRange;   // ideal salary range
-  preferredConfidenceScore?: number;             // threshold for bonus (0-1)
+  preferredConfidenceScore?: number;             // threshold for match (0-1)
   preferredProficiency?: ProficiencyLevel;
 
   // Pagination - unchanged
@@ -86,71 +86,71 @@ export interface CoreScores {
   salary: number;
 }
 
-// Individual bonus types with score + match data
-export interface PreferredSkillsBonus {
+// Individual match types with score + match data
+export interface PreferredSkillsMatch {
   score: number;
   matchedSkills: string[];
 }
 
-export interface TeamFocusBonus {
+export interface TeamFocusMatch {
   score: number;
   matchedSkills: string[];
 }
 
-export interface RelatedSkillsBonus {
+export interface RelatedSkillsMatch {
   score: number;
   count: number;
 }
 
-export interface DomainBonus {
+export interface PreferredDomainMatch {
   score: number;
   matchedDomains: string[];
 }
 
-export interface PreferredAvailabilityBonus {
+export interface PreferredAvailabilityMatch {
   score: number;
   matchedAvailability: string;
   rank: number;
 }
 
-export interface PreferredTimezoneBonus {
+export interface PreferredTimezoneMatch {
   score: number;
   matchedTimezone: string;
   rank: number;
 }
 
-export interface PreferredSeniorityBonus {
+export interface PreferredSeniorityMatch {
   score: number;
 }
 
-export interface PreferredSalaryRangeBonus {
+export interface PreferredSalaryRangeMatch {
   score: number;
 }
 
-export interface PreferredConfidenceBonus {
+export interface PreferredConfidenceMatch {
   score: number;
 }
 
-export interface PreferredProficiencyBonus {
+export interface PreferredProficiencyMatch {
   score: number;
 }
 
-export interface Bonuses {
-  preferredSkillsBonus?: PreferredSkillsBonus;
-  teamFocusBonus?: TeamFocusBonus;
-  relatedSkillsBonus?: RelatedSkillsBonus;
-  domainBonus?: DomainBonus;
-  preferredAvailabilityBonus?: PreferredAvailabilityBonus;
-  preferredTimezoneBonus?: PreferredTimezoneBonus;
-  preferredSeniorityBonus?: PreferredSeniorityBonus;
-  preferredSalaryRangeBonus?: PreferredSalaryRangeBonus;
-  preferredConfidenceBonus?: PreferredConfidenceBonus;
-  preferredProficiencyBonus?: PreferredProficiencyBonus;
+export interface PreferenceMatches {
+  preferredSkillsMatch?: PreferredSkillsMatch;
+  teamFocusMatch?: TeamFocusMatch;
+  relatedSkillsMatch?: RelatedSkillsMatch;
+  preferredDomainMatch?: PreferredDomainMatch;
+  preferredAvailabilityMatch?: PreferredAvailabilityMatch;
+  preferredTimezoneMatch?: PreferredTimezoneMatch;
+  preferredSeniorityMatch?: PreferredSeniorityMatch;
+  preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;
+  preferredConfidenceMatch?: PreferredConfidenceMatch;
+  preferredProficiencyMatch?: PreferredProficiencyMatch;
 }
 
 export interface ScoreBreakdown {
   scores: Partial<CoreScores>;
-  bonuses: Bonuses;
+  preferenceMatches: PreferenceMatches;
   total: number;  // Sum of all weighted scores (equals utilityScore)
 }
 

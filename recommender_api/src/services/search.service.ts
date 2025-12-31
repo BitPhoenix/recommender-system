@@ -146,10 +146,10 @@ export async function executeSearch(
   // Step 5: Process results
   // Determine how to handle skills based on search mode:
   // - requiredSkills specified → split skills into matched/unmatched based on constraints
-  // - teamFocus only → show only bonus skills (filter to bonusSkillIds)
+  // - teamFocus only → show only aligned skills (filter to alignedSkillIds)
   // - neither specified → clear skills (pure browse mode)
-  const isTeamFocusOnlyMode = !hasResolvedSkills && expanded.bonusSkillIds.length > 0;
-  const shouldClearSkills = !hasResolvedSkills && expanded.bonusSkillIds.length === 0;
+  const isTeamFocusOnlyMode = !hasResolvedSkills && expanded.alignedSkillIds.length > 0;
+  const shouldClearSkills = !hasResolvedSkills && expanded.alignedSkillIds.length === 0;
 
   const rawEngineers: RawEngineerRecord[] = mainResult.records.map((record) => {
     let matchedSkills: MatchedSkill[] = [];
@@ -207,10 +207,10 @@ export async function executeSearch(
         }
       }
 
-      // In teamFocus-only mode, filter to only show bonus skills
+      // In teamFocus-only mode, filter to only show aligned skills
       if (isTeamFocusOnlyMode) {
         matchedSkills = matchedSkills.filter((skill) =>
-          expanded.bonusSkillIds.includes(skill.skillId)
+          expanded.alignedSkillIds.includes(skill.skillId)
         );
         unmatchedRelatedSkills = []; // Clear unmatched in this mode
       }
@@ -247,9 +247,9 @@ export async function executeSearch(
     requestedSkillIds: targetSkillIds || [],
     preferredSkillIds,
     preferredDomainIds,
-    bonusSkillIds: expanded.bonusSkillIds,
+    alignedSkillIds: expanded.alignedSkillIds,
     maxSalaryBudget: expanded.maxSalary,
-    // NEW: Pass through preferred values
+    // Pass through preferred values
     preferredSeniorityLevel: expanded.preferredSeniorityLevel,
     preferredAvailability: expanded.preferredAvailability,
     preferredTimezone: expanded.preferredTimezone,

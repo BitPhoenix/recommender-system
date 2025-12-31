@@ -51,15 +51,15 @@ export type ProficiencyMapping = Record<ProficiencyLevel, ProficiencyLevel[]>;
 // ============================================
 
 /**
- * Maps team focus to bonus skills for ranking.
+ * Maps team focus to skills that are contextually relevant.
  * These skills provide a ranking boost but are not hard filters.
  */
-export interface TeamFocusBonus {
-  bonusSkillIds: string[];
+export interface TeamFocusSkillAlignment {
+  alignedSkillIds: string[];
   rationale: string;
 }
 
-export type TeamFocusBonusMapping = Record<TeamFocus, TeamFocusBonus>;
+export type TeamFocusSkillAlignmentMapping = Record<TeamFocus, TeamFocusSkillAlignment>;
 
 // ============================================
 // DEFAULT VALUES (Section 5.2.2)
@@ -84,22 +84,26 @@ export interface SearchDefaults {
  * Weights for the utility function: U(V) = Σ w_j * f_j(v_j)
  */
 export interface UtilityWeights {
+  // Candidate attributes (always evaluated)
   skillMatch: number;
+  relatedSkillsMatch: number;
   confidenceScore: number;
   yearsExperience: number;
   availability: number;
   salary: number;
-  preferredSkillsBonus: number;
-  teamFocusBonus: number;
-  relatedSkillsBonus: number;  // Bonus for unmatched related skills in hierarchy
-  domainBonus: number;         // Bonus for matching preferred domains
-  // NEW weights for preferred properties
-  preferredAvailabilityBonus: number;
-  preferredTimezoneBonus: number;
-  preferredSeniorityBonus: number;
-  preferredSalaryRangeBonus: number;
-  preferredConfidenceBonus: number;
-  preferredProficiencyBonus: number;
+
+  // Preference matches (conditional on request specifying them)
+  preferredSkillsMatch: number;
+  preferredDomainMatch: number;
+  preferredAvailabilityMatch: number;
+  preferredTimezoneMatch: number;
+  preferredSeniorityMatch: number;
+  preferredSalaryRangeMatch: number;
+  preferredConfidenceMatch: number;
+  preferredProficiencyMatch: number;
+
+  // Team context alignment
+  teamFocusMatch: number;
 }
 
 /**
@@ -115,21 +119,17 @@ export interface UtilityFunctionParams {
   // Salary inverse linear params
   salaryMin: number;
   salaryMax: number;
-  // Preferred skills bonus max
-  preferredSkillsBonusMax: number;
-  // Team focus bonus max
-  teamFocusBonusMax: number;
-  // Related skills bonus max (number of unmatched skills for max bonus)
-  relatedSkillsBonusMax: number;
-  // Domain bonus max
-  domainBonusMax: number;
-  // NEW params for preferred properties
-  preferredAvailabilityBonusMax: number;
-  preferredTimezoneBonusMax: number;
-  preferredSeniorityBonusMax: number;
-  preferredSalaryRangeBonusMax: number;
-  preferredConfidenceBonusMax: number;
-  preferredProficiencyBonusMax: number;
+  // Preference match maximums
+  preferredSkillsMatchMax: number;
+  teamFocusMatchMax: number;
+  relatedSkillsMatchMax: number;
+  preferredDomainMatchMax: number;
+  preferredAvailabilityMatchMax: number;
+  preferredTimezoneMatchMax: number;
+  preferredSeniorityMatchMax: number;
+  preferredSalaryRangeMatchMax: number;
+  preferredConfidenceMatchMax: number;
+  preferredProficiencyMatchMax: number;
 }
 
 /**
@@ -153,7 +153,7 @@ export interface KnowledgeBaseConfig {
   seniorityMapping: SeniorityMapping;
   riskToleranceMapping: RiskToleranceMapping;
   proficiencyMapping: ProficiencyMapping;
-  teamFocusBonusMapping: TeamFocusBonusMapping;
+  teamFocusSkillAlignment: TeamFocusSkillAlignmentMapping;
   defaults: SearchDefaults;
   utilityWeights: UtilityWeights;
   utilityParams: UtilityFunctionParams;
