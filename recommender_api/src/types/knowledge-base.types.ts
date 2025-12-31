@@ -137,14 +137,6 @@ export interface UtilityFunctionParams {
  */
 export type AvailabilityUtility = Record<AvailabilityOption, number>;
 
-/**
- * Thresholds for match strength classification.
- */
-export interface MatchStrengthThresholds {
-  strong: number;   // >= this is strong
-  moderate: number; // >= this is moderate, below is weak
-}
-
 // ============================================
 // COMPLETE KNOWLEDGE BASE CONFIG
 // ============================================
@@ -158,5 +150,4 @@ export interface KnowledgeBaseConfig {
   utilityWeights: UtilityWeights;
   utilityParams: UtilityFunctionParams;
   availabilityUtility: AvailabilityUtility;
-  matchStrengthThresholds: MatchStrengthThresholds;
 }

@@ -60,7 +60,6 @@ export interface SearchFilterRequest {
 // ============================================
 
 export type MatchType = 'direct' | 'descendant' | 'correlated' | 'none';
-export type MatchStrength = 'strong' | 'moderate' | 'weak';
 export type ConstraintSource = 'user' | 'knowledge_base';
 export type ConstraintViolation = 'confidence_below_threshold' | 'proficiency_below_minimum';
 
@@ -166,7 +165,6 @@ export interface EngineerMatch {
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];  // Skills in hierarchy but failing constraints
   matchedDomains: string[];      // Domain names matched from preferredDomains
   utilityScore: number;          // Computed ranking score per 5.2.3
-  matchStrength: MatchStrength;
   scoreBreakdown: ScoreBreakdown;
 }
 

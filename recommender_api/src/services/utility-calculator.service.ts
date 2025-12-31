@@ -11,7 +11,6 @@
 import type {
   MatchedSkill,
   UnmatchedRelatedSkill,
-  MatchStrength,
   AvailabilityOption,
   ScoreBreakdown,
   CoreScores,
@@ -52,7 +51,6 @@ export interface UtilityContext {
 
 export interface ScoredEngineer extends EngineerData {
   utilityScore: number;
-  matchStrength: MatchStrength;
   scoreBreakdown: ScoreBreakdown;
 }
 
@@ -883,21 +881,6 @@ function normalizeLinearInverse(value: number, min: number, max: number): number
 }
 
 /**
- * Determines match strength based on utility score thresholds.
- */
-export function classifyMatchStrength(utilityScore: number): MatchStrength {
-  const thresholds = config.matchStrengthThresholds;
-
-  if (utilityScore >= thresholds.strong) {
-    return 'strong';
-  } else if (utilityScore >= thresholds.moderate) {
-    return 'moderate';
-  } else {
-    return 'weak';
-  }
-}
-
-/**
  * Scores and sorts a list of engineers by utility score.
  */
 export function scoreAndSortEngineers(
@@ -910,11 +893,9 @@ export function scoreAndSortEngineers(
         engineer,
         context
       );
-      const matchStrength = classifyMatchStrength(utilityScore);
       return {
         ...engineer,
         utilityScore,
-        matchStrength,
         scoreBreakdown,
       };
     })

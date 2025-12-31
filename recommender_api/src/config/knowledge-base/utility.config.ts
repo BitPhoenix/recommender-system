@@ -18,7 +18,6 @@ import type {
   UtilityWeights,
   UtilityFunctionParams,
   AvailabilityUtility,
-  MatchStrengthThresholds,
 } from '../../types/knowledge-base.types.js';
 
 /**
@@ -96,18 +95,4 @@ export const availabilityUtility: AvailabilityUtility = {
   two_weeks: 0.8,
   one_month: 0.5,
   not_available: 0.0,
-};
-
-/**
- * Match Strength Classification Thresholds
- *
- * Used to classify candidates into strong/moderate/weak matches.
- * Provides users with intuitive quality indicators for results.
- *
- * These thresholds help translate continuous utility scores into
- * discrete, user-friendly categories.
- */
-export const matchStrengthThresholds: MatchStrengthThresholds = {
-  strong: 0.7,   // >= 0.7 is strong
-  moderate: 0.4, // >= 0.4 is moderate, < 0.4 is weak
 };

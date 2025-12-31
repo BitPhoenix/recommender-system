@@ -287,7 +287,6 @@ export async function executeSearch(
     unmatchedRelatedSkills: eng.unmatchedRelatedSkills,
     matchedDomains: eng.matchedDomainNames,
     utilityScore: eng.utilityScore,
-    matchStrength: eng.matchStrength,
     scoreBreakdown: eng.scoreBreakdown,
   }));
 

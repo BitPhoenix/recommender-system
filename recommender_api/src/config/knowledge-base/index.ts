@@ -41,7 +41,6 @@ import {
   utilityWeights,
   utilityParams,
   availabilityUtility,
-  matchStrengthThresholds,
 } from './utility.config.js';
 
 /**
@@ -66,7 +65,6 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   utilityWeights,
   utilityParams,
   availabilityUtility,
-  matchStrengthThresholds,
 };
 
 // Re-export individual configs for granular imports
@@ -79,7 +77,6 @@ export {
   utilityWeights,
   utilityParams,
   availabilityUtility,
-  matchStrengthThresholds,
 };
 
 export default knowledgeBaseConfig;
