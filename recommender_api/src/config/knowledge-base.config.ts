@@ -6,11 +6,13 @@
  * Knowledge Base Structure (Section 5.2, p.174):
  * - DIRECT mappings (Filter Conditions): Rules that relate customer requirements
  *   to hard requirements on product attributes.
- *   Example: "Min-Bedrooms≥3 ⇒ Bedrooms≥3"
+ *   Textbook example: "Min-Bedrooms≥3 ⇒ Bedrooms≥3"
+ *   Codebase example: "requiredSkills=['typescript'] ⇒ skills contains 'typescript'"
  *
  * - INDIRECT mappings (Compatibility Constraints): Rules that relate customer
  *   attributes/requirements to typically expected product requirements.
- *   Example: "Family-Size≥5 ⇒ Min-Bedrooms≥3"
+ *   Textbook example: "Family-Size≥5 ⇒ Min-Bedrooms≥3"
+ *   Codebase example: "requiredSeniority=senior ⇒ yearsExperience≥6"
  */
 
 import type { KnowledgeBaseConfig } from '../types/knowledge-base.types.js';
