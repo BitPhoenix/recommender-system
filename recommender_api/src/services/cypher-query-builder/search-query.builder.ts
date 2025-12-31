@@ -17,7 +17,21 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const hasSkillFilter =
     params.targetSkillIds !== null && params.targetSkillIds.length > 0;
 
-  // === SHARED SETUP ===
+  /*
+   * QUERY STRUCTURE: SHARED + CONDITIONAL
+   *
+   * This function builds a single Cypher query that handles two search modes:
+   * 1. Skill-filtered: Find engineers matching specific skills with constraints
+   * 2. Unfiltered: Return all engineers meeting basic criteria (experience, salary, etc.)
+   *
+   * Rather than maintaining two separate query builders that could drift apart,
+   * we use conditional string segments within one builder. Code below marked
+   * "shared" runs for both modes; code marked "conditional" or checking
+   * `hasSkillFilter` only runs for skill-filtered searches.
+   *
+   * Shared: engineer conditions, domain context, pagination, return clause
+   * Conditional: skill matching, qualification checks, skill-based ordering
+   */
   const { conditions, queryParams } = buildEngineerQueryConditions(params);
   const domainContext = getDomainFilterContext(params);
   const whereClause = conditions.join("\n  AND ");
