@@ -109,11 +109,12 @@ export const utilityParams: UtilityFunctionParams = {
   yearsExperienceMax: 20,
 
   /*
-   * INVERSE LINEAR: (300k - salary) / (300k - 80k)
-   * WHY INVERSE LINEAR: Budget fit matters linearly - $20k saved could fund tooling
-   * or partial headcount elsewhere. We don't use logarithmic because a $150k engineer
-   * isn't "half as good a deal" as $75k - budget math is linear. When maxBudget is
-   * specified, uses that as ceiling instead of salaryMax.
+   * INVERSE LINEAR: (max - salary) / (max - min)
+   * WHY INVERSE LINEAR: Every dollar saved has equal value - $20k under budget is
+   * $20k that could fund tooling or headcount, regardless of the salary level.
+   * We don't use logarithmic (where the first $50k saved matters more than the next)
+   * because budget math is linear, not diminishing returns.
+   * When maxSalaryBudget is specified in the request, it replaces salaryMax as ceiling.
    */
   salaryMin: 80000,
   salaryMax: 300000,
