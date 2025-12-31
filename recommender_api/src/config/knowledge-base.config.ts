@@ -25,30 +25,6 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // "Such rules are also referred to as filter conditions."
 
   /**
-   * Seniority Level Mappings
-   * Maps manager's seniority requirements to years of experience constraints.
-   * Direct mapping: requiredSeniority=senior ⇒ yearsExperience≥6
-   */
-  seniorityMapping: {
-    junior: { minYears: 0, maxYears: 3 },
-    mid: { minYears: 3, maxYears: 6 },
-    senior: { minYears: 6, maxYears: 10 },
-    staff: { minYears: 10, maxYears: null },
-    principal: { minYears: 15, maxYears: null },
-  },
-
-  /**
-   * Risk Tolerance Mappings
-   * Maps manager's risk tolerance to confidence score thresholds.
-   * Direct mapping: requiredRiskTolerance=low ⇒ confidenceScore≥0.85
-   */
-  riskToleranceMapping: {
-    low: { minConfidenceScore: 0.85 },
-    medium: { minConfidenceScore: 0.70 },
-    high: { minConfidenceScore: 0.50 },
-  },
-
-  /**
    * Proficiency Level Mappings
    * Maps minimum proficiency to allowed proficiency levels.
    * Direct mapping: requiredMinProficiency=proficient ⇒ proficiency∈['proficient','expert']
@@ -65,6 +41,30 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // These rules relate customer attributes to typically expected product requirements.
   // "Such conditions are also referred to as compatibility conditions, because they
   // can be used to quickly discover inconsistencies in the user-specified requirements."
+
+  /**
+   * Seniority Level Mappings
+   * Maps manager's seniority requirements to years of experience constraints.
+   * Indirect mapping: requiredSeniority=senior ⇒ yearsExperience≥6
+   */
+  seniorityMapping: {
+    junior: { minYears: 0, maxYears: 3 },
+    mid: { minYears: 3, maxYears: 6 },
+    senior: { minYears: 6, maxYears: 10 },
+    staff: { minYears: 10, maxYears: null },
+    principal: { minYears: 15, maxYears: null },
+  },
+
+  /**
+   * Risk Tolerance Mappings
+   * Maps manager's risk tolerance to confidence score thresholds.
+   * Indirect mapping: requiredRiskTolerance=low ⇒ confidenceScore≥0.85
+   */
+  riskToleranceMapping: {
+    low: { minConfidenceScore: 0.85 },
+    medium: { minConfidenceScore: 0.70 },
+    high: { minConfidenceScore: 0.50 },
+  },
 
   /**
    * Team Focus Skill Alignment
