@@ -1,6 +1,17 @@
 /**
  * Builds count queries for pagination.
- * Returns total matches without pagination limits.
+ *
+ * Why a separate count query?
+ * The main search query uses LIMIT for pagination (e.g., returns 20 results).
+ * To show "Showing 1-20 of 156 results" in the UI, we need the total count
+ * of matching engineers BEFORE pagination is applied. We can't use .length
+ * on the paginated results because that only gives us 20, not 156.
+ *
+ * This query is intentionally simpler than the search query - it skips:
+ * - Skill collection clauses (not needed for counting)
+ * - Domain collection clauses (not needed for counting)
+ * - ORDER BY (count doesn't care about order)
+ * - SKIP/LIMIT (we want the full count)
  */
 
 import type { CypherQueryParams, CypherQuery } from "./query-types.js";

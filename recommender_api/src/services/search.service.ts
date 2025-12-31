@@ -140,6 +140,9 @@ export async function executeSearch(
 
   // Run queries sequentially (Neo4j sessions don't support concurrent queries)
   const mainResult = await session.run(mainQuery.query, mainQuery.params);
+
+  // Separate count query for pagination - main query has LIMIT so .length only
+  // gives paginated count, not total. This returns totalCount for "1-20 of 156".
   const countQuery = buildCountQuery(queryParams);
   const countResult = await session.run(countQuery.query, countQuery.params);
 
