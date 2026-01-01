@@ -302,7 +302,7 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
     const hasConstraintChecks = 'meetsConfidence' in skill && 'meetsProficiency' in skill;
 
     if (!hasConstraintChecks) {
-      // No constraint checks (unfiltered search) - include as matched
+      // Team-focus-only mode: no skill filter was specified, so no constraints to check
       matchedSkills.push({
         skillId: skill.skillId,
         skillName: skill.skillName,
