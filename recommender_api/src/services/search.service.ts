@@ -299,22 +299,6 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
   const unmatchedRelatedSkills: UnmatchedRelatedSkill[] = [];
 
   for (const skill of allSkills) {
-    const hasConstraintChecks = 'meetsConfidence' in skill && 'meetsProficiency' in skill;
-
-    if (!hasConstraintChecks) {
-      // Team-focus-only mode: no skill filter was specified, so no constraints to check
-      matchedSkills.push({
-        skillId: skill.skillId,
-        skillName: skill.skillName,
-        proficiencyLevel: skill.proficiencyLevel,
-        confidenceScore: skill.confidenceScore,
-        yearsUsed: skill.yearsUsed,
-        matchType: skill.matchType,
-      });
-      continue;
-    }
-
-    // Skill search mode: check constraints
     const violations: ConstraintViolation[] = [];
     if (!skill.meetsConfidence) violations.push('confidence_below_threshold');
     if (!skill.meetsProficiency) violations.push('proficiency_below_minimum');
@@ -442,16 +426,25 @@ function parseEngineerFromRecord(
 
   if (!shouldClearSkills) {
     const allSkills = (record.get('allRelevantSkills') as RawSkillData[]) || [];
-    const categorized = categorizeSkillsByConstraints(allSkills);
-    matchedSkills = categorized.matchedSkills;
-    unmatchedRelatedSkills = categorized.unmatchedRelatedSkills;
 
-    // In teamFocus-only mode, filter to only show aligned skills
     if (isTeamFocusOnlyMode) {
-      matchedSkills = matchedSkills.filter((skill) =>
-        alignedSkillIds.includes(skill.skillId)
-      );
-      unmatchedRelatedSkills = [];
+      // Team-focus-only: no constraints to categorize, just filter to aligned skills
+      matchedSkills = allSkills
+        .filter((skill) => alignedSkillIds.includes(skill.skillId))
+        .map((skill) => ({
+          skillId: skill.skillId,
+          skillName: skill.skillName,
+          proficiencyLevel: skill.proficiencyLevel,
+          confidenceScore: skill.confidenceScore,
+          yearsUsed: skill.yearsUsed,
+          matchType: skill.matchType,
+        }));
+      // unmatchedRelatedSkills stays empty - no constraint violations to report
+    } else {
+      // Skill-filtered mode: categorize by constraint checks
+      const categorized = categorizeSkillsByConstraints(allSkills);
+      matchedSkills = categorized.matchedSkills;
+      unmatchedRelatedSkills = categorized.unmatchedRelatedSkills;
     }
   }
 
