@@ -13,9 +13,11 @@ export const SeniorityLevelSchema = z.enum([
   'junior', 'mid', 'senior', 'staff', 'principal'
 ]);
 
-export const StartTimelineSchema = z.enum([
+export const START_TIMELINE_ORDER = [
   'immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'
-]);
+] as const;
+
+export const StartTimelineSchema = z.enum(START_TIMELINE_ORDER);
 
 export const ProficiencyLevelSchema = z.enum(['learning', 'proficient', 'expert']);
 
@@ -96,7 +98,7 @@ export const SearchFilterRequestSchema = z.object({
 ).refine(
   (data) => {
     if (data.preferredMaxStartTime && data.requiredMaxStartTime) {
-      const order = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
+      const order = START_TIMELINE_ORDER;
       return order.indexOf(data.preferredMaxStartTime) <= order.indexOf(data.requiredMaxStartTime);
     }
     return true;

@@ -11,13 +11,14 @@
 import type {
   MatchedSkill,
   UnmatchedRelatedSkill,
-  StartTimeline,
   ScoreBreakdown,
   CoreScores,
   PreferenceMatches,
   SeniorityLevel,
   ProficiencyLevel,
+  StartTimeline,
 } from '../types/search.types.js';
+import { START_TIMELINE_ORDER } from '../types/search.types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 export interface EngineerData {
@@ -201,8 +202,6 @@ interface StartTimelineMatchResult {
   withinPreferred: boolean;
 }
 
-const TIMELINE_ORDER: StartTimeline[] = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
-
 interface PreferredTimezoneMatchResult {
   raw: number;
   matchedTimezone: string | null;
@@ -240,11 +239,11 @@ function calculateStartTimelineMatch(
     return { raw: 0, matchedStartTimeline: null, withinPreferred: false };
   }
 
-  const engineerIdx = TIMELINE_ORDER.indexOf(engineerStartTimeline);
+  const engineerIdx = START_TIMELINE_ORDER.indexOf(engineerStartTimeline);
 
   // Only preferred specified → soft boost only
   if (preferredMaxStartTime && !requiredMaxStartTime) {
-    const preferredIdx = TIMELINE_ORDER.indexOf(preferredMaxStartTime);
+    const preferredIdx = START_TIMELINE_ORDER.indexOf(preferredMaxStartTime);
     const withinPreferred = engineerIdx <= preferredIdx;
     return {
       raw: withinPreferred ? maxMatch : 0,
@@ -259,8 +258,8 @@ function calculateStartTimelineMatch(
   }
 
   // Both specified → linear degradation between preferred and required
-  const preferredIdx = TIMELINE_ORDER.indexOf(preferredMaxStartTime!);
-  const requiredIdx = TIMELINE_ORDER.indexOf(requiredMaxStartTime!);
+  const preferredIdx = START_TIMELINE_ORDER.indexOf(preferredMaxStartTime!);
+  const requiredIdx = START_TIMELINE_ORDER.indexOf(requiredMaxStartTime!);
 
   if (engineerIdx <= preferredIdx) {
     // At or faster than preferred → full score

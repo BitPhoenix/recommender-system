@@ -15,6 +15,7 @@ import type {
   TeamFocus,
   SkillRequirement,
 } from '../types/search.types.js';
+import { START_TIMELINE_ORDER } from '../types/search.types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 // ============================================
@@ -128,9 +129,8 @@ function expandStartTimelineConstraint(
   }
 
   // Convert threshold to array: all values up to and including the threshold
-  const timelineOrder: StartTimeline[] = ['immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'];
-  const thresholdIndex = timelineOrder.indexOf(threshold);
-  const allowedTimelines = timelineOrder.slice(0, thresholdIndex + 1);
+  const thresholdIndex = START_TIMELINE_ORDER.indexOf(threshold);
+  const allowedTimelines = START_TIMELINE_ORDER.slice(0, thresholdIndex + 1);
 
   context.filters.push({
     field: 'startTimeline',
