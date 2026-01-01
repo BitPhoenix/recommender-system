@@ -371,14 +371,19 @@ async function resolveAllSkills(
 
   // Resolve required skills
   if (requiredSkills && requiredSkills.length > 0) {
-    const resolution = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
-    skillGroups = groupSkillsByProficiency(resolution.resolvedSkills);
-    expandedSkillNames = resolution.expandedSkillNames;
-    unresolvedSkills = resolution.unresolvedIdentifiers;
-    originalSkillIdentifiers = resolution.originalIdentifiers;
+    const {
+      resolvedSkills: resolvedRequiredSkills,
+      expandedSkillNames: resolvedExpandedNames,
+      unresolvedIdentifiers,
+      originalIdentifiers,
+    } = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
+    skillGroups = groupSkillsByProficiency(resolvedRequiredSkills);
+    expandedSkillNames = resolvedExpandedNames;
+    unresolvedSkills = unresolvedIdentifiers;
+    originalSkillIdentifiers = originalIdentifiers;
 
     // Add preferred proficiencies from required skills
-    for (const skill of resolution.resolvedSkills) {
+    for (const skill of resolvedRequiredSkills) {
       if (skill.preferredMinProficiency) {
         skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
       }
@@ -387,11 +392,15 @@ async function resolveAllSkills(
 
   // Resolve preferred skills
   if (preferredSkills && preferredSkills.length > 0) {
-    const resolution = await resolveSkillRequirements(session, preferredSkills, defaultProficiency);
-    preferredSkillIds = resolution.resolvedSkills.map((s) => s.skillId);
+    const { resolvedSkills: resolvedPreferredSkills } = await resolveSkillRequirements(
+      session,
+      preferredSkills,
+      defaultProficiency
+    );
+    preferredSkillIds = resolvedPreferredSkills.map((s) => s.skillId);
 
     // Add preferred proficiencies (don't override existing from required)
-    for (const skill of resolution.resolvedSkills) {
+    for (const skill of resolvedPreferredSkills) {
       if (skill.preferredMinProficiency && !skillIdToPreferredProficiency.has(skill.skillId)) {
         skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
       }
