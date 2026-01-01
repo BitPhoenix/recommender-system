@@ -103,8 +103,8 @@ export async function executeSearch(
   );
 
   // Step 2b: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
-  const requiredDomainIds = await resolveDomainIds(session, request.requiredDomains);
-  const preferredDomainIds = await resolveDomainIds(session, request.preferredDomains);
+  const requiredDomainIds = await getSkillIdsForDomains(session, request.requiredDomains);
+  const preferredDomainIds = await getSkillIdsForDomains(session, request.preferredDomains);
 
   // Step 3: Build query parameters with per-skill proficiency buckets
   const queryParams: CypherQueryParams = {
@@ -333,18 +333,19 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
 }
 
 /**
- * Resolves domain identifiers to skill IDs.
+ * Resolves domain identifiers to their corresponding skill IDs.
+ * Domains are skills with skillType 'domain_knowledge' in the knowledge graph.
  * Returns empty array if no identifiers provided.
  */
-async function resolveDomainIds(
+async function getSkillIdsForDomains(
   session: Session,
-  identifiers: string[] | null | undefined
+  domainIdentifiers: string[] | null | undefined
 ): Promise<string[]> {
-  if (!identifiers || identifiers.length === 0) {
+  if (!domainIdentifiers || domainIdentifiers.length === 0) {
     return [];
   }
-  const resolution = await resolveSkillHierarchy(session, identifiers);
-  return resolution.resolvedSkills.map((s) => s.skillId);
+  const { resolvedSkills } = await resolveSkillHierarchy(session, domainIdentifiers);
+  return resolvedSkills.map((s) => s.skillId);
 }
 
 /**
