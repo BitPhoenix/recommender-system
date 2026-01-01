@@ -278,9 +278,18 @@ function toNumber(value: unknown): number {
 /**
  * Categorizes raw skill data into matched and unmatched skills based on constraint checks.
  *
+ * This separation exists because the API returns both categories to the client:
+ * - matchedSkills: Skills that directly satisfy the search criteria (used for ranking)
+ * - unmatchedRelatedSkills: Related skills shown as context to explain why an engineer
+ *   appeared in results or what gaps exist
+ *
+ * Categorization rules:
  * - Direct matches passing all constraints → matchedSkills
- * - Descendants (even if passing) and any skill with violations → unmatchedRelatedSkills
- * - Skills without constraint checks (unfiltered search) → matchedSkills
+ * - Descendants → unmatchedRelatedSkills (even if passing constraints). When a user
+ *   specifies constraints like "TypeScript at expert level", we can only verify that
+ *   against a direct TypeScript assessment—not infer it from a descendant skill.
+ *   The descendant explains why the engineer appeared in results but isn't a confirmed match.
+ * - Any skill with constraint violations → unmatchedRelatedSkills
  */
 function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
   matchedSkills: MatchedSkill[];
