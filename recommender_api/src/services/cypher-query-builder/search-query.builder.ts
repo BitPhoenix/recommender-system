@@ -114,7 +114,7 @@ function addSkillQueryParams(
 
 function buildMatchClause(hasSkillFilter: boolean, whereClause: string): string {
   return hasSkillFilter
-    ? `MATCH (e:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
+    ? `MATCH (e:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
 WHERE s.id IN $allSkillIds
   AND ${whereClause}`
     : `MATCH (e:Engineer)
@@ -138,9 +138,9 @@ function buildSkillProficiencyFilterClause(hasSkillFilter: boolean): string {
 WITH e, COLLECT(DISTINCT CASE
   WHEN s.id IN $learningLevelSkillIds THEN s.id
   WHEN s.id IN $proficientLevelSkillIds
-   AND es.proficiencyLevel IN ['proficient', 'expert'] THEN s.id
+   AND us.proficiencyLevel IN ['proficient', 'expert'] THEN s.id
   WHEN s.id IN $expertLevelSkillIds
-   AND es.proficiencyLevel = 'expert' THEN s.id
+   AND us.proficiencyLevel = 'expert' THEN s.id
 END) AS qualifyingSkillIds
 WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`;
 }
@@ -203,41 +203,41 @@ function buildSkillCollectionClause(hasSkillFilter: boolean): string {
     ? `
 // Collect all skills with per-skill proficiency check (now only for paginated subset)
 // Confidence score is collected for ranking but not used to filter/exclude engineers
-MATCH (e)-[:HAS]->(es2:EngineerSkill)-[:FOR]->(s2:Skill)
+MATCH (e)-[:HAS]->(us2:UserSkill)-[:FOR]->(s2:Skill)
 WHERE s2.id IN $allSkillIds
 
 WITH e, totalCount,
      COLLECT({
        skillId: s2.id,
        skillName: s2.name,
-       proficiencyLevel: es2.proficiencyLevel,
-       confidenceScore: es2.confidenceScore,
-       yearsUsed: es2.yearsUsed,
+       proficiencyLevel: us2.proficiencyLevel,
+       confidenceScore: us2.confidenceScore,
+       yearsUsed: us2.yearsUsed,
        matchType: CASE
          WHEN s2.id IN $originalSkillIdentifiers OR s2.name IN $originalSkillIdentifiers THEN 'direct'
          ELSE 'descendant'
        END,
        meetsProficiency: CASE
          WHEN s2.id IN $learningLevelSkillIds THEN true
-         WHEN s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] THEN true
-         WHEN s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert' THEN true
+         WHEN s2.id IN $proficientLevelSkillIds AND us2.proficiencyLevel IN ['proficient', 'expert'] THEN true
+         WHEN s2.id IN $expertLevelSkillIds AND us2.proficiencyLevel = 'expert' THEN true
          ELSE false
        END
      }) AS allRelevantSkills,
      SIZE([x IN COLLECT(DISTINCT CASE
        WHEN s2.id IN $learningLevelSkillIds THEN s2.id
-       WHEN s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'] THEN s2.id
-       WHEN s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert' THEN s2.id
+       WHEN s2.id IN $proficientLevelSkillIds AND us2.proficiencyLevel IN ['proficient', 'expert'] THEN s2.id
+       WHEN s2.id IN $expertLevelSkillIds AND us2.proficiencyLevel = 'expert' THEN s2.id
      END) WHERE x IS NOT NULL]) AS matchedSkillCount,
      AVG(CASE
        WHEN s2.id IN $learningLevelSkillIds
-         OR (s2.id IN $proficientLevelSkillIds AND es2.proficiencyLevel IN ['proficient', 'expert'])
-         OR (s2.id IN $expertLevelSkillIds AND es2.proficiencyLevel = 'expert')
-       THEN es2.confidenceScore END) AS avgConfidence`
+         OR (s2.id IN $proficientLevelSkillIds AND us2.proficiencyLevel IN ['proficient', 'expert'])
+         OR (s2.id IN $expertLevelSkillIds AND us2.proficiencyLevel = 'expert')
+       THEN us2.confidenceScore END) AS avgConfidence`
     : `
 // Get all skills for display (now only for paginated subset)
 // Confidence score is collected for ranking but not used to filter/exclude engineers
-OPTIONAL MATCH (e)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
+OPTIONAL MATCH (e)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
 WHERE s.isCategory = false
 
 WITH e, totalCount,
@@ -245,9 +245,9 @@ WITH e, totalCount,
        CASE WHEN s IS NOT NULL THEN {
          skillId: s.id,
          skillName: s.name,
-         proficiencyLevel: es.proficiencyLevel,
-         confidenceScore: es.confidenceScore,
-         yearsUsed: es.yearsUsed,
+         proficiencyLevel: us.proficiencyLevel,
+         confidenceScore: us.confidenceScore,
+         yearsUsed: us.yearsUsed,
          matchType: 'none'
        } ELSE NULL END
      ) AS rawSkills

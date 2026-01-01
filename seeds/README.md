@@ -9,7 +9,7 @@ A Neo4j-based knowledge graph for an engineering talent marketplace, implementin
 - **Skill** - Technical, behavioral, and domain knowledge skills with hierarchical taxonomy
 - **Engineer** - Software engineers with profiles, rates, and availability
 - **EngineeringManager** - Hiring managers who search for talent
-- **EngineerSkill** - Junction entity connecting engineers to skills with proficiency and confidence scores
+- **UserSkill** - Junction entity connecting engineers to skills with proficiency and confidence scores
 
 ### Evidence Types
 
@@ -24,10 +24,10 @@ A Neo4j-based knowledge graph for an engineering talent marketplace, implementin
 ### Key Relationships
 
 ```
-(:Engineer)-[:HAS]->(:EngineerSkill)-[:FOR]->(:Skill)
+(:Engineer)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill)
 (:Skill)-[:CHILD_OF]->(:Skill)
 (:Skill)-[:CORRELATES_WITH {strength, correlationType}]->(:Skill)
-(:EngineerSkill)-[:EVIDENCED_BY {relevanceScore, isPrimary}]->(:Evidence)
+(:UserSkill)-[:EVIDENCED_BY {relevanceScore, isPrimary}]->(:Evidence)
 (:InterviewStory)-[:DEMONSTRATES {strength}]->(:Skill)
 (:InterviewStory)-[:ANALYZED_BY]->(:StoryAnalysis)
 (:AssessmentQuestion)-[:TESTS {weight}]->(:Skill)
@@ -102,18 +102,18 @@ This will:
 
 ```cypher
 MATCH (category:Skill {name: 'Backend'})<-[:CHILD_OF*0..]-(skill:Skill)
-MATCH (eng:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(skill)
-WHERE es.confidenceScore >= 0.7
-RETURN eng.name, skill.name, es.proficiencyLevel, es.confidenceScore
-ORDER BY es.confidenceScore DESC
+MATCH (eng:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(skill)
+WHERE us.confidenceScore >= 0.7
+RETURN eng.name, skill.name, us.proficiencyLevel, us.confidenceScore
+ORDER BY us.confidenceScore DESC
 ```
 
 ### Get engineer's skills with their best evidence
 
 ```cypher
-MATCH (eng:Engineer {id: 'eng_priya'})-[:HAS]->(es:EngineerSkill)-[:FOR]->(skill:Skill)
-OPTIONAL MATCH (es)-[ev:EVIDENCED_BY {isPrimary: true}]->(evidence)
-RETURN skill.name, skill.skillType, es.proficiencyLevel, es.confidenceScore,
+MATCH (eng:Engineer {id: 'eng_priya'})-[:HAS]->(us:UserSkill)-[:FOR]->(skill:Skill)
+OPTIONAL MATCH (us)-[ev:EVIDENCED_BY {isPrimary: true}]->(evidence)
+RETURN skill.name, skill.skillType, us.proficiencyLevel, us.confidenceScore,
        labels(evidence)[0] as evidenceType
 ```
 
@@ -121,8 +121,8 @@ RETURN skill.name, skill.skillType, es.proficiencyLevel, es.confidenceScore,
 
 ```cypher
 MATCH (skill:Skill {name: 'React'})-[:CORRELATES_WITH]-(related:Skill)
-MATCH (eng:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(related)
-WHERE es.confidenceScore >= 0.7
+MATCH (eng:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(related)
+WHERE us.confidenceScore >= 0.7
 RETURN eng.name, collect(related.name) as correlatedSkills
 ```
 

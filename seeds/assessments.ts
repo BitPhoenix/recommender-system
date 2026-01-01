@@ -465,43 +465,43 @@ export const engineerCertifications: { engineerId: string; certificationId: stri
 ];
 
 // ============================================
-// SKILL EVIDENCE (links EngineerSkill to evidence)
+// SKILL EVIDENCE (links UserSkill to evidence)
 // ============================================
 
 export const skillEvidence: SkillEvidence[] = [
   // Priya's evidence
-  { engineerSkillId: 'es_priya_api_design', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.95, isPrimary: true },
-  { engineerSkillId: 'es_priya_api_design', evidenceId: 'perf_priya_q1', evidenceType: 'performance', relevanceScore: 0.90, isPrimary: false },
-  { engineerSkillId: 'es_priya_microservices', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
-  { engineerSkillId: 'es_priya_tech_leadership', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.88, isPrimary: true },
-  { engineerSkillId: 'es_priya_mentorship', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.82, isPrimary: true },
-  { engineerSkillId: 'es_priya_aws', evidenceId: 'cert_aws_saa', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: true },
+  { userSkillId: 'es_priya_api_design', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.95, isPrimary: true },
+  { userSkillId: 'es_priya_api_design', evidenceId: 'perf_priya_q1', evidenceType: 'performance', relevanceScore: 0.90, isPrimary: false },
+  { userSkillId: 'es_priya_microservices', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_priya_tech_leadership', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.88, isPrimary: true },
+  { userSkillId: 'es_priya_mentorship', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.82, isPrimary: true },
+  { userSkillId: 'es_priya_aws', evidenceId: 'cert_aws_saa', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: true },
 
   // Marcus's evidence
-  { engineerSkillId: 'es_marcus_ownership', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
-  { engineerSkillId: 'es_marcus_react', evidenceId: 'perf_marcus_q1', evidenceType: 'performance', relevanceScore: 0.88, isPrimary: true },
-  { engineerSkillId: 'es_marcus_react', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.80, isPrimary: false },
-  { engineerSkillId: 'es_marcus_graphql', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.78, isPrimary: true },
+  { userSkillId: 'es_marcus_ownership', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_marcus_react', evidenceId: 'perf_marcus_q1', evidenceType: 'performance', relevanceScore: 0.88, isPrimary: true },
+  { userSkillId: 'es_marcus_react', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.80, isPrimary: false },
+  { userSkillId: 'es_marcus_graphql', evidenceId: 'story_marcus_1', evidenceType: 'story', relevanceScore: 0.78, isPrimary: true },
 
   // Sofia's evidence
-  { engineerSkillId: 'es_sofia_kubernetes', evidenceId: 'story_sofia_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: false },
-  { engineerSkillId: 'es_sofia_kubernetes', evidenceId: 'perf_sofia_q1', evidenceType: 'performance', relevanceScore: 0.95, isPrimary: true },
-  { engineerSkillId: 'es_sofia_kubernetes', evidenceId: 'cert_cka', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: false },
-  { engineerSkillId: 'es_sofia_debugging', evidenceId: 'story_sofia_2', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
-  { engineerSkillId: 'es_sofia_monitoring', evidenceId: 'story_sofia_1', evidenceType: 'story', relevanceScore: 0.88, isPrimary: true },
-  { engineerSkillId: 'es_sofia_terraform', evidenceId: 'cert_terraform', evidenceType: 'certification', relevanceScore: 0.95, isPrimary: true },
+  { userSkillId: 'es_sofia_kubernetes', evidenceId: 'story_sofia_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: false },
+  { userSkillId: 'es_sofia_kubernetes', evidenceId: 'perf_sofia_q1', evidenceType: 'performance', relevanceScore: 0.95, isPrimary: true },
+  { userSkillId: 'es_sofia_kubernetes', evidenceId: 'cert_cka', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: false },
+  { userSkillId: 'es_sofia_debugging', evidenceId: 'story_sofia_2', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_sofia_monitoring', evidenceId: 'story_sofia_1', evidenceType: 'story', relevanceScore: 0.88, isPrimary: true },
+  { userSkillId: 'es_sofia_terraform', evidenceId: 'cert_terraform', evidenceType: 'certification', relevanceScore: 0.95, isPrimary: true },
 
   // James's evidence
-  { engineerSkillId: 'es_james_distributed', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.95, isPrimary: true },
-  { engineerSkillId: 'es_james_system_design', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.94, isPrimary: false },
-  { engineerSkillId: 'es_james_system_design', evidenceId: 'perf_james_q1', evidenceType: 'performance', relevanceScore: 0.97, isPrimary: true },
-  { engineerSkillId: 'es_james_mentorship', evidenceId: 'story_james_2', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
-  { engineerSkillId: 'es_james_tech_leadership', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.90, isPrimary: true },
-  { engineerSkillId: 'es_james_aws', evidenceId: 'cert_aws_sap', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: true },
+  { userSkillId: 'es_james_distributed', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.95, isPrimary: true },
+  { userSkillId: 'es_james_system_design', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.94, isPrimary: false },
+  { userSkillId: 'es_james_system_design', evidenceId: 'perf_james_q1', evidenceType: 'performance', relevanceScore: 0.97, isPrimary: true },
+  { userSkillId: 'es_james_mentorship', evidenceId: 'story_james_2', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_james_tech_leadership', evidenceId: 'story_james_1', evidenceType: 'story', relevanceScore: 0.90, isPrimary: true },
+  { userSkillId: 'es_james_aws', evidenceId: 'cert_aws_sap', evidenceType: 'certification', relevanceScore: 0.90, isPrimary: true },
 
   // Emily's evidence
-  { engineerSkillId: 'es_emily_react', evidenceId: 'perf_emily_q1', evidenceType: 'performance', relevanceScore: 0.85, isPrimary: true },
-  { engineerSkillId: 'es_emily_react', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.80, isPrimary: false },
-  { engineerSkillId: 'es_emily_cross_functional', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
-  { engineerSkillId: 'es_emily_curiosity', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.85, isPrimary: true },
+  { userSkillId: 'es_emily_react', evidenceId: 'perf_emily_q1', evidenceType: 'performance', relevanceScore: 0.85, isPrimary: true },
+  { userSkillId: 'es_emily_react', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.80, isPrimary: false },
+  { userSkillId: 'es_emily_cross_functional', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_emily_curiosity', evidenceId: 'story_emily_1', evidenceType: 'story', relevanceScore: 0.85, isPrimary: true },
 ];

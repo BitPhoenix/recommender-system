@@ -29,7 +29,7 @@ async function createConstraints(session: Session): Promise<void> {
     'CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE',
     'CREATE CONSTRAINT engineer_id IF NOT EXISTS FOR (e:Engineer) REQUIRE e.id IS UNIQUE',
     'CREATE CONSTRAINT manager_id IF NOT EXISTS FOR (m:EngineeringManager) REQUIRE m.id IS UNIQUE',
-    'CREATE CONSTRAINT engineer_skill_id IF NOT EXISTS FOR (es:EngineerSkill) REQUIRE es.id IS UNIQUE',
+    'CREATE CONSTRAINT user_skill_id IF NOT EXISTS FOR (us:UserSkill) REQUIRE us.id IS UNIQUE',
     'CREATE CONSTRAINT story_id IF NOT EXISTS FOR (s:InterviewStory) REQUIRE s.id IS UNIQUE',
     'CREATE CONSTRAINT analysis_id IF NOT EXISTS FOR (a:StoryAnalysis) REQUIRE a.id IS UNIQUE',
     'CREATE CONSTRAINT assessment_id IF NOT EXISTS FOR (a:Assessment) REQUIRE a.id IS UNIQUE',
@@ -188,26 +188,49 @@ async function seedManagers(session: Session): Promise<void> {
   console.log(`   ✓ Seeded ${data.managers.length} managers`);
 }
 
-async function seedEngineerSkills(session: Session): Promise<void> {
-  console.log('💪 Seeding engineer skills...');
+async function cleanupOldEngineerSkillNodes(session: Session): Promise<void> {
+  console.log('🧹 Cleaning up old EngineerSkill nodes...');
 
-  for (const es of data.engineerSkills) {
+  const result = await session.run(
+    `MATCH (es:EngineerSkill)
+     DETACH DELETE es
+     RETURN count(es) AS deleted`
+  );
+
+  const deleted = result.records[0]?.get('deleted')?.toNumber() || 0;
+  if (deleted > 0) {
+    console.log(`   ✓ Removed ${deleted} old EngineerSkill nodes`);
+  }
+
+  // Drop the old constraint if it exists
+  try {
+    await session.run('DROP CONSTRAINT engineer_skill_id IF EXISTS');
+    console.log('   ✓ Dropped old engineer_skill_id constraint');
+  } catch {
+    // Constraint may not exist
+  }
+}
+
+async function seedUserSkills(session: Session): Promise<void> {
+  console.log('💪 Seeding user skills...');
+
+  for (const us of data.userSkills) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
        MATCH (s:Skill {id: $skillId})
-       MERGE (es:EngineerSkill {id: $id})
+       MERGE (us:UserSkill {id: $id})
        ON CREATE SET
-         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
-         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
+         us.proficiencyLevel = $proficiencyLevel, us.yearsUsed = $yearsUsed,
+         us.confidenceScore = $confidenceScore, us.lastValidated = datetime($lastValidated)
        ON MATCH SET
-         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
-         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
-       MERGE (e)-[:HAS]->(es)
-       MERGE (es)-[:FOR]->(s)`,
-      es
+         us.proficiencyLevel = $proficiencyLevel, us.yearsUsed = $yearsUsed,
+         us.confidenceScore = $confidenceScore, us.lastValidated = datetime($lastValidated)
+       MERGE (e)-[:HAS]->(us)
+       MERGE (us)-[:FOR]->(s)`,
+      us
     );
   }
-  console.log(`   ✓ Seeded ${data.engineerSkills.length} engineer skill records`);
+  console.log(`   ✓ Seeded ${data.userSkills.length} user skill records`);
 }
 
 async function seedInterviewStories(session: Session): Promise<void> {
@@ -439,13 +462,13 @@ async function seedSkillEvidence(session: Session): Promise<void> {
     }
 
     await session.run(
-      `MATCH (es:EngineerSkill {id: $engineerSkillId})
+      `MATCH (us:UserSkill {id: $userSkillId})
        MATCH (ev:${evidenceLabel} {id: $evidenceId})
-       MERGE (es)-[r:EVIDENCED_BY]->(ev)
+       MERGE (us)-[r:EVIDENCED_BY]->(ev)
        ON CREATE SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary
        ON MATCH SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary`,
       {
-        engineerSkillId: ev.engineerSkillId,
+        userSkillId: ev.userSkillId,
         evidenceId: ev.evidenceId,
         relevanceScore: ev.relevanceScore,
         isPrimary: ev.isPrimary,
@@ -484,9 +507,10 @@ async function seed(): Promise<void> {
     }
 
     if (shouldSeedCategory('engineers')) {
+      await cleanupOldEngineerSkillNodes(session);
       await seedEngineers(session);
       await seedManagers(session);
-      await seedEngineerSkills(session);
+      await seedUserSkills(session);
     }
 
     if (shouldSeedCategory('stories')) {

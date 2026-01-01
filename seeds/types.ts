@@ -50,7 +50,7 @@ export interface Engineer {
   createdAt: string;
 }
 
-export interface EngineerSkill {
+export interface UserSkill {
   id: string;
   engineerId: string;
   skillId: string;
@@ -189,7 +189,7 @@ export interface CertificationValidation {
 // ============================================
 
 export interface SkillEvidence {
-  engineerSkillId: string;
+  userSkillId: string;
   evidenceId: string;
   evidenceType: 'story' | 'performance' | 'certification';
   relevanceScore: number;

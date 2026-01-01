@@ -48,7 +48,7 @@ export function buildRequiredDomainFilterClause(
 
   return `
 // Domain filter: must have at least one required domain
-MATCH (e)-[:HAS]->(:EngineerSkill)-[:FOR]->(domainSkill:Skill)
+MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(domainSkill:Skill)
 WHERE domainSkill.id IN $requiredDomainIds
 ${withClause}`;
 }
@@ -62,7 +62,7 @@ export function buildPreferredDomainCollectionClause(
   if (context.hasPreferredDomains) {
     return `
 // Collect matched preferred domains for scoring
-OPTIONAL MATCH (e)-[:HAS]->(:EngineerSkill)-[:FOR]->(prefDomain:Skill)
+OPTIONAL MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(prefDomain:Skill)
 WHERE prefDomain.id IN $preferredDomainIds
 WITH e, ${carryover},
      COLLECT(DISTINCT prefDomain.name) AS matchedDomainNames`;

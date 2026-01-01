@@ -1,4 +1,4 @@
-import { Engineer, EngineerSkill, EngineeringManager } from './types';
+import { Engineer, UserSkill, EngineeringManager } from './types';
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -80,10 +80,10 @@ export const managers: EngineeringManager[] = [
 ];
 
 // ============================================
-// ENGINEER SKILLS
+// USER SKILLS
 // ============================================
 
-export const engineerSkills: EngineerSkill[] = [
+export const userSkills: UserSkill[] = [
   // Priya - Senior Backend, Fintech focus
   { id: 'es_priya_typescript', engineerId: 'eng_priya', skillId: 'skill_typescript', proficiencyLevel: 'expert', yearsUsed: 6, confidenceScore: 0.92, lastValidated: daysAgo(10) },
   { id: 'es_priya_nodejs', engineerId: 'eng_priya', skillId: 'skill_nodejs', proficiencyLevel: 'expert', yearsUsed: 7, confidenceScore: 0.91, lastValidated: daysAgo(10) },
