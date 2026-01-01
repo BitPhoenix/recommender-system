@@ -198,8 +198,16 @@ SKIP $offset LIMIT $limit`;
  * through is lost. Since totalCount was computed earlier and we need it
  * in the final RETURN, we carry it through each stage.
  *
- * Per-skill proficiency: meetsProficiency is computed based on which
- * proficiency bucket the skill belongs to.
+ * WHY PROFICIENCY LOGIC IS REPEATED FROM buildSkillProficiencyFilterClause:
+ * The same proficiency-check logic (learning/proficient/expert buckets) appears
+ * in both the filter clause and here. This is unavoidable because:
+ * 1. Cypher has no reusable functions — we can't define the check once and reuse it
+ * 2. The filter stage runs BEFORE pagination (coarse filter on all candidates)
+ * 3. This stage runs AFTER pagination (detailed collection for ~20 engineers)
+ * 4. Cypher's WITH pipeline drops the original skill matches after pagination,
+ *    so we must re-MATCH and re-check proficiency here
+ *
+ * The repetition is the cost of single-query optimization with early pagination.
  */
 function buildSkillCollectionClause(hasSkillFilter: boolean): string {
   return hasSkillFilter
