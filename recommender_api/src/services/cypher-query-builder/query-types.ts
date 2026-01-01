@@ -19,7 +19,7 @@ export interface CypherQueryParams {
   startTimeline: StartTimeline[];
   minYearsExperience: number;
   maxYearsExperience: number | null;
-  timezonePrefix: string | null;
+  timezonePrefixes: string[];
   maxSalary: number | null;
   minSalary: number | null;
 

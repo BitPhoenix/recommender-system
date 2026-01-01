@@ -234,7 +234,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredTimezone\": \"America/*\"\n}"
+					"raw": "{\n  \"requiredTimezone\": [\"America/*\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -243,7 +243,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | America/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH (any of)` | `[\"America/*\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
 			}
 		},
 		{
@@ -258,7 +258,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredTimezone\": \"Europe/*\"\n}"
+					"raw": "{\n  \"requiredTimezone\": [\"Europe/*\"]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -498,7 +498,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": \"America/*\",\n  \"requiredMaxStartTime\": \"two_weeks\"\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": [\"America/*\"],\n  \"requiredMaxStartTime\": \"two_weeks\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",

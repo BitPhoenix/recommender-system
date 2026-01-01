@@ -40,10 +40,17 @@ export interface UtilityContext {
   preferredDomainIds: string[];
   alignedSkillIds: string[];
   maxSalaryBudget: number | null;
-  // Preferred values for match calculation
+  /*
+   * Preferred values for match calculation.
+   *
+   * Timeline scoring thresholds:
+   * - preferredMaxStartTime: Engineers at or faster get full startTimelineMatch score
+   * - requiredMaxStartTime: Hard filter cutoff; also defines the zero-score boundary
+   * Between preferred and required, score degrades linearly.
+   */
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredMaxStartTime: StartTimeline | null;  // Threshold for full score
-  requiredMaxStartTime: StartTimeline | null;   // Threshold for filtering (also used for degradation)
+  preferredMaxStartTime: StartTimeline | null;
+  requiredMaxStartTime: StartTimeline | null;
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)

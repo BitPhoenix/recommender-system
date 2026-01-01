@@ -63,8 +63,8 @@ export const SearchFilterRequestSchema = z.object({
   requiredMaxStartTime: StartTimelineSchema.optional(),
   preferredMaxStartTime: StartTimelineSchema.optional(),
 
-  // Timezone
-  requiredTimezone: z.string().optional(),
+  // Timezone (glob patterns, e.g., "America/*" for any US timezone)
+  requiredTimezone: z.array(z.string()).optional(),
   preferredTimezone: z.array(z.string()).optional(),
 
   // Salary (hard constraints)

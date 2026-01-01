@@ -27,9 +27,12 @@ export function buildBasicEngineerFilters(
     queryParams.maxYearsExperience = params.maxYearsExperience;
   }
 
-  if (params.timezonePrefix !== null) {
-    conditions.push("e.timezone STARTS WITH $timezonePrefix");
-    queryParams.timezonePrefix = params.timezonePrefix;
+  if (params.timezonePrefixes.length > 0) {
+    const tzConditions = params.timezonePrefixes.map((_, i) => `e.timezone STARTS WITH $tz${i}`);
+    conditions.push(`(${tzConditions.join(' OR ')})`);
+    params.timezonePrefixes.forEach((tz, i) => {
+      queryParams[`tz${i}`] = tz;
+    });
   }
 
   if (params.maxSalary !== null) {

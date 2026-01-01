@@ -29,13 +29,7 @@ import type {
  * "w_j regulates the relative importance of the jth attribute"
  */
 export const utilityWeights: UtilityWeights = {
-  /*
-   * Candidate attributes (always evaluated)
-   * Note: startTimeline was removed - timeline scoring is now purely user-driven
-   * via startTimelineMatch (threshold-based). The 0.11 weight was redistributed:
-   * - 0.04 added to skillMatch (0.22 → 0.26)
-   * - 0.07 added to startTimelineMatch (0.03 → 0.10)
-   */
+  /* Candidate attributes (always evaluated) */
   skillMatch: 0.26,
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
@@ -54,7 +48,7 @@ export const utilityWeights: UtilityWeights = {
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
-  /* Per-skill preferred proficiency (replaces global preferredConfidenceMatch + preferredProficiencyMatch) */
+  /* Per-skill preferred proficiency */
   preferredSkillProficiencyMatch: 0.04,
 
   /* Team context alignment */

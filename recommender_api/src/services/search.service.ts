@@ -207,7 +207,7 @@ export async function executeSearch(
     startTimeline: expanded.startTimeline,
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
-    timezonePrefix: expanded.timezonePrefix,
+    timezonePrefixes: expanded.timezonePrefixes,
     maxSalary: expanded.maxSalary,
     minSalary: expanded.minSalary,
     offset: expanded.offset,

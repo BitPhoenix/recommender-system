@@ -4,9 +4,6 @@
  *
  * This service translates manager language (seniorityLevel, teamFocus)
  * into concrete database constraints using the knowledge base rules.
- *
- * Note: Risk tolerance and global proficiency have been replaced by per-skill
- * proficiency requirements. Confidence score is used for ranking only, not filtering.
  */
 
 import type {
@@ -31,8 +28,8 @@ export interface ExpandedConstraints {
   // Start timeline (when candidate could start) - array for Cypher IN filter
   startTimeline: StartTimeline[];
 
-  // Timezone
-  timezonePrefix: string | null;
+  // Timezone (converted glob patterns for STARTS WITH matching)
+  timezonePrefixes: string[];
 
   // Salary constraints
   maxSalary: number | null;
@@ -45,14 +42,29 @@ export interface ExpandedConstraints {
   limit: number;
   offset: number;
 
-  // Tracking
-  appliedConstraints: AppliedConstraint[];
-  defaultsApplied: string[];
+  /*
+   * Tracking for API response transparency.
+   * Returned to callers so they can see what was actually applied.
+   */
+  appliedConstraints: AppliedConstraint[];  // All constraints with their source (user/knowledge_base/default)
+  defaultsApplied: string[];                // Field names where defaults were used
 
-  // Pass-through preferred values for utility calculation
+  /*
+   * Pass-through preferred values for utility calculation.
+   * These are not used for filtering - they inform how candidates are scored/ranked.
+   */
   preferredSeniorityLevel: SeniorityLevel | null;
-  preferredMaxStartTime: StartTimeline | null;  // Threshold for full score
-  requiredMaxStartTime: StartTimeline | null;   // Threshold for filtering
+  /*
+   * Timeline scoring thresholds (both optional):
+   * - preferredMaxStartTime: Engineers at or faster get full startTimelineMatch score
+   * - requiredMaxStartTime: Hard filter cutoff; also defines the zero-score boundary
+   *
+   * Between preferred and required, score degrades linearly.
+   * Example: preferred="two_weeks", required="one_month"
+   *   immediate → 100%, two_weeks → 100%, one_month → 0%, beyond → filtered out
+   */
+  preferredMaxStartTime: StartTimeline | null;
+  requiredMaxStartTime: StartTimeline | null;
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
 }
@@ -127,27 +139,29 @@ function expandStartTimelineConstraint(
   return { startTimeline: allowedTimelines, requiredMaxStartTime: threshold, context };
 }
 
-function expandTimezoneToPrefix(
-  requiredTimezone: string | undefined
-): { timezonePrefix: string | null; context: ExpansionContext } {
+function expandTimezoneToPrefixes(
+  requiredTimezone: string[] | undefined
+): { timezonePrefixes: string[]; context: ExpansionContext } {
   const context: ExpansionContext = { constraints: [], defaults: [] };
 
-  if (!requiredTimezone) {
-    return { timezonePrefix: null, context };
+  if (!requiredTimezone || requiredTimezone.length === 0) {
+    return { timezonePrefixes: [], context };
   }
 
-  // Convert glob pattern to prefix for STARTS WITH
-  // "America/*" -> "America/"
-  const timezonePrefix = requiredTimezone.replace(/\*$/, '');
+  /*
+   * Convert glob patterns to prefixes for STARTS WITH matching.
+   * Example: ["America/*", "Europe/London"] → ["America/", "Europe/London"]
+   */
+  const timezonePrefixes = requiredTimezone.map((tz) => tz.replace(/\*$/, ''));
 
   context.constraints.push({
     field: 'timezone',
-    operator: 'STARTS WITH',
-    value: timezonePrefix,
+    operator: 'STARTS WITH (any of)',
+    value: JSON.stringify(requiredTimezone),
     source: 'user',
   });
 
-  return { timezonePrefix, context };
+  return { timezonePrefixes, context };
 }
 
 function expandSalaryConstraints(
@@ -330,7 +344,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   // Expand each constraint type
   const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
   const timeline = expandStartTimelineConstraint(request.requiredMaxStartTime, config);
-  const timezone = expandTimezoneToPrefix(request.requiredTimezone);
+  const timezone = expandTimezoneToPrefixes(request.requiredTimezone);
   const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
   const pagination = expandPaginationConstraints(request.limit, request.offset, config);
@@ -355,7 +369,7 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     minYearsExperience: seniority.minYears,
     maxYearsExperience: seniority.maxYears,
     startTimeline: timeline.startTimeline,
-    timezonePrefix: timezone.timezonePrefix,
+    timezonePrefixes: timezone.timezonePrefixes,
     maxSalary: salary.maxSalary,
     minSalary: salary.minSalary,
     alignedSkillIds: teamFocus.alignedSkillIds,
