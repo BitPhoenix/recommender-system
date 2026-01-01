@@ -135,20 +135,8 @@ export async function executeSearch(
   }
 
   // Step 2c: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
-  let requiredDomainIds: string[] = [];
-  let preferredDomainIds: string[] = [];
-  const requiredDomainIdentifiers = request.requiredDomains || null;
-  const preferredDomainIdentifiers = request.preferredDomains || null;
-
-  if (requiredDomainIdentifiers && requiredDomainIdentifiers.length > 0) {
-    const domainResolution = await resolveSkillHierarchy(session, requiredDomainIdentifiers);
-    requiredDomainIds = domainResolution.resolvedSkills.map((s) => s.skillId);
-  }
-
-  if (preferredDomainIdentifiers && preferredDomainIdentifiers.length > 0) {
-    const domainResolution = await resolveSkillHierarchy(session, preferredDomainIdentifiers);
-    preferredDomainIds = domainResolution.resolvedSkills.map((s) => s.skillId);
-  }
+  const requiredDomainIds = await resolveDomainIds(session, request.requiredDomains);
+  const preferredDomainIds = await resolveDomainIds(session, request.preferredDomains);
 
   // Step 3: Build query parameters with per-skill proficiency buckets
   const queryParams: CypherQueryParams = {
@@ -191,94 +179,15 @@ export async function executeSearch(
   const isTeamFocusOnlyMode = !hasResolvedSkills && expanded.alignedSkillIds.length > 0;
   const shouldClearSkills = !hasResolvedSkills && expanded.alignedSkillIds.length === 0;
 
-  const rawEngineers: RawEngineerRecord[] = mainResult.records.map((record) => {
-    let matchedSkills: MatchedSkill[] = [];
-    let unmatchedRelatedSkills: UnmatchedRelatedSkill[] = [];
+  const parseOptions = {
+    shouldClearSkills,
+    isTeamFocusOnlyMode,
+    alignedSkillIds: expanded.alignedSkillIds,
+  };
 
-    if (!shouldClearSkills) {
-      // Get all relevant skills from the query (consistent field name in unified query)
-      const allSkills = (record.get('allRelevantSkills') as RawSkillData[]) || [];
-
-      // Split skills into matched and unmatched based on:
-      // 1. matchType: only 'direct' matches go into matchedSkills
-      // 2. constraint checks: skills failing constraints go to unmatchedRelatedSkills
-      for (const skill of allSkills) {
-        // Check if skill has constraint check booleans (from skill search mode)
-        const hasConstraintChecks = 'meetsConfidence' in skill && 'meetsProficiency' in skill;
-
-        if (hasConstraintChecks) {
-          const violations: ConstraintViolation[] = [];
-          if (!skill.meetsConfidence) violations.push('confidence_below_threshold');
-          if (!skill.meetsProficiency) violations.push('proficiency_below_minimum');
-
-          // Only direct matches that pass all constraints go into matchedSkills
-          if (skill.matchType === 'direct' && violations.length === 0) {
-            matchedSkills.push({
-              skillId: skill.skillId,
-              skillName: skill.skillName,
-              proficiencyLevel: skill.proficiencyLevel,
-              confidenceScore: skill.confidenceScore,
-              yearsUsed: skill.yearsUsed,
-              matchType: skill.matchType,
-            });
-          } else {
-            // Descendants (even if passing constraints) and any skill with violations
-            // go to unmatchedRelatedSkills
-            unmatchedRelatedSkills.push({
-              skillId: skill.skillId,
-              skillName: skill.skillName,
-              proficiencyLevel: skill.proficiencyLevel,
-              confidenceScore: skill.confidenceScore,
-              yearsUsed: skill.yearsUsed,
-              matchType: skill.matchType,
-              constraintViolations: violations,
-            });
-          }
-        } else {
-          // No constraint checks (unfiltered search) - include as matched
-          matchedSkills.push({
-            skillId: skill.skillId,
-            skillName: skill.skillName,
-            proficiencyLevel: skill.proficiencyLevel,
-            confidenceScore: skill.confidenceScore,
-            yearsUsed: skill.yearsUsed,
-            matchType: skill.matchType,
-          });
-        }
-      }
-
-      // In teamFocus-only mode, filter to only show aligned skills
-      if (isTeamFocusOnlyMode) {
-        matchedSkills = matchedSkills.filter((skill) =>
-          expanded.alignedSkillIds.includes(skill.skillId)
-        );
-        unmatchedRelatedSkills = []; // Clear unmatched in this mode
-      }
-    }
-
-    // Extract matched domain names from query result (filter out null values)
-    const rawDomainNames = (record.get('matchedDomainNames') as string[] | null) || [];
-    const matchedDomainNames = rawDomainNames.filter((name) => name !== null);
-
-    return {
-      id: record.get('id') as string,
-      name: record.get('name') as string,
-      headline: record.get('headline') as string,
-      salary: toNumber(record.get('salary')),
-      yearsExperience: toNumber(record.get('yearsExperience')),
-      startTimeline: record.get('startTimeline') as string,
-      timezone: record.get('timezone') as string,
-      matchedSkills,
-      unmatchedRelatedSkills,
-      matchedSkillCount: shouldClearSkills
-        ? 0
-        : toNumber(record.get('matchedSkillCount')),
-      avgConfidence: shouldClearSkills
-        ? 0
-        : toNumber(record.get('avgConfidence')),
-      matchedDomainNames,
-    };
-  });
+  const rawEngineers: RawEngineerRecord[] = mainResult.records.map((record) =>
+    parseEngineerFromRecord(record, parseOptions)
+  );
 
   // Extract totalCount from first record (all records have same value from early count step)
   const totalCount = mainResult.records.length > 0
@@ -408,4 +317,135 @@ function toNumber(value: unknown): number {
     return (value as { toNumber: () => number }).toNumber();
   }
   return Number(value) || 0;
+}
+
+/**
+ * Categorizes raw skill data into matched and unmatched skills based on constraint checks.
+ *
+ * - Direct matches passing all constraints → matchedSkills
+ * - Descendants (even if passing) and any skill with violations → unmatchedRelatedSkills
+ * - Skills without constraint checks (unfiltered search) → matchedSkills
+ */
+function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
+  matchedSkills: MatchedSkill[];
+  unmatchedRelatedSkills: UnmatchedRelatedSkill[];
+} {
+  const matchedSkills: MatchedSkill[] = [];
+  const unmatchedRelatedSkills: UnmatchedRelatedSkill[] = [];
+
+  for (const skill of allSkills) {
+    const hasConstraintChecks = 'meetsConfidence' in skill && 'meetsProficiency' in skill;
+
+    if (!hasConstraintChecks) {
+      // No constraint checks (unfiltered search) - include as matched
+      matchedSkills.push({
+        skillId: skill.skillId,
+        skillName: skill.skillName,
+        proficiencyLevel: skill.proficiencyLevel,
+        confidenceScore: skill.confidenceScore,
+        yearsUsed: skill.yearsUsed,
+        matchType: skill.matchType,
+      });
+      continue;
+    }
+
+    // Skill search mode: check constraints
+    const violations: ConstraintViolation[] = [];
+    if (!skill.meetsConfidence) violations.push('confidence_below_threshold');
+    if (!skill.meetsProficiency) violations.push('proficiency_below_minimum');
+
+    const isDirectMatchPassingConstraints =
+      skill.matchType === 'direct' && violations.length === 0;
+
+    if (isDirectMatchPassingConstraints) {
+      matchedSkills.push({
+        skillId: skill.skillId,
+        skillName: skill.skillName,
+        proficiencyLevel: skill.proficiencyLevel,
+        confidenceScore: skill.confidenceScore,
+        yearsUsed: skill.yearsUsed,
+        matchType: skill.matchType,
+      });
+    } else {
+      // Descendants (even if passing constraints) and any skill with violations
+      unmatchedRelatedSkills.push({
+        skillId: skill.skillId,
+        skillName: skill.skillName,
+        proficiencyLevel: skill.proficiencyLevel,
+        confidenceScore: skill.confidenceScore,
+        yearsUsed: skill.yearsUsed,
+        matchType: skill.matchType,
+        constraintViolations: violations,
+      });
+    }
+  }
+
+  return { matchedSkills, unmatchedRelatedSkills };
+}
+
+/**
+ * Resolves domain identifiers to skill IDs.
+ * Returns empty array if no identifiers provided.
+ */
+async function resolveDomainIds(
+  session: Session,
+  identifiers: string[] | null | undefined
+): Promise<string[]> {
+  if (!identifiers || identifiers.length === 0) {
+    return [];
+  }
+  const resolution = await resolveSkillHierarchy(session, identifiers);
+  return resolution.resolvedSkills.map((s) => s.skillId);
+}
+
+/**
+ * Parses a Neo4j record into a RawEngineerRecord.
+ * Handles skill categorization based on search mode.
+ */
+function parseEngineerFromRecord(
+  record: { get: (key: string) => unknown },
+  options: {
+    shouldClearSkills: boolean;
+    isTeamFocusOnlyMode: boolean;
+    alignedSkillIds: string[];
+  }
+): RawEngineerRecord {
+  const { shouldClearSkills, isTeamFocusOnlyMode, alignedSkillIds } = options;
+
+  let matchedSkills: MatchedSkill[] = [];
+  let unmatchedRelatedSkills: UnmatchedRelatedSkill[] = [];
+
+  if (!shouldClearSkills) {
+    const allSkills = (record.get('allRelevantSkills') as RawSkillData[]) || [];
+    const categorized = categorizeSkillsByConstraints(allSkills);
+    matchedSkills = categorized.matchedSkills;
+    unmatchedRelatedSkills = categorized.unmatchedRelatedSkills;
+
+    // In teamFocus-only mode, filter to only show aligned skills
+    if (isTeamFocusOnlyMode) {
+      matchedSkills = matchedSkills.filter((skill) =>
+        alignedSkillIds.includes(skill.skillId)
+      );
+      unmatchedRelatedSkills = [];
+    }
+  }
+
+  // Extract matched domain names (filter out null values)
+  const rawDomainNames = (record.get('matchedDomainNames') as string[] | null) || [];
+  const matchedDomainNames = rawDomainNames.filter((name) => name !== null);
+
+  return {
+    id: record.get('id') as string,
+    name: record.get('name') as string,
+    headline: record.get('headline') as string,
+    salary: toNumber(record.get('salary')),
+    yearsExperience: toNumber(record.get('yearsExperience')),
+    startTimeline: record.get('startTimeline') as string,
+    timezone: record.get('timezone') as string,
+    matchedSkills,
+    unmatchedRelatedSkills,
+    matchedSkillCount: shouldClearSkills ? 0 : toNumber(record.get('matchedSkillCount')),
+    avgConfidence: shouldClearSkills ? 0 : toNumber(record.get('avgConfidence')),
+    matchedDomainNames,
+  };
 }
