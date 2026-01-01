@@ -45,13 +45,8 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 
   addDomainQueryParams(queryParams, params, domainContext);
 
-  // === CONDITIONAL: Skill-specific params with per-skill proficiency ===
   if (hasSkillFilter) {
-    queryParams.allSkillIds = allSkillIds;
-    queryParams.learningLevelSkillIds = params.learningLevelSkillIds;
-    queryParams.proficientLevelSkillIds = params.proficientLevelSkillIds;
-    queryParams.expertLevelSkillIds = params.expertLevelSkillIds;
-    queryParams.originalSkillIdentifiers = params.originalSkillIdentifiers || [];
+    addSkillQueryParams(queryParams, params, allSkillIds);
   }
 
   // === BUILD QUERY CLAUSES ===
@@ -97,6 +92,18 @@ function getAllSkillIds(params: CypherQueryParams): string[] {
     ...params.proficientLevelSkillIds,
     ...params.expertLevelSkillIds,
   ];
+}
+
+function addSkillQueryParams(
+  queryParams: Record<string, unknown>,
+  params: CypherQueryParams,
+  allSkillIds: string[]
+): void {
+  queryParams.allSkillIds = allSkillIds;
+  queryParams.learningLevelSkillIds = params.learningLevelSkillIds;
+  queryParams.proficientLevelSkillIds = params.proficientLevelSkillIds;
+  queryParams.expertLevelSkillIds = params.expertLevelSkillIds;
+  queryParams.originalSkillIdentifiers = params.originalSkillIdentifiers || [];
 }
 
 function buildMatchClause(hasSkillFilter: boolean, whereClause: string): string {
