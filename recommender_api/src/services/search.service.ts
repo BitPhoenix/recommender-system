@@ -61,53 +61,6 @@ interface RawEngineerRecord {
 }
 
 /**
- * Groups resolved skills by their minProficiency level for efficient query filtering.
- * Returns three arrays: skills requiring 'learning', 'proficient', or 'expert' minimum.
- */
-function groupSkillsByProficiency(
-  resolvedSkills: ResolvedSkillWithProficiency[]
-): {
-  learningLevelSkillIds: string[];
-  proficientLevelSkillIds: string[];
-  expertLevelSkillIds: string[];
-} {
-  const learningLevelSkillIds: string[] = [];
-  const proficientLevelSkillIds: string[] = [];
-  const expertLevelSkillIds: string[] = [];
-
-  for (const skill of resolvedSkills) {
-    switch (skill.minProficiency) {
-      case 'learning':
-        learningLevelSkillIds.push(skill.skillId);
-        break;
-      case 'proficient':
-        proficientLevelSkillIds.push(skill.skillId);
-        break;
-      case 'expert':
-        expertLevelSkillIds.push(skill.skillId);
-        break;
-    }
-  }
-
-  return { learningLevelSkillIds, proficientLevelSkillIds, expertLevelSkillIds };
-}
-
-/**
- * Builds a map from skillId to its preferredMinProficiency for utility calculation.
- */
-function buildSkillIdToPreferredProficiency(
-  resolvedSkills: ResolvedSkillWithProficiency[]
-): Map<string, ProficiencyLevel> {
-  const result = new Map<string, ProficiencyLevel>();
-  for (const skill of resolvedSkills) {
-    if (skill.preferredMinProficiency) {
-      result.set(skill.skillId, skill.preferredMinProficiency);
-    }
-  }
-  return result;
-}
-
-/**
  * Executes a search filter request and returns ranked results.
  */
 export async function executeSearch(
@@ -394,6 +347,53 @@ export async function executeSearch(
       unresolvedSkills,
     },
   };
+}
+
+/**
+ * Groups resolved skills by their minProficiency level for efficient query filtering.
+ * Returns three arrays: skills requiring 'learning', 'proficient', or 'expert' minimum.
+ */
+function groupSkillsByProficiency(
+  resolvedSkills: ResolvedSkillWithProficiency[]
+): {
+  learningLevelSkillIds: string[];
+  proficientLevelSkillIds: string[];
+  expertLevelSkillIds: string[];
+} {
+  const learningLevelSkillIds: string[] = [];
+  const proficientLevelSkillIds: string[] = [];
+  const expertLevelSkillIds: string[] = [];
+
+  for (const skill of resolvedSkills) {
+    switch (skill.minProficiency) {
+      case 'learning':
+        learningLevelSkillIds.push(skill.skillId);
+        break;
+      case 'proficient':
+        proficientLevelSkillIds.push(skill.skillId);
+        break;
+      case 'expert':
+        expertLevelSkillIds.push(skill.skillId);
+        break;
+    }
+  }
+
+  return { learningLevelSkillIds, proficientLevelSkillIds, expertLevelSkillIds };
+}
+
+/**
+ * Builds a map from skillId to its preferredMinProficiency for utility calculation.
+ */
+function buildSkillIdToPreferredProficiency(
+  resolvedSkills: ResolvedSkillWithProficiency[]
+): Map<string, ProficiencyLevel> {
+  const result = new Map<string, ProficiencyLevel>();
+  for (const skill of resolvedSkills) {
+    if (skill.preferredMinProficiency) {
+      result.set(skill.skillId, skill.preferredMinProficiency);
+    }
+  }
+  return result;
 }
 
 /**
