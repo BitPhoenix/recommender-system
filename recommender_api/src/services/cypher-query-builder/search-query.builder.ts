@@ -59,6 +59,12 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const countAndPaginateClause = buildCountAndPaginateClause(hasSkillFilter);
   const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter);
 
+  /*
+   * Cypher's WITH clause acts like a pipeline - any variable not explicitly
+   * passed through is dropped from scope. These fields were computed in the
+   * skill collection step and must be carried through domain collection to
+   * reach the final RETURN clause.
+   */
   const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
   const preferredDomainCollectionClause = buildPreferredDomainCollectionClause(
     domainContext,
