@@ -133,19 +133,22 @@ export async function executeSearch(
     ...skillGroups.proficientLevelSkillIds,
     ...skillGroups.expertLevelSkillIds,
   ];
-  const hasResolvedSkills = allSkillIds.length > 0;
   const mainQuery = buildSearchQuery(queryParams);
 
   // Run main query (now includes totalCount computed before pagination)
   const mainResult = await session.run(mainQuery.query, mainQuery.params);
 
   // Step 5: Process results
-  // Determine how to handle skills based on search mode:
-  // - requiredSkills specified → split skills into matched/unmatched based on constraints
-  // - teamFocus only → show only aligned skills (filter to alignedSkillIds)
-  // - neither specified → clear skills (unfiltered search)
-  const isTeamFocusOnlyMode = !hasResolvedSkills && expanded.alignedSkillIds.length > 0;
-  const shouldClearSkills = !hasResolvedSkills && expanded.alignedSkillIds.length === 0;
+  // Determine search mode from what user specified (not derived data):
+  // - skill constraints specified → split skills into matched/unmatched
+  // - teamFocus only → show only aligned skills
+  // - neither → clear skills (unfiltered search)
+  const hasSkillConstraints =
+    (request.requiredSkills?.length ?? 0) > 0 ||
+    (request.preferredSkills?.length ?? 0) > 0;
+  const hasTeamFocus = request.teamFocus !== undefined;
+  const isTeamFocusOnlyMode = !hasSkillConstraints && hasTeamFocus;
+  const shouldClearSkills = !hasSkillConstraints && !hasTeamFocus;
 
   const parseOptions = {
     shouldClearSkills,
