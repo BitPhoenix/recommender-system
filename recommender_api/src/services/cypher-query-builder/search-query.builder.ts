@@ -52,7 +52,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   // === BUILD QUERY CLAUSES ===
   const matchClause = buildMatchClause(hasSkillFilter, whereClause);
   const qualificationClause = buildQualificationClause(hasSkillFilter);
-  const domainFilterClause = buildRequiredDomainFilterClause(
+  const requiredDomainFilterClause = buildRequiredDomainFilterClause(
     domainContext,
     !hasSkillFilter // useDistinct only for non-skill-filtered queries
   );
@@ -60,7 +60,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter);
 
   const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
-  const domainCollectionClause = buildPreferredDomainCollectionClause(
+  const preferredDomainCollectionClause = buildPreferredDomainCollectionClause(
     domainContext,
     carryoverFields
   );
@@ -72,10 +72,10 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 // ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Search Query
 ${matchClause}
 ${qualificationClause}
-${domainFilterClause}
+${requiredDomainFilterClause}
 ${countAndPaginateClause}
 ${skillCollectionClause}
-${domainCollectionClause}
+${preferredDomainCollectionClause}
 ${returnClause}
 `;
 
