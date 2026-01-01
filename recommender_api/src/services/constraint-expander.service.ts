@@ -102,8 +102,8 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
   const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
   const preferredContext = trackPreferredValuesAsPreferences(request);
 
-  // Merge all contexts
-  const merged = mergeContexts(
+  // Concatenate all contexts
+  const concatenated = concatenateContexts(
     seniority.context,
     timeline.context,
     timezone.context,
@@ -124,9 +124,9 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
     alignedSkillIds: teamFocus.alignedSkillIds,
     limit: pagination.limit,
     offset: pagination.offset,
-    appliedFilters: merged.filters,
-    appliedPreferences: merged.preferences,
-    defaultsApplied: merged.defaults,
+    appliedFilters: concatenated.filters,
+    appliedPreferences: concatenated.preferences,
+    defaultsApplied: concatenated.defaults,
     // Pass-through preferred/required values for utility calculation
     preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
     preferredMaxStartTime: request.preferredMaxStartTime ?? null,
@@ -368,7 +368,7 @@ function trackPreferredValuesAsPreferences(request: SearchFilterRequest): Expans
   return context;
 }
 
-function mergeContexts(...contexts: ExpansionContext[]): ExpansionContext {
+function concatenateContexts(...contexts: ExpansionContext[]): ExpansionContext {
   return {
     filters: contexts.flatMap(c => c.filters),
     preferences: contexts.flatMap(c => c.preferences),
