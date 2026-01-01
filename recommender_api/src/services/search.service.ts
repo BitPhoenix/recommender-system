@@ -15,7 +15,7 @@ import type {
   ProficiencyLevel,
   SkillRequirement,
 } from '../types/search.types.js';
-import { expandConstraints } from './constraint-expander.service.js';
+import { expandSearchCriteria } from './constraint-expander.service.js';
 import {
   resolveSkillHierarchy,
   resolveSkillRequirements,
@@ -117,8 +117,8 @@ export async function executeSearch(
   const startTime = Date.now();
   const config = knowledgeBaseConfig;
 
-  // Step 1: Expand constraints using knowledge base rules
-  const expanded = expandConstraints(request);
+  // Step 1: Expand search criteria using knowledge base rules
+  const expanded = expandSearchCriteria(request);
 
   // Step 2: Resolve skill requirements with per-skill proficiency
   let skillGroups = {
@@ -385,7 +385,8 @@ export async function executeSearch(
   return {
     matches,
     totalCount,
-    appliedConstraints: expanded.appliedConstraints,
+    appliedFilters: expanded.appliedFilters,
+    appliedPreferences: expanded.appliedPreferences,
     queryMetadata: {
       executionTimeMs,
       skillsExpanded: expandedSkillNames,

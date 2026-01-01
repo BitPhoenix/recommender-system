@@ -8,7 +8,8 @@
 
 import type {
   SearchFilterRequest,
-  AppliedConstraint,
+  AppliedFilter,
+  AppliedPreference,
   StartTimeline,
   SeniorityLevel,
   TeamFocus,
@@ -20,7 +21,7 @@ import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 // TYPES
 // ============================================
 
-export interface ExpandedConstraints {
+export interface ExpandedSearchCriteria {
   // Experience constraints
   minYearsExperience: number;
   maxYearsExperience: number | null;
@@ -46,7 +47,8 @@ export interface ExpandedConstraints {
    * Tracking for API response transparency.
    * Returned to callers so they can see what was actually applied.
    */
-  appliedConstraints: AppliedConstraint[];  // All constraints with their source (user/knowledge_base/default)
+  appliedFilters: AppliedFilter[];          // Hard constraints that exclude candidates (WHERE clauses)
+  appliedPreferences: AppliedPreference[];  // Soft boosts for ranking (utility scoring)
   defaultsApplied: string[];                // Field names where defaults were used
 
   /*
@@ -70,7 +72,8 @@ export interface ExpandedConstraints {
 }
 
 interface ExpansionContext {
-  constraints: AppliedConstraint[];
+  filters: AppliedFilter[];
+  preferences: AppliedPreference[];
   defaults: string[];
 }
 
@@ -84,7 +87,7 @@ function expandSeniorityToYearsExperience(
   seniorityLevel: SeniorityLevel | undefined,
   config: KnowledgeBaseConfig
 ): { minYears: number; maxYears: number | null; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (!seniorityLevel) {
     return { minYears: 0, maxYears: null, context };
@@ -98,7 +101,7 @@ function expandSeniorityToYearsExperience(
     ? `${minYears} AND ${maxYears}`
     : `>= ${minYears}`;
 
-  context.constraints.push({
+  context.filters.push({
     field: 'yearsExperience',
     operator: maxYears !== null ? 'BETWEEN' : '>=',
     value: valueStr,
@@ -117,7 +120,7 @@ function expandStartTimelineConstraint(
   requiredMaxStartTime: StartTimeline | undefined,
   config: KnowledgeBaseConfig
 ): { startTimeline: StartTimeline[]; requiredMaxStartTime: StartTimeline; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   const threshold = requiredMaxStartTime || config.defaults.requiredMaxStartTime;
   if (!requiredMaxStartTime) {
@@ -129,7 +132,7 @@ function expandStartTimelineConstraint(
   const thresholdIndex = timelineOrder.indexOf(threshold);
   const allowedTimelines = timelineOrder.slice(0, thresholdIndex + 1);
 
-  context.constraints.push({
+  context.filters.push({
     field: 'startTimeline',
     operator: 'IN',
     value: JSON.stringify(allowedTimelines),
@@ -142,7 +145,7 @@ function expandStartTimelineConstraint(
 function expandTimezoneToPrefixes(
   requiredTimezone: string[] | undefined
 ): { timezonePrefixes: string[]; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (!requiredTimezone || requiredTimezone.length === 0) {
     return { timezonePrefixes: [], context };
@@ -154,7 +157,7 @@ function expandTimezoneToPrefixes(
    */
   const timezonePrefixes = requiredTimezone.map((tz) => tz.replace(/\*$/, ''));
 
-  context.constraints.push({
+  context.filters.push({
     field: 'timezone',
     operator: 'STARTS WITH (any of)',
     value: JSON.stringify(requiredTimezone),
@@ -168,13 +171,13 @@ function expandSalaryConstraints(
   requiredMaxSalary: number | undefined,
   requiredMinSalary: number | undefined
 ): { maxSalary: number | null; minSalary: number | null; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   const maxSalary = requiredMaxSalary ?? null;
   const minSalary = requiredMinSalary ?? null;
 
   if (maxSalary !== null) {
-    context.constraints.push({
+    context.filters.push({
       field: 'salary',
       operator: '<=',
       value: maxSalary.toString(),
@@ -183,7 +186,7 @@ function expandSalaryConstraints(
   }
 
   if (minSalary !== null) {
-    context.constraints.push({
+    context.filters.push({
       field: 'salary',
       operator: '>=',
       value: minSalary.toString(),
@@ -198,7 +201,7 @@ function expandTeamFocusToAlignedSkills(
   teamFocus: TeamFocus | undefined,
   config: KnowledgeBaseConfig
 ): { alignedSkillIds: string[]; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (!teamFocus) {
     return { alignedSkillIds: [], context };
@@ -207,9 +210,8 @@ function expandTeamFocusToAlignedSkills(
   const alignment = config.teamFocusSkillAlignment[teamFocus];
   const alignedSkillIds = alignment.alignedSkillIds;
 
-  context.constraints.push({
+  context.preferences.push({
     field: 'teamFocusMatch',
-    operator: 'BOOST',
     value: alignedSkillIds.join(', '),
     source: 'knowledge_base',
   });
@@ -222,7 +224,7 @@ function expandPaginationConstraints(
   requestOffset: number | undefined,
   config: KnowledgeBaseConfig
 ): { limit: number; offset: number; context: ExpansionContext } {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   const limit = Math.min(requestLimit ?? config.defaults.limit, 100);
   const offset = requestOffset ?? config.defaults.offset;
@@ -241,7 +243,7 @@ function trackSkillsAsConstraints(
   requiredSkills: SkillRequirement[] | undefined,
   preferredSkills: SkillRequirement[] | undefined
 ): ExpansionContext {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (requiredSkills && requiredSkills.length > 0) {
     // Track skill requirements with their proficiency levels
@@ -252,7 +254,7 @@ function trackSkillsAsConstraints(
       return parts.join('|');
     });
 
-    context.constraints.push({
+    context.filters.push({
       field: 'requiredSkills',
       operator: 'IN',
       value: JSON.stringify(skillSummary),
@@ -267,9 +269,8 @@ function trackSkillsAsConstraints(
       return parts.join('|');
     });
 
-    context.constraints.push({
+    context.preferences.push({
       field: 'preferredSkills',
-      operator: 'BOOST',
       value: JSON.stringify(skillSummary),
       source: 'user',
     });
@@ -278,55 +279,48 @@ function trackSkillsAsConstraints(
   return context;
 }
 
-function trackPreferredValuesAsConstraints(request: SearchFilterRequest): ExpansionContext {
-  const context: ExpansionContext = { constraints: [], defaults: [] };
+function trackPreferredValuesAsPreferences(request: SearchFilterRequest): ExpansionContext {
+  const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (request.preferredSeniorityLevel) {
-    context.constraints.push({
+    context.preferences.push({
       field: 'preferredSeniorityLevel',
-      operator: 'BOOST',
       value: request.preferredSeniorityLevel,
       source: 'user',
     });
   }
 
   if (request.preferredMaxStartTime) {
-    context.constraints.push({
+    context.preferences.push({
       field: 'preferredMaxStartTime',
-      operator: 'BOOST',
       value: request.preferredMaxStartTime,
       source: 'user',
     });
   }
 
   if (request.preferredTimezone && request.preferredTimezone.length > 0) {
-    context.constraints.push({
+    context.preferences.push({
       field: 'preferredTimezone',
-      operator: 'BOOST',
       value: JSON.stringify(request.preferredTimezone),
       source: 'user',
     });
   }
 
   if (request.preferredSalaryRange) {
-    context.constraints.push({
+    context.preferences.push({
       field: 'preferredSalaryRange',
-      operator: 'BOOST',
       value: JSON.stringify(request.preferredSalaryRange),
       source: 'user',
     });
   }
-
-  // Note: preferredConfidenceScore and preferredProficiency have been removed.
-  // Per-skill proficiency preferences are now handled via preferredMinProficiency
-  // on each SkillRequirement in requiredSkills/preferredSkills.
 
   return context;
 }
 
 function mergeContexts(...contexts: ExpansionContext[]): ExpansionContext {
   return {
-    constraints: contexts.flatMap(c => c.constraints),
+    filters: contexts.flatMap(c => c.filters),
+    preferences: contexts.flatMap(c => c.preferences),
     defaults: contexts.flatMap(c => c.defaults),
   };
 }
@@ -338,7 +332,7 @@ function mergeContexts(...contexts: ExpansionContext[]): ExpansionContext {
 /**
  * Expands a search request into database-level constraints.
  */
-export function expandConstraints(request: SearchFilterRequest): ExpandedConstraints {
+export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSearchCriteria {
   const config = knowledgeBaseConfig;
 
   // Expand each constraint type
@@ -349,9 +343,9 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
   const pagination = expandPaginationConstraints(request.limit, request.offset, config);
 
-  // Track skills and preferred values as constraints
+  // Track skills and preferred values
   const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
-  const preferredContext = trackPreferredValuesAsConstraints(request);
+  const preferredContext = trackPreferredValuesAsPreferences(request);
 
   // Merge all contexts
   const merged = mergeContexts(
@@ -375,7 +369,8 @@ export function expandConstraints(request: SearchFilterRequest): ExpandedConstra
     alignedSkillIds: teamFocus.alignedSkillIds,
     limit: pagination.limit,
     offset: pagination.offset,
-    appliedConstraints: merged.constraints,
+    appliedFilters: merged.filters,
+    appliedPreferences: merged.preferences,
     defaultsApplied: merged.defaults,
     // Pass-through preferred/required values for utility calculation
     preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,

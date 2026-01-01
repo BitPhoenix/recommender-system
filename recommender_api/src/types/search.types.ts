@@ -125,9 +125,23 @@ export interface EngineerMatch {
   scoreBreakdown: ScoreBreakdown;
 }
 
-export interface AppliedConstraint {
+/**
+ * AppliedFilter - hard constraints that filter candidates (WHERE clauses).
+ * These exclude candidates that don't meet the criteria.
+ */
+export interface AppliedFilter {
   field: string;
-  operator: string;
+  operator: string;  // 'BETWEEN', 'IN', '>=', '<=', 'STARTS WITH', etc.
+  value: string;
+  source: ConstraintSource;
+}
+
+/**
+ * AppliedPreference - soft boosts for ranking (utility scoring).
+ * These don't filter candidates, they influence ranking.
+ */
+export interface AppliedPreference {
+  field: string;
   value: string;
   source: ConstraintSource;
 }
@@ -142,7 +156,8 @@ export interface QueryMetadata {
 export interface SearchFilterResponse {
   matches: EngineerMatch[];
   totalCount: number;
-  appliedConstraints: AppliedConstraint[];
+  appliedFilters: AppliedFilter[];
+  appliedPreferences: AppliedPreference[];
   queryMetadata: QueryMetadata;
 }
 
