@@ -13,21 +13,11 @@ import {
   buildPreferredDomainCollectionClause,
 } from "./query-domain-filter.builder.js";
 
-/**
- * Helper to get all skill IDs from the three proficiency buckets.
- */
-function getAllSkillIds(params: CypherQueryParams): string[] {
-  return [
-    ...params.learningLevelSkillIds,
-    ...params.proficientLevelSkillIds,
-    ...params.expertLevelSkillIds,
-  ];
-}
+// ============================================================================
+// MAIN ENTRY POINT
+// ============================================================================
 
 export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
-  const allSkillIds = getAllSkillIds(params);
-  const hasSkillFilter = allSkillIds.length > 0;
-
   /*
    * QUERY STRUCTURE: SHARED + CONDITIONAL
    *
@@ -43,6 +33,9 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
    * Shared: engineer conditions, domain context, pagination, return clause
    * Conditional: skill matching, qualification checks, skill-based ordering
    */
+  const allSkillIds = getAllSkillIds(params);
+  const hasSkillFilter = allSkillIds.length > 0;
+
   const { conditions, queryParams } = buildBasicEngineerFilters(params);
   const domainContext = getDomainFilterContext(params);
   const whereClause = conditions.join("\n  AND ");
@@ -61,21 +54,72 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
     queryParams.originalSkillIdentifiers = params.originalSkillIdentifiers || [];
   }
 
-  // === BUILD MATCH CLAUSE ===
-  const matchClause = hasSkillFilter
+  // === BUILD QUERY CLAUSES ===
+  const matchClause = buildMatchClause(hasSkillFilter, whereClause);
+  const qualificationClause = buildQualificationClause(hasSkillFilter);
+  const domainFilterClause = buildRequiredDomainFilterClause(
+    domainContext,
+    !hasSkillFilter // useDistinct only for non-skill-filtered queries
+  );
+  const countAndPaginateClause = buildCountAndPaginateClause(hasSkillFilter);
+  const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter);
+
+  const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
+  const domainCollectionClause = buildPreferredDomainCollectionClause(
+    domainContext,
+    carryoverFields
+  );
+
+  const returnClause = buildReturnClause();
+
+  // === ASSEMBLE FINAL QUERY ===
+  const query = `
+// ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Search Query
+${matchClause}
+${qualificationClause}
+${domainFilterClause}
+${countAndPaginateClause}
+${skillCollectionClause}
+${domainCollectionClause}
+${returnClause}
+`;
+
+  return { query, params: queryParams };
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function getAllSkillIds(params: CypherQueryParams): string[] {
+  return [
+    ...params.learningLevelSkillIds,
+    ...params.proficientLevelSkillIds,
+    ...params.expertLevelSkillIds,
+  ];
+}
+
+function buildMatchClause(hasSkillFilter: boolean, whereClause: string): string {
+  return hasSkillFilter
     ? `MATCH (e:Engineer)-[:HAS]->(es:EngineerSkill)-[:FOR]->(s:Skill)
 WHERE s.id IN $allSkillIds
   AND ${whereClause}`
     : `MATCH (e:Engineer)
 WHERE ${whereClause}`;
+}
 
-  // === BUILD QUALIFICATION CHECK (skill search only) ===
-  // Per-skill proficiency: each skill bucket has its own minimum proficiency requirement
-  // - learningLevelSkillIds: any proficiency level qualifies
-  // - proficientLevelSkillIds: 'proficient' or 'expert' qualifies
-  // - expertLevelSkillIds: only 'expert' qualifies
-  const qualificationClause = hasSkillFilter
-    ? `
+/**
+ * Builds the qualification check clause for skill-filtered searches.
+ *
+ * Per-skill proficiency: each skill bucket has its own minimum proficiency requirement
+ * - learningLevelSkillIds: any proficiency level qualifies
+ * - proficientLevelSkillIds: 'proficient' or 'expert' qualifies
+ * - expertLevelSkillIds: only 'expert' qualifies
+ */
+function buildQualificationClause(hasSkillFilter: boolean): string {
+  if (!hasSkillFilter) return "";
+
+  return `
 // Check which engineers have at least one skill meeting per-skill proficiency constraints
 // Note: confidence score is used for ranking only, not exclusion
 WITH e, COLLECT(DISTINCT CASE
@@ -85,32 +129,27 @@ WITH e, COLLECT(DISTINCT CASE
   WHEN s.id IN $expertLevelSkillIds
    AND es.proficiencyLevel = 'expert' THEN s.id
 END) AS qualifyingSkillIds
-WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`
-    : "";
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`;
+}
 
-  // === BUILD DOMAIN FILTER (positioned after qualification) ===
-  const domainFilterClause = buildRequiredDomainFilterClause(
-    domainContext,
-    !hasSkillFilter // useDistinct only for non-skill-filtered queries
-  );
-
-  /*
-   * COUNT AND EARLY PAGINATION
-   *
-   * This is a performance optimization. Previously, we ran two queries:
-   * 1. Main query: collected skills for ALL matching engineers, then paginated
-   * 2. Count query: separate query just to get totalCount for pagination UI
-   *
-   * Now we do it in one query by:
-   * 1. Collecting all qualifying engineers into a list
-   * 2. Computing SIZE(list) as totalCount BEFORE pagination
-   * 3. Paginating (ORDER BY, SKIP, LIMIT) immediately
-   * 4. Only THEN running expensive skill/domain collection on the small page
-   *
-   * This means skill collection runs for ~20 engineers instead of potentially
-   * hundreds, significantly reducing query time for large result sets.
-   */
-  const countAndPaginateClause = hasSkillFilter
+/**
+ * Builds the count and early pagination clause.
+ *
+ * This is a performance optimization. Previously, we ran two queries:
+ * 1. Main query: collected skills for ALL matching engineers, then paginated
+ * 2. Count query: separate query just to get totalCount for pagination UI
+ *
+ * Now we do it in one query by:
+ * 1. Collecting all qualifying engineers into a list
+ * 2. Computing SIZE(list) as totalCount BEFORE pagination
+ * 3. Paginating (ORDER BY, SKIP, LIMIT) immediately
+ * 4. Only THEN running expensive skill/domain collection on the small page
+ *
+ * This means skill collection runs for ~20 engineers instead of potentially
+ * hundreds, significantly reducing query time for large result sets.
+ */
+function buildCountAndPaginateClause(hasSkillFilter: boolean): string {
+  return hasSkillFilter
     ? `
 // Count all qualifying engineers, then paginate early
 WITH COLLECT({
@@ -130,22 +169,24 @@ UNWIND allResults AS e
 WITH e, totalCount
 ORDER BY e.yearsExperience DESC
 SKIP $offset LIMIT $limit`;
+}
 
-  /*
-   * SKILL COLLECTION
-   *
-   * Collects detailed skill data for each engineer. This only runs for the
-   * paginated subset (e.g., 20 engineers) rather than all matches.
-   *
-   * We must include `totalCount` in every WITH clause from here forward.
-   * Cypher's WITH acts like a pipeline - any variable not explicitly passed
-   * through is lost. Since totalCount was computed earlier and we need it
-   * in the final RETURN, we carry it through each stage.
-   *
-   * Per-skill proficiency: meetsProficiency is computed based on which
-   * proficiency bucket the skill belongs to.
-   */
-  const skillCollectionClause = hasSkillFilter
+/**
+ * Builds the skill collection clause.
+ *
+ * Collects detailed skill data for each engineer. This only runs for the
+ * paginated subset (e.g., 20 engineers) rather than all matches.
+ *
+ * We must include `totalCount` in every WITH clause from here forward.
+ * Cypher's WITH acts like a pipeline - any variable not explicitly passed
+ * through is lost. Since totalCount was computed earlier and we need it
+ * in the final RETURN, we carry it through each stage.
+ *
+ * Per-skill proficiency: meetsProficiency is computed based on which
+ * proficiency bucket the skill belongs to.
+ */
+function buildSkillCollectionClause(hasSkillFilter: boolean): string {
+  return hasSkillFilter
     ? `
 // Collect all skills with per-skill proficiency check (now only for paginated subset)
 // Confidence score is collected for ranking but not used to filter/exclude engineers
@@ -202,24 +243,14 @@ WITH e, totalCount,
      [skill IN rawSkills WHERE skill IS NOT NULL] AS allRelevantSkills,
      0 AS matchedSkillCount,
      0.0 AS avgConfidence`;
+}
 
-  /*
-   * DOMAIN COLLECTION
-   *
-   * The domain collection helper needs to know which fields to preserve in its
-   * WITH clauses. These "carryover fields" are variables computed in earlier
-   * stages that must survive through the domain collection to reach RETURN.
-   * Without explicitly listing them, Cypher would drop them from scope.
-   */
-  const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
-  const domainCollectionClause = buildPreferredDomainCollectionClause(
-    domainContext,
-    carryoverFields
-  );
-
-  // === SHARED RETURN CLAUSE ===
-  // Note: ORDER BY, SKIP, LIMIT already applied in count/pagination step
-  const returnClause = `
+/**
+ * Builds the shared RETURN clause.
+ * Note: ORDER BY, SKIP, LIMIT already applied in count/pagination step.
+ */
+function buildReturnClause(): string {
+  return `
 RETURN e.id AS id,
        e.name AS name,
        e.headline AS headline,
@@ -232,18 +263,4 @@ RETURN e.id AS id,
        COALESCE(avgConfidence, 0.0) AS avgConfidence,
        matchedDomainNames,
        totalCount`;
-
-  // === ASSEMBLE FINAL QUERY ===
-  const query = `
-// ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Search Query
-${matchClause}
-${qualificationClause}
-${domainFilterClause}
-${countAndPaginateClause}
-${skillCollectionClause}
-${domainCollectionClause}
-${returnClause}
-`;
-
-  return { query, params: queryParams };
 }
