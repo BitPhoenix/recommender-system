@@ -81,6 +81,62 @@ interface ExpansionContext {
 type KnowledgeBaseConfig = typeof knowledgeBaseConfig;
 
 // ============================================
+// MAIN FUNCTION
+// ============================================
+
+/**
+ * Expands a search request into database-level constraints.
+ */
+export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSearchCriteria {
+  const config = knowledgeBaseConfig;
+
+  // Expand each constraint type
+  const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
+  const timeline = expandStartTimelineConstraint(request.requiredMaxStartTime, config);
+  const timezone = expandTimezoneToPrefixes(request.requiredTimezone);
+  const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
+  const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
+  const pagination = expandPaginationConstraints(request.limit, request.offset, config);
+
+  // Track skills and preferred values
+  const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
+  const preferredContext = trackPreferredValuesAsPreferences(request);
+
+  // Merge all contexts
+  const merged = mergeContexts(
+    seniority.context,
+    timeline.context,
+    timezone.context,
+    salary.context,
+    teamFocus.context,
+    pagination.context,
+    skillsContext,
+    preferredContext
+  );
+
+  return {
+    minYearsExperience: seniority.minYears,
+    maxYearsExperience: seniority.maxYears,
+    startTimeline: timeline.startTimeline,
+    timezonePrefixes: timezone.timezonePrefixes,
+    maxSalary: salary.maxSalary,
+    minSalary: salary.minSalary,
+    alignedSkillIds: teamFocus.alignedSkillIds,
+    limit: pagination.limit,
+    offset: pagination.offset,
+    appliedFilters: merged.filters,
+    appliedPreferences: merged.preferences,
+    defaultsApplied: merged.defaults,
+    // Pass-through preferred/required values for utility calculation
+    preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
+    preferredMaxStartTime: request.preferredMaxStartTime ?? null,
+    requiredMaxStartTime: timeline.requiredMaxStartTime,
+    preferredTimezone: request.preferredTimezone ?? [],
+    preferredSalaryRange: request.preferredSalaryRange ?? null,
+  };
+}
+
+// ============================================
 // HELPER FUNCTIONS
 // ============================================
 
@@ -317,61 +373,5 @@ function mergeContexts(...contexts: ExpansionContext[]): ExpansionContext {
     filters: contexts.flatMap(c => c.filters),
     preferences: contexts.flatMap(c => c.preferences),
     defaults: contexts.flatMap(c => c.defaults),
-  };
-}
-
-// ============================================
-// MAIN FUNCTION
-// ============================================
-
-/**
- * Expands a search request into database-level constraints.
- */
-export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSearchCriteria {
-  const config = knowledgeBaseConfig;
-
-  // Expand each constraint type
-  const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
-  const timeline = expandStartTimelineConstraint(request.requiredMaxStartTime, config);
-  const timezone = expandTimezoneToPrefixes(request.requiredTimezone);
-  const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
-  const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
-  const pagination = expandPaginationConstraints(request.limit, request.offset, config);
-
-  // Track skills and preferred values
-  const skillsContext = trackSkillsAsConstraints(request.requiredSkills, request.preferredSkills);
-  const preferredContext = trackPreferredValuesAsPreferences(request);
-
-  // Merge all contexts
-  const merged = mergeContexts(
-    seniority.context,
-    timeline.context,
-    timezone.context,
-    salary.context,
-    teamFocus.context,
-    pagination.context,
-    skillsContext,
-    preferredContext
-  );
-
-  return {
-    minYearsExperience: seniority.minYears,
-    maxYearsExperience: seniority.maxYears,
-    startTimeline: timeline.startTimeline,
-    timezonePrefixes: timezone.timezonePrefixes,
-    maxSalary: salary.maxSalary,
-    minSalary: salary.minSalary,
-    alignedSkillIds: teamFocus.alignedSkillIds,
-    limit: pagination.limit,
-    offset: pagination.offset,
-    appliedFilters: merged.filters,
-    appliedPreferences: merged.preferences,
-    defaultsApplied: merged.defaults,
-    // Pass-through preferred/required values for utility calculation
-    preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
-    preferredMaxStartTime: request.preferredMaxStartTime ?? null,
-    requiredMaxStartTime: timeline.requiredMaxStartTime,
-    preferredTimezone: request.preferredTimezone ?? [],
-    preferredSalaryRange: request.preferredSalaryRange ?? null,
   };
 }
