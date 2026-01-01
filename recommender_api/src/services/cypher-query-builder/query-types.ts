@@ -12,7 +12,15 @@ export interface CypherQueryParams {
   proficientLevelSkillIds: string[];
   expertLevelSkillIds: string[];
 
-  // Original skill identifiers from the request (for matchType classification)
+  /*
+   * Original skill identifiers from the user's request (before hierarchy expansion).
+   * Used to classify each matched skill as "direct" or "descendant" in the response.
+   *
+   * Example: User requests "JavaScript". We expand to ["JavaScript", "React", "Vue"].
+   * When an engineer matches on React:
+   *   - "React" is NOT in originalSkillIdentifiers → matchType: "descendant"
+   *   - "JavaScript" IS in originalSkillIdentifiers → matchType: "direct"
+   */
   originalSkillIdentifiers: string[] | null;
 
   // Basic engineer filters
