@@ -61,6 +61,19 @@ interface RawEngineerRecord {
   matchedDomainNames: string[];
 }
 
+// Result of resolving both required and preferred skills
+interface SkillResolutionResult {
+  // From required skills (for query building)
+  skillGroups: SkillProficiencyGroups;
+  expandedSkillNames: string[];
+  unresolvedSkills: string[];
+  originalSkillIdentifiers: string[];
+  // From preferred skills (for ranking)
+  preferredSkillIds: string[];
+  // Merged from both (for utility calculation)
+  skillIdToPreferredProficiency: Map<string, ProficiencyLevel>;
+}
+
 /**
  * Executes a search filter request and returns ranked results.
  */
@@ -74,67 +87,22 @@ export async function executeSearch(
   // Step 1: Expand search criteria using knowledge base rules
   const expanded = expandSearchCriteria(request);
 
-  // Step 2: Resolve skill requirements with per-skill proficiency
-  let skillGroups: SkillProficiencyGroups = {
-    learningLevelSkillIds: [],
-    proficientLevelSkillIds: [],
-    expertLevelSkillIds: [],
-  };
-  let expandedSkillNames: string[] = [];
-  let unresolvedSkills: string[] = [];
-  let originalSkillIdentifiers: string[] = [];
-  let skillIdToPreferredProficiency = new Map<string, ProficiencyLevel>();
+  // Step 2: Resolve all skill requirements (both required and preferred)
+  const {
+    skillGroups,
+    expandedSkillNames,
+    unresolvedSkills,
+    originalSkillIdentifiers,
+    preferredSkillIds,
+    skillIdToPreferredProficiency,
+  } = await resolveAllSkills(
+    session,
+    request.requiredSkills,
+    request.preferredSkills,
+    config.defaults.defaultMinProficiency
+  );
 
-  const requiredSkillRequests = request.requiredSkills || [];
-  const hasRequiredSkills = requiredSkillRequests.length > 0;
-
-  if (hasRequiredSkills) {
-    const skillResolution = await resolveSkillRequirements(
-      session,
-      requiredSkillRequests,
-      config.defaults.defaultMinProficiency
-    );
-
-    skillGroups = groupSkillsByProficiency(skillResolution.resolvedSkills);
-    expandedSkillNames = skillResolution.expandedSkillNames;
-    unresolvedSkills = skillResolution.unresolvedIdentifiers;
-    originalSkillIdentifiers = skillResolution.originalIdentifiers;
-
-    // Extract preferred proficiencies for utility calculation
-    skillIdToPreferredProficiency = buildSkillIdToPreferredProficiency(
-      skillResolution.resolvedSkills
-    );
-  }
-
-  // Step 2b: Resolve preferred skills with proficiency
-  let preferredSkillIds: string[] = [];
-  let skillIdToPreferredProficiencyFromPreferred = new Map<string, ProficiencyLevel>();
-
-  const preferredSkillRequests = request.preferredSkills || [];
-  const hasPreferredSkills = preferredSkillRequests.length > 0;
-
-  if (hasPreferredSkills) {
-    const preferredResolution = await resolveSkillRequirements(
-      session,
-      preferredSkillRequests,
-      config.defaults.defaultMinProficiency
-    );
-    preferredSkillIds = preferredResolution.resolvedSkills.map((s) => s.skillId);
-
-    // Extract preferred proficiencies from preferred skills
-    skillIdToPreferredProficiencyFromPreferred = buildSkillIdToPreferredProficiency(
-      preferredResolution.resolvedSkills
-    );
-  }
-
-  // Merge preferred proficiencies from both required and preferred skills
-  for (const [skillId, proficiency] of skillIdToPreferredProficiencyFromPreferred) {
-    if (!skillIdToPreferredProficiency.has(skillId)) {
-      skillIdToPreferredProficiency.set(skillId, proficiency);
-    }
-  }
-
-  // Step 2c: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
+  // Step 2b: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
   const requiredDomainIds = await resolveDomainIds(session, request.requiredDomains);
   const preferredDomainIds = await resolveDomainIds(session, request.preferredDomains);
 
@@ -288,21 +256,6 @@ function groupSkillsByProficiency(
 }
 
 /**
- * Builds a map from skillId to its preferredMinProficiency for utility calculation.
- */
-function buildSkillIdToPreferredProficiency(
-  resolvedSkills: ResolvedSkillWithProficiency[]
-): Map<string, ProficiencyLevel> {
-  const result = new Map<string, ProficiencyLevel>();
-  for (const skill of resolvedSkills) {
-    if (skill.preferredMinProficiency) {
-      result.set(skill.skillId, skill.preferredMinProficiency);
-    }
-  }
-  return result;
-}
-
-/**
  * Converts Neo4j integer values to JavaScript numbers.
  */
 function toNumber(value: unknown): number {
@@ -396,6 +349,66 @@ async function resolveDomainIds(
   }
   const resolution = await resolveSkillHierarchy(session, identifiers);
   return resolution.resolvedSkills.map((s) => s.skillId);
+}
+
+/**
+ * Resolves both required and preferred skills, returning all data needed for query building and ranking.
+ */
+async function resolveAllSkills(
+  session: Session,
+  requiredSkills: SkillRequirement[] | undefined,
+  preferredSkills: SkillRequirement[] | undefined,
+  defaultProficiency: ProficiencyLevel
+): Promise<SkillResolutionResult> {
+  // Defaults for when no skills are provided
+  let skillGroups: SkillProficiencyGroups = {
+    learningLevelSkillIds: [],
+    proficientLevelSkillIds: [],
+    expertLevelSkillIds: [],
+  };
+  let expandedSkillNames: string[] = [];
+  let unresolvedSkills: string[] = [];
+  let originalSkillIdentifiers: string[] = [];
+  let preferredSkillIds: string[] = [];
+  const skillIdToPreferredProficiency = new Map<string, ProficiencyLevel>();
+
+  // Resolve required skills
+  if (requiredSkills && requiredSkills.length > 0) {
+    const resolution = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
+    skillGroups = groupSkillsByProficiency(resolution.resolvedSkills);
+    expandedSkillNames = resolution.expandedSkillNames;
+    unresolvedSkills = resolution.unresolvedIdentifiers;
+    originalSkillIdentifiers = resolution.originalIdentifiers;
+
+    // Add preferred proficiencies from required skills
+    for (const skill of resolution.resolvedSkills) {
+      if (skill.preferredMinProficiency) {
+        skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
+      }
+    }
+  }
+
+  // Resolve preferred skills
+  if (preferredSkills && preferredSkills.length > 0) {
+    const resolution = await resolveSkillRequirements(session, preferredSkills, defaultProficiency);
+    preferredSkillIds = resolution.resolvedSkills.map((s) => s.skillId);
+
+    // Add preferred proficiencies (don't override existing from required)
+    for (const skill of resolution.resolvedSkills) {
+      if (skill.preferredMinProficiency && !skillIdToPreferredProficiency.has(skill.skillId)) {
+        skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
+      }
+    }
+  }
+
+  return {
+    skillGroups,
+    expandedSkillNames,
+    unresolvedSkills,
+    originalSkillIdentifiers,
+    preferredSkillIds,
+    skillIdToPreferredProficiency,
+  };
 }
 
 /**
