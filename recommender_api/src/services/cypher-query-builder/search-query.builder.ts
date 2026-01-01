@@ -51,7 +51,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 
   // === BUILD QUERY CLAUSES ===
   const matchClause = buildMatchClause(hasSkillFilter, whereClause);
-  const qualificationClause = buildQualificationClause(hasSkillFilter);
+  const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(hasSkillFilter);
   const requiredDomainFilterClause = buildRequiredDomainFilterClause(
     domainContext,
     !hasSkillFilter // useDistinct only for non-skill-filtered queries
@@ -71,7 +71,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const query = `
 // ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Search Query
 ${matchClause}
-${qualificationClause}
+${skillProficiencyFilterClause}
 ${requiredDomainFilterClause}
 ${countAndPaginateClause}
 ${skillCollectionClause}
@@ -123,7 +123,7 @@ WHERE ${whereClause}`;
  * - proficientLevelSkillIds: 'proficient' or 'expert' qualifies
  * - expertLevelSkillIds: only 'expert' qualifies
  */
-function buildQualificationClause(hasSkillFilter: boolean): string {
+function buildSkillProficiencyFilterClause(hasSkillFilter: boolean): string {
   if (!hasSkillFilter) return "";
 
   return `
