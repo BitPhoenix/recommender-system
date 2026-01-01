@@ -55,7 +55,7 @@ export interface UtilityContext {
   preferredTimezone: string[];
   preferredSalaryRange: { min: number; max: number } | null;
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
-  preferredSkillProficiencies: Map<string, ProficiencyLevel>;
+  skillIdToPreferredProficiency: Map<string, ProficiencyLevel>;
 }
 
 export interface ScoredEngineer extends EngineerData {
@@ -357,10 +357,10 @@ interface PreferredSkillProficiencyMatchResult {
  */
 function calculatePreferredSkillProficiencyMatch(
   matchedSkills: MatchedSkill[],
-  preferredSkillProficiencies: Map<string, ProficiencyLevel>,
+  skillIdToPreferredProficiency: Map<string, ProficiencyLevel>,
   maxMatch: number
 ): PreferredSkillProficiencyMatchResult {
-  if (preferredSkillProficiencies.size === 0 || matchedSkills.length === 0) {
+  if (skillIdToPreferredProficiency.size === 0 || matchedSkills.length === 0) {
     return { raw: 0, skillsExceedingPreferred: [] };
   }
 
@@ -368,7 +368,7 @@ function calculatePreferredSkillProficiencyMatch(
   const skillsExceedingPreferred: string[] = [];
 
   for (const skill of matchedSkills) {
-    const preferredLevel = preferredSkillProficiencies.get(skill.skillId);
+    const preferredLevel = skillIdToPreferredProficiency.get(skill.skillId);
     if (preferredLevel) {
       const preferredIndex = proficiencyOrder.indexOf(preferredLevel);
       const actualIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
@@ -379,7 +379,7 @@ function calculatePreferredSkillProficiencyMatch(
   }
 
   // Normalize by how many skills have preferred requirements
-  const matchRatio = skillsExceedingPreferred.length / preferredSkillProficiencies.size;
+  const matchRatio = skillsExceedingPreferred.length / skillIdToPreferredProficiency.size;
   const raw = Math.min(matchRatio * maxMatch, maxMatch);
 
   return { raw, skillsExceedingPreferred };
@@ -474,7 +474,7 @@ export function calculateUtilityWithBreakdown(
 
   const preferredSkillProficiencyResult = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
-    context.preferredSkillProficiencies,
+    context.skillIdToPreferredProficiency,
     params.preferredSkillProficiencyMatchMax
   );
 
@@ -666,7 +666,7 @@ export function calculateUtilityScore(
 
   const preferredSkillProficiencyUtility = calculatePreferredSkillProficiencyMatch(
     engineer.matchedSkills,
-    context.preferredSkillProficiencies,
+    context.skillIdToPreferredProficiency,
     params.preferredSkillProficiencyMatchMax
   ).raw;
 

@@ -32,6 +32,34 @@ import {
 } from './utility-calculator.service.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
+// Raw skill data from Cypher query (before splitting into matched/unmatched)
+interface RawSkillData {
+  skillId: string;
+  skillName: string;
+  proficiencyLevel: string;
+  confidenceScore: number;
+  yearsUsed: number;
+  matchType: 'direct' | 'descendant' | 'none';
+  // These fields only exist when skill filtering is active
+  meetsConfidence?: boolean;
+  meetsProficiency?: boolean;
+}
+
+interface RawEngineerRecord {
+  id: string;
+  name: string;
+  headline: string;
+  salary: number;
+  yearsExperience: number;
+  startTimeline: string;
+  timezone: string;
+  matchedSkills: MatchedSkill[];
+  unmatchedRelatedSkills: UnmatchedRelatedSkill[];
+  matchedSkillCount: number;
+  avgConfidence: number;
+  matchedDomainNames: string[];
+}
+
 /**
  * Groups resolved skills by their minProficiency level for efficient query filtering.
  * Returns three arrays: skills requiring 'learning', 'proficient', or 'expert' minimum.
@@ -65,9 +93,9 @@ function groupSkillsByProficiency(
 }
 
 /**
- * Extracts skills with preferredMinProficiency for utility calculation.
+ * Builds a map from skillId to its preferredMinProficiency for utility calculation.
  */
-function extractPreferredSkillProficiencies(
+function buildSkillIdToPreferredProficiency(
   resolvedSkills: ResolvedSkillWithProficiency[]
 ): Map<string, ProficiencyLevel> {
   const result = new Map<string, ProficiencyLevel>();
@@ -77,34 +105,6 @@ function extractPreferredSkillProficiencies(
     }
   }
   return result;
-}
-
-// Raw skill data from Cypher query (before splitting into matched/unmatched)
-interface RawSkillData {
-  skillId: string;
-  skillName: string;
-  proficiencyLevel: string;
-  confidenceScore: number;
-  yearsUsed: number;
-  matchType: 'direct' | 'descendant' | 'none';
-  // These fields only exist when skill filtering is active
-  meetsConfidence?: boolean;
-  meetsProficiency?: boolean;
-}
-
-interface RawEngineerRecord {
-  id: string;
-  name: string;
-  headline: string;
-  salary: number;
-  yearsExperience: number;
-  startTimeline: string;
-  timezone: string;
-  matchedSkills: MatchedSkill[];
-  unmatchedRelatedSkills: UnmatchedRelatedSkill[];
-  matchedSkillCount: number;
-  avgConfidence: number;
-  matchedDomainNames: string[];
 }
 
 /**
@@ -129,7 +129,7 @@ export async function executeSearch(
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
   let originalSkillIdentifiers: string[] = [];
-  let preferredSkillProficiencies = new Map<string, ProficiencyLevel>();
+  let skillIdToPreferredProficiency = new Map<string, ProficiencyLevel>();
 
   const requiredSkillRequests = request.requiredSkills || [];
   const skillsWereRequested = requiredSkillRequests.length > 0;
@@ -147,14 +147,14 @@ export async function executeSearch(
     originalSkillIdentifiers = skillResolution.originalIdentifiers;
 
     // Extract preferred proficiencies for utility calculation
-    preferredSkillProficiencies = extractPreferredSkillProficiencies(
+    skillIdToPreferredProficiency = buildSkillIdToPreferredProficiency(
       skillResolution.resolvedSkills
     );
   }
 
   // Step 2b: Resolve preferred skills with proficiency
   let preferredSkillIds: string[] = [];
-  let preferredSkillProficienciesFromPreferred = new Map<string, ProficiencyLevel>();
+  let skillIdToPreferredProficiencyFromPreferred = new Map<string, ProficiencyLevel>();
 
   const preferredSkillRequests = request.preferredSkills || [];
   const preferredSkillsWereRequested = preferredSkillRequests.length > 0;
@@ -168,15 +168,15 @@ export async function executeSearch(
     preferredSkillIds = preferredResolution.resolvedSkills.map((s) => s.skillId);
 
     // Extract preferred proficiencies from preferred skills
-    preferredSkillProficienciesFromPreferred = extractPreferredSkillProficiencies(
+    skillIdToPreferredProficiencyFromPreferred = buildSkillIdToPreferredProficiency(
       preferredResolution.resolvedSkills
     );
   }
 
   // Merge preferred proficiencies from both required and preferred skills
-  for (const [skillId, proficiency] of preferredSkillProficienciesFromPreferred) {
-    if (!preferredSkillProficiencies.has(skillId)) {
-      preferredSkillProficiencies.set(skillId, proficiency);
+  for (const [skillId, proficiency] of skillIdToPreferredProficiencyFromPreferred) {
+    if (!skillIdToPreferredProficiency.has(skillId)) {
+      skillIdToPreferredProficiency.set(skillId, proficiency);
     }
   }
 
@@ -345,7 +345,7 @@ export async function executeSearch(
     preferredTimezone: expanded.preferredTimezone,
     preferredSalaryRange: expanded.preferredSalaryRange,
     // Per-skill preferred proficiencies for ranking boost
-    preferredSkillProficiencies,
+    skillIdToPreferredProficiency,
   };
 
   const engineerData: EngineerData[] = rawEngineers.map((raw) => ({
