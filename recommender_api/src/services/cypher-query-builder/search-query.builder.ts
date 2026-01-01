@@ -109,6 +109,8 @@ function addSkillQueryParams(
   queryParams.learningLevelSkillIds = params.learningLevelSkillIds;
   queryParams.proficientLevelSkillIds = params.proficientLevelSkillIds;
   queryParams.expertLevelSkillIds = params.expertLevelSkillIds;
+  // originalSkillIdentifiers: the user's original skill input (names or IDs)
+  // Used to classify matches as 'direct' (exact match) vs 'descendant' (hierarchy expansion)
   queryParams.originalSkillIdentifiers = params.originalSkillIdentifiers || [];
 }
 
@@ -142,6 +144,7 @@ WITH e, COLLECT(DISTINCT CASE
   WHEN s.id IN $expertLevelSkillIds
    AND us.proficiencyLevel = 'expert' THEN s.id
 END) AS qualifyingSkillIds
+// SIZE([...WHERE x IS NOT NULL]) filters out NULLs from CASE misses (skill didn't meet proficiency)
 WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`;
 }
 
