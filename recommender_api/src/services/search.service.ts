@@ -371,19 +371,14 @@ async function resolveAllSkills(
 
   // Resolve required skills
   if (requiredSkills && requiredSkills.length > 0) {
-    const {
-      resolvedSkills: resolvedRequiredSkills,
-      expandedSkillNames: resolvedExpandedNames,
-      unresolvedIdentifiers,
-      originalIdentifiers,
-    } = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
-    skillGroups = groupSkillsByProficiency(resolvedRequiredSkills);
-    expandedSkillNames = resolvedExpandedNames;
-    unresolvedSkills = unresolvedIdentifiers;
-    originalSkillIdentifiers = originalIdentifiers;
+    const result = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
+    skillGroups = groupSkillsByProficiency(result.resolvedSkills);
+    expandedSkillNames = result.expandedSkillNames;
+    unresolvedSkills = result.unresolvedIdentifiers;
+    originalSkillIdentifiers = result.originalIdentifiers;
 
     // Add preferred proficiencies from required skills
-    for (const skill of resolvedRequiredSkills) {
+    for (const skill of result.resolvedSkills) {
       if (skill.preferredMinProficiency) {
         skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
       }
@@ -392,15 +387,11 @@ async function resolveAllSkills(
 
   // Resolve preferred skills
   if (preferredSkills && preferredSkills.length > 0) {
-    const { resolvedSkills: resolvedPreferredSkills } = await resolveSkillRequirements(
-      session,
-      preferredSkills,
-      defaultProficiency
-    );
-    preferredSkillIds = resolvedPreferredSkills.map((s) => s.skillId);
+    const result = await resolveSkillRequirements(session, preferredSkills, defaultProficiency);
+    preferredSkillIds = result.resolvedSkills.map((s) => s.skillId);
 
     // Add preferred proficiencies (don't override existing from required)
-    for (const skill of resolvedPreferredSkills) {
+    for (const skill of result.resolvedSkills) {
       if (skill.preferredMinProficiency && !skillIdToPreferredProficiency.has(skill.skillId)) {
         skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
       }
