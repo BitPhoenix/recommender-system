@@ -17,7 +17,7 @@ export interface CypherQueryParams {
 
   // Basic engineer filters
   startTimeline: StartTimeline[];
-  minYearsExperience: number;
+  minYearsExperience: number | null;
   maxYearsExperience: number | null;
   timezonePrefixes: string[];
   maxSalary: number | null;

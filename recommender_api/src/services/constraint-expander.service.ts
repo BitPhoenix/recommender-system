@@ -24,7 +24,7 @@ import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 export interface ExpandedSearchCriteria {
   // Experience constraints
-  minYearsExperience: number;
+  minYearsExperience: number | null;
   maxYearsExperience: number | null;
 
   // Start timeline (when candidate could start) - array for Cypher IN filter
@@ -143,11 +143,11 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
 function expandSeniorityToYearsExperience(
   seniorityLevel: SeniorityLevel | undefined,
   config: KnowledgeBaseConfig
-): { minYears: number; maxYears: number | null; context: ExpansionContext } {
+): { minYears: number | null; maxYears: number | null; context: ExpansionContext } {
   const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
   if (!seniorityLevel) {
-    return { minYears: 0, maxYears: null, context };
+    return { minYears: null, maxYears: null, context };
   }
 
   const mapping = config.seniorityMapping[seniorityLevel];

@@ -23,7 +23,7 @@ import type {
  * Example: "senior" -> yearsExperience >= 6 AND yearsExperience < 10
  */
 export interface ExperienceRange {
-  minYears: number;
+  minYears: number | null; // null means no lower limit
   maxYears: number | null; // null means no upper limit
 }
 

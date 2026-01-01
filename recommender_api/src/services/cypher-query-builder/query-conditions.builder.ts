@@ -43,11 +43,16 @@ function buildTimelineFilter(startTimeline: StartTimeline[]): FilterParts {
 }
 
 function buildExperienceFilter(
-  min: number,
+  min: number | null,
   max: number | null
 ): FilterParts {
-  const conditions = ["e.yearsExperience >= $minYearsExperience"];
-  const queryParams: Record<string, unknown> = { minYearsExperience: min };
+  const conditions: string[] = [];
+  const queryParams: Record<string, unknown> = {};
+
+  if (min !== null) {
+    conditions.push("e.yearsExperience >= $minYearsExperience");
+    queryParams.minYearsExperience = min;
+  }
 
   if (max !== null) {
     conditions.push("e.yearsExperience < $maxYearsExperience");
