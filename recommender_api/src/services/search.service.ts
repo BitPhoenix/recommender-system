@@ -24,6 +24,7 @@ import {
 import {
   buildSearchQuery,
   type CypherQueryParams,
+  type SkillProficiencyGroups,
 } from './cypher-query-builder/index.js';
 import {
   scoreAndSortEngineers,
@@ -74,10 +75,10 @@ export async function executeSearch(
   const expanded = expandSearchCriteria(request);
 
   // Step 2: Resolve skill requirements with per-skill proficiency
-  let skillGroups = {
-    learningLevelSkillIds: [] as string[],
-    proficientLevelSkillIds: [] as string[],
-    expertLevelSkillIds: [] as string[],
+  let skillGroups: SkillProficiencyGroups = {
+    learningLevelSkillIds: [],
+    proficientLevelSkillIds: [],
+    expertLevelSkillIds: [],
   };
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
@@ -85,9 +86,9 @@ export async function executeSearch(
   let skillIdToPreferredProficiency = new Map<string, ProficiencyLevel>();
 
   const requiredSkillRequests = request.requiredSkills || [];
-  const skillsWereRequested = requiredSkillRequests.length > 0;
+  const hasRequiredSkills = requiredSkillRequests.length > 0;
 
-  if (skillsWereRequested) {
+  if (hasRequiredSkills) {
     const skillResolution = await resolveSkillRequirements(
       session,
       requiredSkillRequests,
@@ -110,9 +111,9 @@ export async function executeSearch(
   let skillIdToPreferredProficiencyFromPreferred = new Map<string, ProficiencyLevel>();
 
   const preferredSkillRequests = request.preferredSkills || [];
-  const preferredSkillsWereRequested = preferredSkillRequests.length > 0;
+  const hasPreferredSkills = preferredSkillRequests.length > 0;
 
-  if (preferredSkillsWereRequested) {
+  if (hasPreferredSkills) {
     const preferredResolution = await resolveSkillRequirements(
       session,
       preferredSkillRequests,
@@ -355,11 +356,7 @@ export async function executeSearch(
  */
 function groupSkillsByProficiency(
   resolvedSkills: ResolvedSkillWithProficiency[]
-): {
-  learningLevelSkillIds: string[];
-  proficientLevelSkillIds: string[];
-  expertLevelSkillIds: string[];
-} {
+): SkillProficiencyGroups {
   const learningLevelSkillIds: string[] = [];
   const proficientLevelSkillIds: string[] = [];
   const expertLevelSkillIds: string[] = [];

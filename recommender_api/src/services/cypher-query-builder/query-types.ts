@@ -6,12 +6,17 @@ import type {
   StartTimeline,
 } from "../../types/search.types.js";
 
-export interface CypherQueryParams {
-  // Per-skill proficiency buckets: skill IDs grouped by their minimum proficiency requirement
+/**
+ * Skill IDs grouped by their minimum proficiency requirement.
+ * Used for filtering engineers by per-skill proficiency levels.
+ */
+export interface SkillProficiencyGroups {
   learningLevelSkillIds: string[];
   proficientLevelSkillIds: string[];
   expertLevelSkillIds: string[];
+}
 
+export interface CypherQueryParams extends SkillProficiencyGroups {
   /*
    * Original skill identifiers from the user's request (before hierarchy expansion).
    * Used to classify each matched skill as "direct" or "descendant" in the response.

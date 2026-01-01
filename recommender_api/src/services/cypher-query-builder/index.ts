@@ -3,7 +3,7 @@
  * Generates Neo4j Cypher queries based on expanded constraints.
  */
 
-export type { CypherQueryParams, CypherQuery } from "./query-types.js";
+export type { CypherQueryParams, CypherQuery, SkillProficiencyGroups } from "./query-types.js";
 
 import { buildSearchQuery } from "./search-query.builder.js";
 
