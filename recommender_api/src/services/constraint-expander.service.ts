@@ -239,21 +239,21 @@ function expandPaginationConstraints(
   return { limit, offset, context };
 }
 
+function formatSkillSummary(skill: SkillRequirement, includeMinProficiency: boolean): string {
+  const parts = [skill.skill];
+  if (includeMinProficiency && skill.minProficiency) parts.push(`min:${skill.minProficiency}`);
+  if (skill.preferredMinProficiency) parts.push(`pref:${skill.preferredMinProficiency}`);
+  return parts.join('|');
+}
+
 function trackSkillsAsConstraints(
   requiredSkills: SkillRequirement[] | undefined,
   preferredSkills: SkillRequirement[] | undefined
 ): ExpansionContext {
   const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
-  if (requiredSkills && requiredSkills.length > 0) {
-    // Track skill requirements with their proficiency levels
-    const skillSummary = requiredSkills.map((s) => {
-      const parts = [s.skill];
-      if (s.minProficiency) parts.push(`min:${s.minProficiency}`);
-      if (s.preferredMinProficiency) parts.push(`pref:${s.preferredMinProficiency}`);
-      return parts.join('|');
-    });
-
+  if (requiredSkills?.length) {
+    const skillSummary = requiredSkills.map((s) => formatSkillSummary(s, true));
     context.filters.push({
       field: 'requiredSkills',
       operator: 'IN',
@@ -262,13 +262,8 @@ function trackSkillsAsConstraints(
     });
   }
 
-  if (preferredSkills && preferredSkills.length > 0) {
-    const skillSummary = preferredSkills.map((s) => {
-      const parts = [s.skill];
-      if (s.preferredMinProficiency) parts.push(`pref:${s.preferredMinProficiency}`);
-      return parts.join('|');
-    });
-
+  if (preferredSkills?.length) {
+    const skillSummary = preferredSkills.map((s) => formatSkillSummary(s, false));
     context.preferences.push({
       field: 'preferredSkills',
       value: JSON.stringify(skillSummary),
