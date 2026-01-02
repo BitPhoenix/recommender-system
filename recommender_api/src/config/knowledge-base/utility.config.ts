@@ -132,7 +132,6 @@ export const utilityParams: UtilityFunctionParams = {
   preferredSkillsMatchMax: 1.0,
   preferredBusinessDomainMatchMax: 1.0,
   preferredTechnicalDomainMatchMax: 1.0,
-  // Note: preferredSkillProficiencyMatchMax removed - absorbed into skillMatch
 
   /*
    * RATIO with lower max (0.5)
