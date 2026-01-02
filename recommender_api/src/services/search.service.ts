@@ -194,10 +194,11 @@ export async function executeSearch(
   const mainResult = await session.run(mainQuery.query, mainQuery.params);
 
   // Step 5: Process results
-  // Determine search mode from what user specified (not derived data):
-  // - skill constraints specified → split skills into matched/unmatched
-  // - teamFocus only → show only aligned skills
-  // - neither → clear skills (unfiltered search)
+  // Determine search mode from what user specified (not derived data).
+  // parseEngineerFromRecord needs these flags to decide how to populate skill arrays:
+  // - skill constraints specified → categorize skills as matched/unmatched by constraint
+  // - teamFocus only → filter to team-aligned skills (no constraint categorization)
+  // - neither → return empty skill arrays (unfiltered search doesn't show skills)
   const hasSkillConstraints =
     (request.requiredSkills?.length ?? 0) > 0 ||
     (request.preferredSkills?.length ?? 0) > 0;
