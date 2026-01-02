@@ -848,8 +848,8 @@ export interface CypherQueryParams {
   // ... existing fields ...
 
   // Replace:
-  // requiredDomainIds?: string[];
-  // preferredDomainIds?: string[];
+  // requiredDomainSkillIds?: string[];
+  // preferredDomainSkillIds?: string[];
 
   // With structured domain data (for service layer):
   requiredBusinessDomains?: ResolvedBusinessDomain[];
@@ -1292,8 +1292,8 @@ import {
 
 // In searchEngineers function:
 // Replace:
-// const requiredDomainIds = await getSkillIdsForDomains(session, request.requiredDomains);
-// const preferredDomainIds = await getSkillIdsForDomains(session, request.preferredDomains);
+// const requiredDomainSkillIds = await getSkillIdsForDomains(session, request.requiredDomains);
+// const preferredDomainSkillIds = await getSkillIdsForDomains(session, request.preferredDomains);
 
 // With:
 const requiredBusinessDomains = await resolveBusinessDomains(session, request.requiredBusinessDomains);
