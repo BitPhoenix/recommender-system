@@ -392,9 +392,24 @@ interface PreferredSkillProficiencyMatchResult {
 }
 
 /**
- * Calculates per-skill preferred proficiency match.
- * For each skill with a preferredMinProficiency, checks if engineer exceeds it.
- * Returns normalized score and list of skills exceeding their preferred level.
+ * Calculates per-skill preferred proficiency match using graduated linear scoring.
+ *
+ * Uses a linear credit function: score = (actualLevel + 1) / (preferredLevel + 1)
+ * where learning=0, proficient=1, expert=2. This gives partial credit for engineers
+ * who have the skill but below the preferred level:
+ *
+ *   | Preferred | learning | proficient | expert |
+ *   |-----------|----------|------------|--------|
+ *   | expert    | 0.33     | 0.67       | 1.0    |
+ *   | proficient| 0.50     | 1.0        | 1.0    |
+ *   | learning  | 1.0      | 1.0        | 1.0    |
+ *
+ * Rationale: If you prefer "React at expert" but can only find proficient engineers,
+ * they should score higher than learning-level engineers. The linear function means
+ * each proficiency step adds equal credit (e.g., +0.33 per level when preferred=expert).
+ *
+ * The +1 offset ensures: (1) no division by zero, (2) minimum floor so even learning
+ * level gets some credit for having the skill.
  */
 function calculatePreferredSkillProficiencyMatch(
   matchedSkills: MatchedSkill[],
@@ -407,21 +422,30 @@ function calculatePreferredSkillProficiencyMatch(
 
   const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
   const skillsExceedingPreferred: string[] = [];
+  let totalCredit = 0;
+  let skillsWithPreference = 0;
 
   for (const skill of matchedSkills) {
     const preferredLevel = skillIdToPreferredProficiency.get(skill.skillId);
     if (preferredLevel) {
+      skillsWithPreference++;
       const preferredIndex = proficiencyOrder.indexOf(preferredLevel);
       const actualIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
+
+      // Linear credit: (actual + 1) / (preferred + 1), capped at 1.0
+      const credit = Math.min(1.0, (actualIndex + 1) / (preferredIndex + 1));
+      totalCredit += credit;
+
+      // Track skills that meet or exceed for display purposes
       if (actualIndex >= preferredIndex) {
         skillsExceedingPreferred.push(skill.skillName);
       }
     }
   }
 
-  // Normalize by how many skills have preferred requirements
-  const matchRatio = skillsExceedingPreferred.length / skillIdToPreferredProficiency.size;
-  const raw = Math.min(matchRatio * maxMatch, maxMatch);
+  // Average credit across all skills with preferences
+  const avgCredit = skillsWithPreference > 0 ? totalCredit / skillsWithPreference : 0;
+  const raw = Math.min(avgCredit * maxMatch, maxMatch);
 
   return { raw, skillsExceedingPreferred };
 }
