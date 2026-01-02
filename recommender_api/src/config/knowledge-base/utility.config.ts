@@ -30,7 +30,9 @@ import type {
  */
 export const utilityWeights: UtilityWeights = {
   /* Candidate attributes (always evaluated) */
-  skillMatch: 0.26,
+  // skillMatch increased from 0.26 to 0.30 - absorbs old preferredSkillProficiencyMatch (0.04)
+  // Now includes both coverage and proficiency matching in one unified score.
+  skillMatch: 0.30,
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
   yearsExperience: 0.11,
@@ -49,8 +51,6 @@ export const utilityWeights: UtilityWeights = {
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
   preferredSalaryRangeMatch: 0.03,
-  /* Per-skill preferred proficiency */
-  preferredSkillProficiencyMatch: 0.04,
 
   /* Team context alignment */
   teamFocusMatch: 0.04,
@@ -132,7 +132,7 @@ export const utilityParams: UtilityFunctionParams = {
   preferredSkillsMatchMax: 1.0,
   preferredBusinessDomainMatchMax: 1.0,
   preferredTechnicalDomainMatchMax: 1.0,
-  preferredSkillProficiencyMatchMax: 1.0,
+  // Note: preferredSkillProficiencyMatchMax removed - absorbed into skillMatch
 
   /*
    * RATIO with lower max (0.5)

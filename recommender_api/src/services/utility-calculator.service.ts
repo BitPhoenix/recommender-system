@@ -386,68 +386,82 @@ function calculatePreferredSalaryRangeMatch(
   return { raw: inPreferredRange ? maxMatch : 0, inPreferredRange };
 }
 
-interface PreferredSkillProficiencyMatchResult {
-  raw: number;
+interface SkillMatchResult {
+  /** Normalized score 0-1 representing skill coverage + proficiency match */
+  score: number;
+  /** Skills that meet or exceed preferred proficiency (for display) */
   skillsExceedingPreferred: string[];
 }
 
 /**
- * Calculates per-skill preferred proficiency match using graduated linear scoring.
+ * Unified skill match scoring that combines coverage and proficiency matching.
  *
- * Uses a linear credit function: score = (actualLevel + 1) / (preferredLevel + 1)
- * where learning=0, proficient=1, expert=2. This gives partial credit for engineers
- * who have the skill but below the preferred level:
+ * For each requested skill:
+ * - If engineer doesn't have it: 0 credit
+ * - If engineer has it with no preferred proficiency: 1.0 credit (full)
+ * - If engineer has it with preferred proficiency: graduated credit (actual+1)/(preferred+1)
  *
+ * Final score = average credit across all requested skills.
+ *
+ * This replaces the previous two-mechanism approach:
+ * 1. Old skillMatch: coverage ratio + generic proficiency bonus (unprincipled)
+ * 2. Old preferredSkillProficiencyMatch: graduated scoring but separate weight
+ *
+ * Score table (when preference specified):
  *   | Preferred | learning | proficient | expert |
  *   |-----------|----------|------------|--------|
  *   | expert    | 0.33     | 0.67       | 1.0    |
  *   | proficient| 0.50     | 1.0        | 1.0    |
  *   | learning  | 1.0      | 1.0        | 1.0    |
  *
- * Rationale: If you prefer "React at expert" but can only find proficient engineers,
- * they should score higher than learning-level engineers. The linear function means
- * each proficiency step adds equal credit (e.g., +0.33 per level when preferred=expert).
- *
- * The +1 offset ensures: (1) no division by zero, (2) minimum floor so even learning
- * level gets some credit for having the skill.
+ * When no preference specified: full credit (1.0) for having the skill.
  */
-function calculatePreferredSkillProficiencyMatch(
+function calculateSkillMatch(
   matchedSkills: MatchedSkill[],
-  skillIdToPreferredProficiency: Map<string, ProficiencyLevel>,
-  maxMatch: number
-): PreferredSkillProficiencyMatchResult {
-  if (skillIdToPreferredProficiency.size === 0 || matchedSkills.length === 0) {
-    return { raw: 0, skillsExceedingPreferred: [] };
+  requestedSkillIds: string[],
+  skillIdToPreferredProficiency: Map<string, ProficiencyLevel>
+): SkillMatchResult {
+  if (requestedSkillIds.length === 0) {
+    return { score: 0.5, skillsExceedingPreferred: [] };
   }
 
   const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
   const skillsExceedingPreferred: string[] = [];
   let totalCredit = 0;
-  let skillsWithPreference = 0;
 
-  for (const skill of matchedSkills) {
-    const preferredLevel = skillIdToPreferredProficiency.get(skill.skillId);
+  // Build a map for O(1) lookup
+  const matchedSkillMap = new Map(matchedSkills.map(s => [s.skillId, s]));
+
+  for (const skillId of requestedSkillIds) {
+    const matchedSkill = matchedSkillMap.get(skillId);
+
+    if (!matchedSkill) {
+      // Skill not matched - zero credit (already filtered by Cypher, but handle edge cases)
+      continue;
+    }
+
+    const preferredLevel = skillIdToPreferredProficiency.get(skillId);
+
     if (preferredLevel) {
-      skillsWithPreference++;
+      // Has preferred proficiency: use graduated linear scoring
       const preferredIndex = proficiencyOrder.indexOf(preferredLevel);
-      const actualIndex = proficiencyOrder.indexOf(skill.proficiencyLevel as ProficiencyLevel);
-
-      // Linear credit: (actual + 1) / (preferred + 1), capped at 1.0
+      const actualIndex = proficiencyOrder.indexOf(matchedSkill.proficiencyLevel as ProficiencyLevel);
       const credit = Math.min(1.0, (actualIndex + 1) / (preferredIndex + 1));
       totalCredit += credit;
 
-      // Track skills that meet or exceed for display purposes
+      // Track for display
       if (actualIndex >= preferredIndex) {
-        skillsExceedingPreferred.push(skill.skillName);
+        skillsExceedingPreferred.push(matchedSkill.skillName);
       }
+    } else {
+      // No preferred proficiency specified: full credit for having the skill
+      totalCredit += 1.0;
     }
   }
 
-  // Average credit across all skills with preferences
-  const avgCredit = skillsWithPreference > 0 ? totalCredit / skillsWithPreference : 0;
-  const raw = Math.min(avgCredit * maxMatch, maxMatch);
+  const score = totalCredit / requestedSkillIds.length;
 
-  return { raw, skillsExceedingPreferred };
+  return { score, skillsExceedingPreferred };
 }
 
 function calculateWeighted(raw: number, weight: number): number {
@@ -464,11 +478,13 @@ export function calculateUtilityWithBreakdown(
   const weights = config.utilityWeights;
   const params = config.utilityParams;
 
-  // Calculate individual utility components
-  const skillMatchRaw = calculateSkillMatchUtility(
+  // Calculate unified skill match (coverage + proficiency in one score)
+  const skillMatchResult = calculateSkillMatch(
     engineer.matchedSkills,
-    context.requestedSkillIds
+    context.requestedSkillIds,
+    context.skillIdToPreferredProficiency
   );
+  const skillMatchRaw = skillMatchResult.score;
 
   const confidenceRaw = calculateConfidenceUtility(
     engineer.avgConfidence,
@@ -543,11 +559,8 @@ export function calculateUtilityWithBreakdown(
     params.preferredSalaryRangeMatchMax
   );
 
-  const preferredSkillProficiencyResult = calculatePreferredSkillProficiencyMatch(
-    engineer.matchedSkills,
-    context.skillIdToPreferredProficiency,
-    params.preferredSkillProficiencyMatchMax
-  );
+  // Note: preferredSkillProficiencyMatch is now absorbed into skillMatch via calculateSkillMatch
+  // The unified function handles both coverage and proficiency matching in one score.
 
   // Calculate core weighted scores (startTimeline removed - now in preference matches)
   const coreScores: CoreScores = {
@@ -558,6 +571,7 @@ export function calculateUtilityWithBreakdown(
   };
 
   // Calculate match weighted scores
+  // Note: preferredSkillProficiencyMatch removed - now part of skillMatch
   const matchScores = {
     preferredSkillsMatch: calculateWeighted(preferredSkillsResult.raw, weights.preferredSkillsMatch),
     teamFocusMatch: calculateWeighted(teamFocusResult.raw, weights.teamFocusMatch),
@@ -568,7 +582,6 @@ export function calculateUtilityWithBreakdown(
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
     preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
-    preferredSkillProficiencyMatch: calculateWeighted(preferredSkillProficiencyResult.raw, weights.preferredSkillProficiencyMatch),
   };
 
   // Sum all weighted scores
@@ -640,12 +653,7 @@ export function calculateUtilityWithBreakdown(
       score: matchScores.preferredSalaryRangeMatch,
     };
   }
-  if (matchScores.preferredSkillProficiencyMatch > 0) {
-    preferenceMatches.preferredSkillProficiencyMatch = {
-      score: matchScores.preferredSkillProficiencyMatch,
-      skillsExceedingPreferred: preferredSkillProficiencyResult.skillsExceedingPreferred,
-    };
-  }
+  // Note: preferredSkillProficiencyMatch removed - now absorbed into skillMatch
 
   const utilityScore = Math.round(total * 100) / 100;
 
@@ -669,11 +677,12 @@ export function calculateUtilityScore(
   const weights = config.utilityWeights;
   const params = config.utilityParams;
 
-  // Calculate individual utility components
-  const skillMatchUtility = calculateSkillMatchUtility(
+  // Calculate unified skill match (coverage + proficiency in one score)
+  const skillMatchUtility = calculateSkillMatch(
     engineer.matchedSkills,
-    context.requestedSkillIds
-  );
+    context.requestedSkillIds,
+    context.skillIdToPreferredProficiency
+  ).score;
 
   const confidenceUtility = calculateConfidenceUtility(
     engineer.avgConfidence,
@@ -748,11 +757,7 @@ export function calculateUtilityScore(
     params.preferredSalaryRangeMatchMax
   ).raw;
 
-  const preferredSkillProficiencyUtility = calculatePreferredSkillProficiencyMatch(
-    engineer.matchedSkills,
-    context.skillIdToPreferredProficiency,
-    params.preferredSkillProficiencyMatchMax
-  ).raw;
+  // Note: preferredSkillProficiencyMatch is now absorbed into skillMatch
 
   // Weighted sum: U(V) = Σ w_j * f_j(v_j)
   const utilityScore =
@@ -769,42 +774,13 @@ export function calculateUtilityScore(
     weights.startTimelineMatch * startTimelineMatchUtility +
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
     weights.preferredSeniorityMatch * preferredSeniorityUtility +
-    weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility +
-    weights.preferredSkillProficiencyMatch * preferredSkillProficiencyUtility;
+    weights.preferredSalaryRangeMatch * preferredSalaryRangeUtility;
 
   return Math.round(utilityScore * 100) / 100; // Round to 2 decimal places
 }
 
-/**
- * Calculates skill match utility.
- * Based on coverage ratio plus proficiency bonus.
- */
-function calculateSkillMatchUtility(
-  matchedSkills: MatchedSkill[],
-  requestedSkillIds: string[]
-): number {
-  // If no skills requested, return neutral score
-  if (requestedSkillIds.length === 0) {
-    return 0.5;
-  }
-
-  // Coverage ratio: how many of the requested skills are matched
-  const coverageRatio = Math.min(matchedSkills.length / requestedSkillIds.length, 1);
-
-  // Bonus for proficiency levels
-  const proficiencyBonus =
-    matchedSkills.reduce((sum, skill) => {
-      const bonus =
-        skill.proficiencyLevel === 'expert'
-          ? 0.1
-          : skill.proficiencyLevel === 'proficient'
-            ? 0.05
-            : 0;
-      return sum + bonus;
-    }, 0) / Math.max(matchedSkills.length, 1);
-
-  return Math.min(coverageRatio + proficiencyBonus, 1);
-}
+// Note: Old calculateSkillMatchUtility removed - replaced by calculateSkillMatch
+// which unifies coverage and proficiency scoring.
 
 /**
  * Calculates confidence score utility.

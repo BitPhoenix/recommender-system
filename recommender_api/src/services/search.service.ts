@@ -228,10 +228,10 @@ export async function executeSearch(
       : 0;
 
   // Step 6: Calculate utility scores and rank
-  // Combine all required skill IDs into a single array for utility scoring.
-  // The utility calculator needs this to measure how well each engineer matches
-  // the search request—it doesn't care about proficiency buckets, just whether
-  // the engineer has skills the user asked for.
+  // Combine all required skill IDs for unified skill matching.
+  // The utility calculator scores each skill based on:
+  // - Whether the engineer has it (coverage)
+  // - How well they meet the preferred proficiency (if specified)
   const allRequestedSkillIds = [
     ...skillGroups.learningLevelSkillIds,
     ...skillGroups.proficientLevelSkillIds,

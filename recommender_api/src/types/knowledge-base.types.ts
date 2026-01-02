@@ -74,6 +74,7 @@ export interface SearchDefaults {
  */
 export interface UtilityWeights {
   // Candidate attributes (always evaluated)
+  // Note: skillMatch now includes proficiency matching (unified scoring)
   skillMatch: number;
   relatedSkillsMatch: number;
   confidenceScore: number;
@@ -88,8 +89,7 @@ export interface UtilityWeights {
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
   preferredSalaryRangeMatch: number;
-  // Per-skill preferred proficiency match
-  preferredSkillProficiencyMatch: number;
+  // Note: preferredSkillProficiencyMatch removed - now absorbed into skillMatch
 
   // Team context alignment
   teamFocusMatch: number;
@@ -99,7 +99,7 @@ export interface UtilityWeights {
  * Parameters for individual utility functions.
  */
 export interface UtilityFunctionParams {
-  // Skill match is calculated separately
+  // Skill match is calculated separately (now includes proficiency matching)
   // Confidence score linear params
   confidenceMin: number;
   confidenceMax: number;
@@ -118,8 +118,7 @@ export interface UtilityFunctionParams {
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;
   preferredSalaryRangeMatchMax: number;
-  // Per-skill preferred proficiency match max
-  preferredSkillProficiencyMatchMax: number;
+  // Note: preferredSkillProficiencyMatchMax removed - absorbed into skillMatch
 }
 
 // ============================================

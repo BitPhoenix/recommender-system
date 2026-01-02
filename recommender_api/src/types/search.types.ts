@@ -117,10 +117,8 @@ export interface PreferredSalaryRangeMatch {
   score: number;
 }
 
-export interface PreferredSkillProficiencyMatch {
-  score: number;
-  skillsExceedingPreferred: string[];
-}
+// Note: PreferredSkillProficiencyMatch removed - now absorbed into CoreScores.skillMatch
+// The unified skill match score handles both coverage and proficiency matching.
 
 export interface PreferenceMatches {
   preferredSkillsMatch?: PreferredSkillsMatch;
@@ -132,7 +130,6 @@ export interface PreferenceMatches {
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
   preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;
-  preferredSkillProficiencyMatch?: PreferredSkillProficiencyMatch;
 }
 
 export interface ScoreBreakdown {
