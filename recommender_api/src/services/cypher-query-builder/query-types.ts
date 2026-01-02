@@ -40,14 +40,48 @@ export interface CypherQueryParams extends SkillProficiencyGroups {
   offset: number;
   limit: number;
 
-  // Domain filtering
-  requiredDomainIds?: string[];
-  preferredDomainIds?: string[];
+  // Business Domain filtering (structured with years)
+  requiredBusinessDomains?: ResolvedBusinessDomain[];
+  preferredBusinessDomains?: ResolvedBusinessDomain[];
+
+  // Technical Domain filtering (structured with hierarchy expansion)
+  requiredTechnicalDomains?: ResolvedTechnicalDomain[];
+  preferredTechnicalDomains?: ResolvedTechnicalDomain[];
+}
+
+/**
+ * Resolved business domain with hierarchy expansion and years requirements.
+ */
+export interface ResolvedBusinessDomain {
+  domainId: string;
+  expandedDomainIds: string[];  // includes self + descendants via CHILD_OF
+  minYears?: number;
+  preferredMinYears?: number;
+}
+
+/**
+ * Resolved technical domain with expanded domain IDs (includes ancestors via CHILD_OF
+ * and children via ENCOMPASSES) for matching.
+ */
+export interface ResolvedTechnicalDomain {
+  domainId: string;
+  expandedDomainIds: string[];  // includes self + ancestors (for CHILD_OF) or children (for ENCOMPASSES)
+  minYears?: number;
+  preferredMinYears?: number;
 }
 
 export interface CypherQuery {
   query: string;
   params: Record<string, unknown>;
+}
+
+/**
+ * Result from a collection clause builder.
+ * Contains the Cypher clause and the fields it produces that need to be carried forward.
+ */
+export interface CollectionClauseResult {
+  clause: string;
+  carryForwardFields: string[];
 }
 
 export interface BasicEngineerFilters {

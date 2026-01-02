@@ -17,8 +17,14 @@ import type {
   SeniorityLevel,
   ProficiencyLevel,
   StartTimeline,
+  BusinessDomainMatch,
+  TechnicalDomainMatch,
 } from '../types/search.types.js';
 import { START_TIMELINE_ORDER } from '../types/search.types.js';
+import type {
+  ResolvedBusinessDomain,
+  ResolvedTechnicalDomain,
+} from './cypher-query-builder/query-types.js';
 import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
 
 export interface EngineerData {
@@ -32,13 +38,15 @@ export interface EngineerData {
   matchedSkills: MatchedSkill[];
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];
   avgConfidence: number;
-  matchedDomainNames: string[];
+  matchedBusinessDomains: BusinessDomainMatch[];
+  matchedTechnicalDomains: TechnicalDomainMatch[];
 }
 
 export interface UtilityContext {
   requestedSkillIds: string[];
   preferredSkillIds: string[];
-  preferredDomainIds: string[];
+  preferredBusinessDomains: ResolvedBusinessDomain[];
+  preferredTechnicalDomains: ResolvedTechnicalDomain[];
   alignedSkillIds: string[];
   maxSalaryBudget: number | null;
   /*
@@ -85,7 +93,12 @@ interface RelatedSkillsMatchResult {
   count: number;
 }
 
-interface PreferredDomainMatchResult {
+interface PreferredBusinessDomainMatchResult {
+  raw: number;
+  matchedDomainNames: string[];
+}
+
+interface PreferredTechnicalDomainMatchResult {
   raw: number;
   matchedDomainNames: string[];
 }
@@ -169,26 +182,54 @@ function calculateRelatedSkillsMatchWithDetails(
 }
 
 /**
- * Calculates preferred domain match utility with matched domain details.
- * Engineers with preferred domain experience get a ranking boost.
+ * Calculates preferred business domain match utility with matched domain details.
+ * Engineers with preferred business domain experience get a ranking boost.
  */
-function calculatePreferredDomainMatchWithDetails(
-  matchedDomainNames: string[],
-  preferredDomainIds: string[],
+function calculatePreferredBusinessDomainMatchWithDetails(
+  matchedBusinessDomains: BusinessDomainMatch[],
+  preferredBusinessDomains: ResolvedBusinessDomain[],
   maxMatch: number
-): PreferredDomainMatchResult {
-  if (preferredDomainIds.length === 0) {
+): PreferredBusinessDomainMatchResult {
+  if (preferredBusinessDomains.length === 0) {
     return { raw: 0, matchedDomainNames: [] };
   }
 
-  // matchedDomainNames already contains the names of matched preferred domains from the query
+  // Filter to domains that meet the preferred criteria
+  const matchingDomains = matchedBusinessDomains.filter((d) => d.meetsPreferred);
+
   // Normalize by the number of preferred domains, capped at maxMatch
-  const matchRatio = matchedDomainNames.length / preferredDomainIds.length;
+  const matchRatio = matchingDomains.length / preferredBusinessDomains.length;
   const raw = Math.min(matchRatio * maxMatch, maxMatch);
 
   return {
     raw,
-    matchedDomainNames,
+    matchedDomainNames: matchingDomains.map((d) => d.domainName),
+  };
+}
+
+/**
+ * Calculates preferred technical domain match utility with matched domain details.
+ * Engineers with preferred technical domain experience get a ranking boost.
+ */
+function calculatePreferredTechnicalDomainMatchWithDetails(
+  matchedTechnicalDomains: TechnicalDomainMatch[],
+  preferredTechnicalDomains: ResolvedTechnicalDomain[],
+  maxMatch: number
+): PreferredTechnicalDomainMatchResult {
+  if (preferredTechnicalDomains.length === 0) {
+    return { raw: 0, matchedDomainNames: [] };
+  }
+
+  // Filter to domains that meet the preferred criteria
+  const matchingDomains = matchedTechnicalDomains.filter((d) => d.meetsPreferred);
+
+  // Normalize by the number of preferred domains, capped at maxMatch
+  const matchRatio = matchingDomains.length / preferredTechnicalDomains.length;
+  const raw = Math.min(matchRatio * maxMatch, maxMatch);
+
+  return {
+    raw,
+    matchedDomainNames: matchingDomains.map((d) => d.domainName),
   };
 }
 
@@ -440,10 +481,16 @@ export function calculateUtilityWithBreakdown(
     params.relatedSkillsMatchMax
   );
 
-  const preferredDomainResult = calculatePreferredDomainMatchWithDetails(
-    engineer.matchedDomainNames,
-    context.preferredDomainIds,
-    params.preferredDomainMatchMax
+  const preferredBusinessDomainResult = calculatePreferredBusinessDomainMatchWithDetails(
+    engineer.matchedBusinessDomains,
+    context.preferredBusinessDomains,
+    params.preferredBusinessDomainMatchMax
+  );
+
+  const preferredTechnicalDomainResult = calculatePreferredTechnicalDomainMatchWithDetails(
+    engineer.matchedTechnicalDomains,
+    context.preferredTechnicalDomains,
+    params.preferredTechnicalDomainMatchMax
   );
 
   // Calculate preference matches
@@ -491,7 +538,8 @@ export function calculateUtilityWithBreakdown(
     preferredSkillsMatch: calculateWeighted(preferredSkillsResult.raw, weights.preferredSkillsMatch),
     teamFocusMatch: calculateWeighted(teamFocusResult.raw, weights.teamFocusMatch),
     relatedSkillsMatch: calculateWeighted(relatedSkillsResult.raw, weights.relatedSkillsMatch),
-    preferredDomainMatch: calculateWeighted(preferredDomainResult.raw, weights.preferredDomainMatch),
+    preferredBusinessDomainMatch: calculateWeighted(preferredBusinessDomainResult.raw, weights.preferredBusinessDomainMatch),
+    preferredTechnicalDomainMatch: calculateWeighted(preferredTechnicalDomainResult.raw, weights.preferredTechnicalDomainMatch),
     startTimelineMatch: calculateWeighted(startTimelineResult.raw, weights.startTimelineMatch),
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
@@ -532,10 +580,16 @@ export function calculateUtilityWithBreakdown(
       count: relatedSkillsResult.count,
     };
   }
-  if (matchScores.preferredDomainMatch > 0) {
-    preferenceMatches.preferredDomainMatch = {
-      score: matchScores.preferredDomainMatch,
-      matchedDomains: preferredDomainResult.matchedDomainNames,
+  if (matchScores.preferredBusinessDomainMatch > 0) {
+    preferenceMatches.preferredBusinessDomainMatch = {
+      score: matchScores.preferredBusinessDomainMatch,
+      matchedDomains: preferredBusinessDomainResult.matchedDomainNames,
+    };
+  }
+  if (matchScores.preferredTechnicalDomainMatch > 0) {
+    preferenceMatches.preferredTechnicalDomainMatch = {
+      score: matchScores.preferredTechnicalDomainMatch,
+      matchedDomains: preferredTechnicalDomainResult.matchedDomainNames,
     };
   }
   if (matchScores.startTimelineMatch > 0) {
@@ -632,10 +686,16 @@ export function calculateUtilityScore(
     params.relatedSkillsMatchMax
   );
 
-  const preferredDomainMatchUtility = calculatePreferredDomainMatchUtility(
-    engineer.matchedDomainNames,
-    context.preferredDomainIds,
-    params.preferredDomainMatchMax
+  const preferredBusinessDomainMatchUtility = calculatePreferredBusinessDomainMatchUtility(
+    engineer.matchedBusinessDomains,
+    context.preferredBusinessDomains,
+    params.preferredBusinessDomainMatchMax
+  );
+
+  const preferredTechnicalDomainMatchUtility = calculatePreferredTechnicalDomainMatchUtility(
+    engineer.matchedTechnicalDomains,
+    context.preferredTechnicalDomains,
+    params.preferredTechnicalDomainMatchMax
   );
 
   // Calculate preference match utilities
@@ -679,7 +739,8 @@ export function calculateUtilityScore(
     weights.preferredSkillsMatch * preferredSkillsMatchUtility +
     weights.teamFocusMatch * teamFocusMatchUtility +
     weights.relatedSkillsMatch * relatedSkillsMatchUtility +
-    weights.preferredDomainMatch * preferredDomainMatchUtility +
+    weights.preferredBusinessDomainMatch * preferredBusinessDomainMatchUtility +
+    weights.preferredTechnicalDomainMatch * preferredTechnicalDomainMatchUtility +
     // Preference matches
     weights.startTimelineMatch * startTimelineMatchUtility +
     weights.preferredTimezoneMatch * preferredTimezoneUtility +
@@ -837,21 +898,44 @@ function calculateTeamFocusMatchUtility(
 }
 
 /**
- * Calculates preferred domain match utility.
- * Accumulated score from matching preferred domains.
+ * Calculates preferred business domain match utility.
+ * Accumulated score from matching preferred business domains.
  */
-function calculatePreferredDomainMatchUtility(
-  matchedDomainNames: string[],
-  preferredDomainIds: string[],
+function calculatePreferredBusinessDomainMatchUtility(
+  matchedBusinessDomains: BusinessDomainMatch[],
+  preferredBusinessDomains: ResolvedBusinessDomain[],
   maxMatch: number
 ): number {
-  if (preferredDomainIds.length === 0) {
+  if (preferredBusinessDomains.length === 0) {
     return 0;
   }
 
-  // matchedDomainNames already contains the names of matched preferred domains from the query
+  // Filter to domains that meet the preferred criteria
+  const matchingDomains = matchedBusinessDomains.filter((d) => d.meetsPreferred);
+
   // Normalize by the number of preferred domains, capped at maxMatch
-  const matchRatio = matchedDomainNames.length / preferredDomainIds.length;
+  const matchRatio = matchingDomains.length / preferredBusinessDomains.length;
+  return Math.min(matchRatio * maxMatch, maxMatch);
+}
+
+/**
+ * Calculates preferred technical domain match utility.
+ * Accumulated score from matching preferred technical domains.
+ */
+function calculatePreferredTechnicalDomainMatchUtility(
+  matchedTechnicalDomains: TechnicalDomainMatch[],
+  preferredTechnicalDomains: ResolvedTechnicalDomain[],
+  maxMatch: number
+): number {
+  if (preferredTechnicalDomains.length === 0) {
+    return 0;
+  }
+
+  // Filter to domains that meet the preferred criteria
+  const matchingDomains = matchedTechnicalDomains.filter((d) => d.meetsPreferred);
+
+  // Normalize by the number of preferred domains, capped at maxMatch
+  const matchRatio = matchingDomains.length / preferredTechnicalDomains.length;
   return Math.min(matchRatio * maxMatch, maxMatch);
 }
 

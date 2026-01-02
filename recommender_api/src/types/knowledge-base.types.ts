@@ -82,7 +82,8 @@ export interface UtilityWeights {
 
   // Preference matches (conditional on request specifying them)
   preferredSkillsMatch: number;
-  preferredDomainMatch: number;
+  preferredBusinessDomainMatch: number;
+  preferredTechnicalDomainMatch: number;
   startTimelineMatch: number;  // Threshold-based: full score if within preferred, degrades to required
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
@@ -111,7 +112,8 @@ export interface UtilityFunctionParams {
   preferredSkillsMatchMax: number;
   teamFocusMatchMax: number;
   relatedSkillsMatchMax: number;
-  preferredDomainMatchMax: number;
+  preferredBusinessDomainMatchMax: number;
+  preferredTechnicalDomainMatchMax: number;
   startTimelineMatchMax: number;
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;

@@ -1,4 +1,10 @@
-import { Engineer, UserSkill, EngineeringManager } from './types';
+import {
+  Engineer,
+  UserSkill,
+  EngineeringManager,
+  EngineerBusinessDomainExperience,
+  EngineerTechnicalDomainExperience,
+} from './types';
 
 const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
@@ -95,7 +101,6 @@ export const userSkills: UserSkill[] = [
   { id: 'es_priya_kafka', engineerId: 'eng_priya', skillId: 'skill_kafka', proficiencyLevel: 'proficient', yearsUsed: 3, confidenceScore: 0.75, lastValidated: daysAgo(10) },
   { id: 'es_priya_tech_leadership', engineerId: 'eng_priya', skillId: 'skill_tech_leadership', proficiencyLevel: 'expert', yearsUsed: 4, confidenceScore: 0.82, lastValidated: daysAgo(10) },
   { id: 'es_priya_mentorship', engineerId: 'eng_priya', skillId: 'skill_mentorship', proficiencyLevel: 'proficient', yearsUsed: 3, confidenceScore: 0.78, lastValidated: daysAgo(10) },
-  { id: 'es_priya_fintech', engineerId: 'eng_priya', skillId: 'skill_fintech', proficiencyLevel: 'expert', yearsUsed: 6, confidenceScore: 0.90, lastValidated: daysAgo(10) },
 
   // Marcus - Full Stack, React/Node focus
   { id: 'es_marcus_typescript', engineerId: 'eng_marcus', skillId: 'skill_typescript', proficiencyLevel: 'proficient', yearsUsed: 4, confidenceScore: 0.82, lastValidated: daysAgo(15) },
@@ -108,7 +113,6 @@ export const userSkills: UserSkill[] = [
   { id: 'es_marcus_docker', engineerId: 'eng_marcus', skillId: 'skill_docker', proficiencyLevel: 'proficient', yearsUsed: 3, confidenceScore: 0.70, lastValidated: daysAgo(15) },
   { id: 'es_marcus_ownership', engineerId: 'eng_marcus', skillId: 'skill_ownership', proficiencyLevel: 'expert', yearsUsed: 5, confidenceScore: 0.85, lastValidated: daysAgo(15) },
   { id: 'es_marcus_learning', engineerId: 'eng_marcus', skillId: 'skill_learning', proficiencyLevel: 'expert', yearsUsed: 5, confidenceScore: 0.88, lastValidated: daysAgo(15) },
-  { id: 'es_marcus_saas', engineerId: 'eng_marcus', skillId: 'skill_saas', proficiencyLevel: 'proficient', yearsUsed: 4, confidenceScore: 0.75, lastValidated: daysAgo(15) },
 
   // Sofia - Platform/Infrastructure
   { id: 'es_sofia_kubernetes', engineerId: 'eng_sofia', skillId: 'skill_kubernetes', proficiencyLevel: 'expert', yearsUsed: 5, confidenceScore: 0.90, lastValidated: daysAgo(20) },
@@ -136,7 +140,6 @@ export const userSkills: UserSkill[] = [
   { id: 'es_james_mentorship', engineerId: 'eng_james', skillId: 'skill_mentorship', proficiencyLevel: 'expert', yearsUsed: 6, confidenceScore: 0.88, lastValidated: daysAgo(5) },
   { id: 'es_james_tradeoffs', engineerId: 'eng_james', skillId: 'skill_tradeoffs', proficiencyLevel: 'expert', yearsUsed: 10, confidenceScore: 0.90, lastValidated: daysAgo(5) },
   { id: 'es_james_decision_making', engineerId: 'eng_james', skillId: 'skill_decision_making', proficiencyLevel: 'expert', yearsUsed: 8, confidenceScore: 0.88, lastValidated: daysAgo(5) },
-  { id: 'es_james_fintech', engineerId: 'eng_james', skillId: 'skill_fintech', proficiencyLevel: 'proficient', yearsUsed: 5, confidenceScore: 0.78, lastValidated: daysAgo(5) },
 
   // Emily - Frontend, Design Systems
   { id: 'es_emily_react', engineerId: 'eng_emily', skillId: 'skill_react', proficiencyLevel: 'expert', yearsUsed: 4, confidenceScore: 0.88, lastValidated: daysAgo(12) },
@@ -147,5 +150,58 @@ export const userSkills: UserSkill[] = [
   { id: 'es_emily_attention_detail', engineerId: 'eng_emily', skillId: 'skill_attention_detail', proficiencyLevel: 'expert', yearsUsed: 4, confidenceScore: 0.90, lastValidated: daysAgo(12) },
   { id: 'es_emily_cross_functional', engineerId: 'eng_emily', skillId: 'skill_cross_functional', proficiencyLevel: 'proficient', yearsUsed: 3, confidenceScore: 0.82, lastValidated: daysAgo(12) },
   { id: 'es_emily_curiosity', engineerId: 'eng_emily', skillId: 'skill_curiosity', proficiencyLevel: 'expert', yearsUsed: 4, confidenceScore: 0.88, lastValidated: daysAgo(12) },
-  { id: 'es_emily_ecommerce', engineerId: 'eng_emily', skillId: 'skill_ecommerce', proficiencyLevel: 'proficient', yearsUsed: 3, confidenceScore: 0.75, lastValidated: daysAgo(12) },
+];
+
+// ============================================
+// ENGINEER BUSINESS DOMAIN EXPERIENCE
+// ============================================
+// Explicit claims of business domain experience with years.
+// This replaces the old domain_knowledge UserSkill entries.
+
+export const engineerBusinessDomainExperience: EngineerBusinessDomainExperience[] = [
+  // Priya - Fintech expert
+  { id: 'ebde_priya_fintech', engineerId: 'eng_priya', businessDomainId: 'bd_fintech', years: 6 },
+  { id: 'ebde_priya_payments', engineerId: 'eng_priya', businessDomainId: 'bd_payments', years: 4 },
+
+  // Marcus - SaaS experience
+  { id: 'ebde_marcus_saas', engineerId: 'eng_marcus', businessDomainId: 'bd_saas', years: 4 },
+
+  // Sofia - No explicit business domain (platform focus)
+
+  // James - Fintech experience
+  { id: 'ebde_james_fintech', engineerId: 'eng_james', businessDomainId: 'bd_fintech', years: 5 },
+  { id: 'ebde_james_banking', engineerId: 'eng_james', businessDomainId: 'bd_banking', years: 3 },
+
+  // Emily - E-commerce
+  { id: 'ebde_emily_ecommerce', engineerId: 'eng_emily', businessDomainId: 'bd_ecommerce', years: 3 },
+];
+
+// ============================================
+// ENGINEER TECHNICAL DOMAIN EXPERIENCE
+// ============================================
+// Explicit claims of technical domain experience with years.
+// Note: Engineers also get inferred domain experience from their skills
+// via the Skill → SkillCategory → TechnicalDomain chain.
+// Explicit claims take precedence over inferred claims.
+
+export const engineerTechnicalDomainExperience: EngineerTechnicalDomainExperience[] = [
+  // Priya - Backend specialist
+  { id: 'etde_priya_backend', engineerId: 'eng_priya', technicalDomainId: 'td_backend', years: 8 },
+  { id: 'etde_priya_api_dev', engineerId: 'eng_priya', technicalDomainId: 'td_api_dev', years: 6 },
+
+  // Marcus - Full Stack
+  { id: 'etde_marcus_fullstack', engineerId: 'eng_marcus', technicalDomainId: 'td_fullstack', years: 5 },
+
+  // Sofia - DevOps specialist
+  { id: 'etde_sofia_devops', engineerId: 'eng_sofia', technicalDomainId: 'td_devops', years: 7 },
+  { id: 'etde_sofia_kubernetes', engineerId: 'eng_sofia', technicalDomainId: 'td_kubernetes', years: 5 },
+  { id: 'etde_sofia_cloud', engineerId: 'eng_sofia', technicalDomainId: 'td_cloud', years: 6 },
+
+  // James - Distributed Systems expert
+  { id: 'etde_james_backend', engineerId: 'eng_james', technicalDomainId: 'td_backend', years: 12 },
+  { id: 'etde_james_distributed', engineerId: 'eng_james', technicalDomainId: 'td_distributed_systems', years: 10 },
+
+  // Emily - Frontend specialist
+  { id: 'etde_emily_frontend', engineerId: 'eng_emily', technicalDomainId: 'td_frontend', years: 4 },
+  { id: 'etde_emily_react', engineerId: 'eng_emily', technicalDomainId: 'td_react_ecosystem', years: 4 },
 ];

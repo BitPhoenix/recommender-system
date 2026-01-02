@@ -2,7 +2,7 @@
 // SKILL TYPES
 // ============================================
 
-export type SkillType = 'technical' | 'behavioral' | 'domain_knowledge';
+export type SkillType = 'technical' | 'behavioral';
 export type CorrelationType = 'complementary' | 'transferable' | 'co_occurring';
 export type ProficiencyLevel = 'learning' | 'proficient' | 'expert';
 export type TechnicalDepth = 'surface' | 'working' | 'deep' | 'expert';
@@ -194,4 +194,69 @@ export interface SkillEvidence {
   evidenceType: 'story' | 'performance' | 'certification';
   relevanceScore: number;
   isPrimary: boolean;
+}
+
+// ============================================
+// DOMAIN TYPES
+// ============================================
+
+export interface BusinessDomain {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface BusinessDomainHierarchy {
+  childDomainId: string;
+  parentDomainId: string;
+}
+
+export interface TechnicalDomain {
+  id: string;
+  name: string;
+  description?: string;
+  isComposite?: boolean; // true for Full Stack
+}
+
+export interface TechnicalDomainHierarchy {
+  childDomainId: string;
+  parentDomainId: string;
+}
+
+export interface TechnicalDomainEncompasses {
+  compositeDomainId: string;
+  encompassedDomainId: string;
+}
+
+// ============================================
+// SKILL CATEGORY TYPES
+// ============================================
+
+export interface SkillCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface SkillCategoryDomainMapping {
+  skillCategoryId: string;
+  technicalDomainId: string;
+}
+
+// ============================================
+// ENGINEER DOMAIN EXPERIENCE
+// ============================================
+
+export interface EngineerBusinessDomainExperience {
+  id: string;
+  engineerId: string;
+  businessDomainId: string;
+  years: number;
+}
+
+export interface EngineerTechnicalDomainExperience {
+  id: string;
+  engineerId: string;
+  technicalDomainId: string;
+  years: number;
 }

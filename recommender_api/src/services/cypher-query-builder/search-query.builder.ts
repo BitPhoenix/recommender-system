@@ -9,8 +9,10 @@ import { buildBasicEngineerFilters } from "./query-conditions.builder.js";
 import {
   getDomainFilterContext,
   addDomainQueryParams,
-  buildRequiredDomainFilterClause,
-  buildPreferredDomainCollectionClause,
+  buildRequiredBusinessDomainFilter,
+  buildRequiredTechnicalDomainFilter,
+  buildBusinessDomainCollection,
+  buildTechnicalDomainCollection,
 } from "./query-domain-filter.builder.js";
 
 // ============================================================================
@@ -52,10 +54,11 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   // === BUILD QUERY CLAUSES ===
   const matchClause = buildMatchClause(hasSkillFilter, whereClause);
   const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(hasSkillFilter);
-  const requiredDomainFilterClause = buildRequiredDomainFilterClause(
-    domainContext,
-    !hasSkillFilter // useDistinct only for non-skill-filtered queries
-  );
+
+  // Domain filter clauses (separate for business and technical domains)
+  const requiredBusinessDomainFilterClause = buildRequiredBusinessDomainFilter(domainContext);
+  const requiredTechnicalDomainFilterClause = buildRequiredTechnicalDomainFilter(domainContext);
+
   const countAndPaginateClause = buildCountAndPaginateClause(hasSkillFilter);
   const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter);
 
@@ -64,12 +67,20 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
    * passed through is dropped from scope. These fields were computed in the
    * skill collection step and must be carried through domain collection to
    * reach the final RETURN clause.
+   *
+   * We accumulate carryover fields incrementally because each collection step
+   * produces a new field that subsequent steps need. We can't include all fields
+   * upfront because they don't exist yet - e.g., matchedBusinessDomains is only
+   * created by buildBusinessDomainCollection, so it can't be carried into that
+   * function, only out of it.
    */
   const carryoverFields = ["totalCount", "allRelevantSkills", "matchedSkillCount", "avgConfidence"];
-  const preferredDomainCollectionClause = buildPreferredDomainCollectionClause(
-    domainContext,
-    carryoverFields
-  );
+
+  const businessDomainCollection = buildBusinessDomainCollection(domainContext, carryoverFields);
+  carryoverFields.push(...businessDomainCollection.carryForwardFields);
+
+  const technicalDomainCollection = buildTechnicalDomainCollection(domainContext, carryoverFields);
+  carryoverFields.push(...technicalDomainCollection.carryForwardFields);
 
   const returnClause = buildReturnClause();
 
@@ -78,10 +89,12 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 // ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Search Query
 ${matchClause}
 ${skillProficiencyFilterClause}
-${requiredDomainFilterClause}
+${requiredBusinessDomainFilterClause}
+${requiredTechnicalDomainFilterClause}
 ${countAndPaginateClause}
 ${skillCollectionClause}
-${preferredDomainCollectionClause}
+${businessDomainCollection.clause}
+${technicalDomainCollection.clause}
 ${returnClause}
 `;
 
@@ -285,6 +298,7 @@ RETURN e.id AS id,
        allRelevantSkills,
        matchedSkillCount,
        COALESCE(avgConfidence, 0.0) AS avgConfidence,
-       matchedDomainNames,
+       matchedBusinessDomains,
+       matchedTechnicalDomains,
        totalCount`;
 }

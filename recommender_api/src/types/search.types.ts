@@ -14,6 +14,8 @@ export type {
   TeamFocus,
   PreferredSalaryRange,
   SkillRequirement,
+  BusinessDomainRequirement,
+  TechnicalDomainRequirement,
   SearchFilterRequest,
 } from '../schemas/search.schema.js';
 
@@ -41,6 +43,26 @@ export interface UnmatchedRelatedSkill extends MatchedSkill {
   constraintViolations: ConstraintViolation[];
 }
 
+// Domain match types (used in response)
+export type TechnicalDomainMatchType = 'direct' | 'child_implies_parent' | 'encompasses' | 'skill_inferred';
+
+export interface BusinessDomainMatch {
+  domainId: string;
+  domainName: string;
+  engineerYears: number;
+  meetsRequired: boolean;
+  meetsPreferred: boolean;
+}
+
+export interface TechnicalDomainMatch {
+  domainId: string;
+  domainName: string;
+  engineerYears: number;
+  matchType: TechnicalDomainMatchType;
+  meetsRequired: boolean;
+  meetsPreferred: boolean;
+}
+
 // Core scores (always present if > 0)
 export interface CoreScores {
   skillMatch: number;
@@ -65,7 +87,12 @@ export interface RelatedSkillsMatch {
   count: number;
 }
 
-export interface PreferredDomainMatch {
+export interface PreferredBusinessDomainMatch {
+  score: number;
+  matchedDomains: string[];
+}
+
+export interface PreferredTechnicalDomainMatch {
   score: number;
   matchedDomains: string[];
 }
@@ -99,7 +126,8 @@ export interface PreferenceMatches {
   preferredSkillsMatch?: PreferredSkillsMatch;
   teamFocusMatch?: TeamFocusMatch;
   relatedSkillsMatch?: RelatedSkillsMatch;
-  preferredDomainMatch?: PreferredDomainMatch;
+  preferredBusinessDomainMatch?: PreferredBusinessDomainMatch;
+  preferredTechnicalDomainMatch?: PreferredTechnicalDomainMatch;
   startTimelineMatch?: StartTimelineMatch;
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
@@ -123,7 +151,8 @@ export interface EngineerMatch {
   timezone: string;
   matchedSkills: MatchedSkill[];
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];  // Skills in hierarchy but failing constraints
-  matchedDomains: string[];      // Domain names matched from preferredDomains
+  matchedBusinessDomains: BusinessDomainMatch[];    // Business domain matches with years
+  matchedTechnicalDomains: TechnicalDomainMatch[];  // Technical domain matches with years and match type
   utilityScore: number;          // Computed ranking score per 5.2.3
   scoreBreakdown: ScoreBreakdown;
 }

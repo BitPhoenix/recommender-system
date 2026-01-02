@@ -38,7 +38,8 @@ export const utilityWeights: UtilityWeights = {
 
   /* Preference matches (conditional on request specifying them) */
   preferredSkillsMatch: 0.08,
-  preferredDomainMatch: 0.04,
+  preferredBusinessDomainMatch: 0.02,
+  preferredTechnicalDomainMatch: 0.02,
   /*
    * THRESHOLD-BASED: Full score if engineer's timeline is at or faster than
    * preferredMaxStartTime, linear degradation to requiredMaxStartTime, zero beyond.
@@ -129,7 +130,8 @@ export const utilityParams: UtilityFunctionParams = {
    * there's no diminishing returns on satisfying stated preferences.
    */
   preferredSkillsMatchMax: 1.0,
-  preferredDomainMatchMax: 1.0,
+  preferredBusinessDomainMatchMax: 1.0,
+  preferredTechnicalDomainMatchMax: 1.0,
   preferredSkillProficiencyMatchMax: 1.0,
 
   /*

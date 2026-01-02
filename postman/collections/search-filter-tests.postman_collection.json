@@ -559,7 +559,36 @@
 			}
 		},
 		{
-			"name": "24 - Required Domain Filter",
+			"name": "24 - Required Business Domain Filter",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Required domains have meetsRequired=true', function () {",
+							"    const response = pm.response.json();",
+							"    ",
+							"    // At least one match should have business domains",
+							"    const matchesWithDomains = response.matches.filter(m => m.matchedBusinessDomains && m.matchedBusinessDomains.length > 0);",
+							"    pm.expect(matchesWithDomains.length).to.be.greaterThan(0, 'Should have matches with business domains');",
+							"    ",
+							"    // All matched business domains should have meetsRequired=true (since we only specified required)",
+							"    matchesWithDomains.forEach(match => {",
+							"        match.matchedBusinessDomains.forEach(domain => {",
+							"            pm.expect(domain.meetsRequired).to.equal(true, `Domain ${domain.domainName} should have meetsRequired=true`);",
+							"            pm.expect(domain.meetsPreferred).to.equal(false, `Domain ${domain.domainName} should have meetsPreferred=false (no preferred specified)`);",
+							"        });",
+							"    });",
+							"});"
+						]
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -570,7 +599,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredDomains\": [\"fintech\", \"healthcare\"]\n}"
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"minYears\": 3}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -579,11 +608,40 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredDomains | `IN` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with experience in **fintech OR healthcare** domains\n- Domain is a hard filter\n- `matchedDomains` array in response shows which domains matched"
+				"description": "## New Domain Model: Business Domains\n\nBusiness domains (Fintech, Healthcare, E-commerce) are flat and require explicit HAS_EXPERIENCE_IN claims.\n\n## Request\n\n- Required: Fintech domain with at least 3 years experience\n\n## Expected behavior\n\n- Only engineers with explicit Fintech domain experience >= 3 years\n- `matchedBusinessDomains` array shows matched domains with years\n- Business domains are separate from technical domains (Backend, Frontend, etc.)\n\n## Use Case\n\n> \"Need someone with at least 3 years of Fintech industry experience\""
 			}
 		},
 		{
-			"name": "25 - Preferred Domain Filter (Ranking Boost)",
+			"name": "25 - Preferred Business Domain (Ranking Boost)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Preferred domains have meetsPreferred=true', function () {",
+							"    const response = pm.response.json();",
+							"    ",
+							"    // Find matches with business domains",
+							"    const matchesWithDomains = response.matches.filter(m => m.matchedBusinessDomains && m.matchedBusinessDomains.length > 0);",
+							"    pm.expect(matchesWithDomains.length).to.be.greaterThan(0, 'Should have matches with business domains');",
+							"    ",
+							"    // All matched business domains should have meetsPreferred=true (since we only specified preferred)",
+							"    matchesWithDomains.forEach(match => {",
+							"        match.matchedBusinessDomains.forEach(domain => {",
+							"            pm.expect(domain.meetsRequired).to.equal(false, `Domain ${domain.domainName} should have meetsRequired=false (no required specified)`);",
+							"            pm.expect(domain.meetsPreferred).to.equal(true, `Domain ${domain.domainName} should have meetsPreferred=true`);",
+							"        });",
+							"    });",
+							"});"
+						]
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -594,7 +652,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"preferredDomains\": [\"fintech\", \"healthcare\"]\n}"
+					"raw": "{\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 2},\n    {\"domain\": \"Healthcare\", \"preferredMinYears\": 1}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -603,7 +661,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredDomains | `BOOST` | `[\"fintech\",\"healthcare\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with fintech/healthcare experience **rank higher**\n- Uses `preferredDomainMatch` weight (4%)"
+				"description": "## New Domain Model: Preferred Business Domains\n\nPreferred business domains provide a ranking boost (not a hard filter).\n\n## Request\n\n- Prefer: Fintech with 2+ years, Healthcare with 1+ years\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with matching business domain experience **rank higher**\n- `preferredBusinessDomainMatch` component in score breakdown\n- Uses weight: 2%\n\n## Use Case\n\n> \"Prefer someone with Fintech or Healthcare background, but not required\""
 			}
 		},
 		{
@@ -762,7 +820,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredDomains\": [\"fintech\"]\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 1}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -771,7 +829,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech domain experience\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredDomainMatch: 4%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
+				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
 			}
 		},
 		{
@@ -820,6 +878,290 @@
 					"path": ["api", "search", "filter"]
 				},
 				"description": "## Skill Hierarchy Inheritance\n\nWhen a category skill (like \"Backend\") is requested with a minProficiency, ALL expanded skills inherit that proficiency requirement.\n\n## Request\n\n- Backend with minProficiency: proficient\n\n## Expected behavior\n\n- Backend expands to: Node.js, Express, Python, Django, PostgreSQL, etc.\n- ALL expanded skills require 'proficient' or 'expert' level\n- Engineers with only 'learning' level in Backend skills are excluded\n\n## Use Case\n\n> \"Need someone proficient in any Backend technology\""
+			}
+		},
+		{
+			"name": "35 - Required Technical Domain Filter",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Required technical domains have meetsRequired=true', function () {",
+							"    const response = pm.response.json();",
+							"    ",
+							"    // Find matches with technical domains",
+							"    const matchesWithDomains = response.matches.filter(m => m.matchedTechnicalDomains && m.matchedTechnicalDomains.length > 0);",
+							"    pm.expect(matchesWithDomains.length).to.be.greaterThan(0, 'Should have matches with technical domains');",
+							"    ",
+							"    // All matched technical domains should have meetsRequired=true (since we only specified required)",
+							"    matchesWithDomains.forEach(match => {",
+							"        match.matchedTechnicalDomains.forEach(domain => {",
+							"            pm.expect(domain.meetsRequired).to.equal(true, `Domain ${domain.domainName} should have meetsRequired=true`);",
+							"            pm.expect(domain.meetsPreferred).to.equal(false, `Domain ${domain.domainName} should have meetsPreferred=false (no preferred specified)`);",
+							"        });",
+							"    });",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredTechnicalDomains\": [\n    {\"domain\": \"Backend\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## New Domain Model: Technical Domains\n\nTechnical domains (Backend, Frontend, DevOps) are hierarchical and inferred from skills.\n\n## Request\n\n- Required: Backend technical domain\n\n## Expected behavior\n\n- Only engineers with skills in Backend technical domain\n- Technical domains are inferred through: Skill -> BELONGS_TO -> SkillCategory -> ENCOMPASSES <- TechnicalDomain\n- Hierarchical: requesting 'Backend' includes engineers with API Development, Database, etc.\n- `matchedTechnicalDomains` array shows matched domains\n\n## Technical Domain Hierarchy Example\n\n- Backend (parent)\n  - API Development (child)\n  - Database (child)\n  - System Design (child)\n\n## Use Case\n\n> \"Need someone with Backend technical expertise (any specialization)\""
+			}
+		},
+		{
+			"name": "36 - Preferred Technical Domain (Ranking Boost)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Preferred technical domains have meetsPreferred=true', function () {",
+							"    const response = pm.response.json();",
+							"    ",
+							"    // Find matches with technical domains",
+							"    const matchesWithDomains = response.matches.filter(m => m.matchedTechnicalDomains && m.matchedTechnicalDomains.length > 0);",
+							"    pm.expect(matchesWithDomains.length).to.be.greaterThan(0, 'Should have matches with technical domains');",
+							"    ",
+							"    // All matched technical domains should have meetsPreferred=true (since we only specified preferred)",
+							"    matchesWithDomains.forEach(match => {",
+							"        match.matchedTechnicalDomains.forEach(domain => {",
+							"            pm.expect(domain.meetsRequired).to.equal(false, `Domain ${domain.domainName} should have meetsRequired=false (no required specified)`);",
+							"            pm.expect(domain.meetsPreferred).to.equal(true, `Domain ${domain.domainName} should have meetsPreferred=true`);",
+							"        });",
+							"    });",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredTechnicalDomains\": [\n    {\"domain\": \"Backend\"},\n    {\"domain\": \"DevOps\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## New Domain Model: Preferred Technical Domains\n\nPreferred technical domains provide a ranking boost (not a hard filter).\n\n## Request\n\n- Prefer: Backend and DevOps technical domains\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with Backend or DevOps skills **rank higher**\n- `preferredTechnicalDomainMatch` component in score breakdown\n- Uses weight: 2%\n\n## Use Case\n\n> \"Prefer someone with Backend or DevOps experience, but not required\""
+			}
+		},
+		{
+			"name": "37 - Combined Business and Technical Domains",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"minYears\": 2}\n  ],\n  \"preferredTechnicalDomains\": [\n    {\"domain\": \"Backend\"},\n    {\"domain\": \"Security\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Combined: Business and Technical Domains\n\nDemonstrates using both business and technical domain constraints together.\n\n## Request Breakdown\n\n- **Hard filter:** Fintech business domain with 2+ years experience\n- **Ranking boost:** Backend or Security technical domain\n\n## Expected behavior\n\n- Only engineers with 2+ years Fintech experience (hard filter)\n- Engineers with Backend or Security skills rank higher\n- Separate utility components:\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n\n## Use Case\n\n> \"Need Fintech experience (2+ years required), prefer someone with Backend or Security technical skills\""
+			}
+		},
+		{
+			"name": "38 - Business Domain Hierarchy: Finance Parent",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Finance\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Business Domain Hierarchy: Parent Domain Search\n\nDemonstrates searching for a parent business domain (Finance) and finding engineers with child domain experience.\n\n## Request\n\n- Required: Finance business domain (no minYears)\n\n## Expected behavior\n\n- Returns engineers with experience in ANY Finance child domain:\n  - Fintech\n  - Banking\n  - Payments\n  - Insurance\n- Hierarchy expansion: Finance expands to [Finance, Fintech, Banking, Payments, Insurance]\n- Engineers with explicit Finance experience also match\n\n## Test Data Expectations\n\n- Priya Sharma: has Fintech (6 years) and Payments (4 years) -> should match\n- James Okonkwo: has Fintech (5 years) and Banking (3 years) -> should match\n- Emily Nakamura: has E-commerce only -> should NOT match\n- Marcus Chen: has SaaS only -> should NOT match\n\n## Use Case\n\n> \"Need someone with any Finance industry experience (Fintech, Banking, Payments, or Insurance)\""
+			}
+		},
+		{
+			"name": "39 - Business Domain Hierarchy: Finance with minYears",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Finance\", \"minYears\": 4}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Business Domain Hierarchy: Parent Domain with Years Filter\n\nDemonstrates searching for a parent domain with minimum years requirement.\n\n## Request\n\n- Required: Finance business domain with 4+ years experience\n\n## Expected behavior\n\n- Returns engineers with 4+ years in ANY Finance child domain\n- Hierarchy expansion applies, then years filter on matched domains\n\n## Test Data Expectations\n\n- Priya Sharma: has Fintech (6 years) -> 6 >= 4 -> should match\n- James Okonkwo: has Fintech (5 years) -> 5 >= 4 -> should match\n- Neither has exactly 4+ years in Banking/Payments alone, but Priya has 4 years in Payments\n\n## Use Case\n\n> \"Need someone with 4+ years of Finance industry experience\""
+			}
+		},
+		{
+			"name": "40 - Business Domain Hierarchy: Retail Parent",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Retail\"}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Business Domain Hierarchy: Retail Parent Domain\n\nDemonstrates searching for Retail parent domain.\n\n## Request\n\n- Required: Retail business domain\n\n## Expected behavior\n\n- Returns engineers with experience in Retail child domains:\n  - E-commerce\n  - Marketplace\n- Hierarchy expansion: Retail expands to [Retail, E-commerce, Marketplace]\n\n## Test Data Expectations\n\n- Emily Nakamura: has E-commerce (3 years) -> should match\n- Others: no Retail/E-commerce/Marketplace experience -> should NOT match\n\n## Use Case\n\n> \"Need someone with Retail industry experience (E-commerce or Marketplace)\""
+			}
+		},
+		{
+			"name": "41 - Business Domain Hierarchy: Preferred Finance",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Finance\", \"preferredMinYears\": 2}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Business Domain Hierarchy: Preferred Parent Domain\n\nDemonstrates preferred parent domain with hierarchy expansion for ranking.\n\n## Request\n\n- Preferred: Finance business domain with 2+ years preferred\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with Finance child domain experience (Fintech, Banking, Payments, Insurance) rank higher\n- Hierarchy expansion applies to preferred domains too\n- `matchedBusinessDomains` populated for engineers with matching experience\n\n## Test Data Expectations\n\n- Priya Sharma: Fintech (6y), Payments (4y) -> ranking boost\n- James Okonkwo: Fintech (5y), Banking (3y) -> ranking boost\n- Others: no Finance-related experience -> no boost, but still returned\n\n## Use Case\n\n> \"Prefer someone with Finance experience, but not required\""
+			}
+		},
+		{
+			"name": "42 - Domain with Both Required and Preferred (Both Flags)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Fintech domains have both meetsRequired=true and meetsPreferred=true', function () {",
+							"    const response = pm.response.json();",
+							"    ",
+							"    // Find matches with business domains",
+							"    const matchesWithDomains = response.matches.filter(m => m.matchedBusinessDomains && m.matchedBusinessDomains.length > 0);",
+							"    pm.expect(matchesWithDomains.length).to.be.greaterThan(0, 'Should have matches with business domains');",
+							"    ",
+							"    // Find Fintech domain - it should have BOTH flags true since it's in both required and preferred",
+							"    let foundFintech = false;",
+							"    matchesWithDomains.forEach(match => {",
+							"        match.matchedBusinessDomains.forEach(domain => {",
+							"            if (domain.domainName === 'Fintech') {",
+							"                foundFintech = true;",
+							"                pm.expect(domain.meetsRequired).to.equal(true, 'Fintech should have meetsRequired=true (in required list)');",
+							"                pm.expect(domain.meetsPreferred).to.equal(true, 'Fintech should have meetsPreferred=true (in preferred list)');",
+							"            }",
+							"        });",
+							"    });",
+							"    pm.expect(foundFintech).to.equal(true, 'Should find at least one Fintech domain match');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"minYears\": 2}\n  ],\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 4}\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "4025",
+					"path": ["api", "search", "filter"]
+				},
+				"description": "## Both Required and Preferred for Same Domain\n\nDemonstrates that a domain can appear in both required and preferred constraints, resulting in both flags being true.\n\n## Request\n\n- Required: Fintech with 2+ years (hard filter)\n- Preferred: Fintech with 4+ years (ranking boost)\n\n## Expected behavior\n\n- Only engineers with 2+ years Fintech experience (hard filter)\n- Engineers with 4+ years get additional ranking boost\n- `matchedBusinessDomains` shows Fintech with **both** `meetsRequired: true` AND `meetsPreferred: true`\n\n## Use Case\n\n> \"Must have at least 2 years Fintech experience, but prefer 4+ years\""
 			}
 		}
 	]

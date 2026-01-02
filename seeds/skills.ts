@@ -3,25 +3,12 @@ import { Skill, SkillCorrelation, SkillHierarchy, SkillCategoryMembership } from
 // ============================================
 // SKILLS
 // ============================================
+// Note: Category Skill nodes (cat_*) are being phased out in favor of:
+// - SkillCategory nodes (in skill-categories.ts) for skill categorization
+// - TechnicalDomain nodes (in domains.ts) for domain classification
+// The skill hierarchy below maintains technical parent-child relationships.
 
 export const skills: Skill[] = [
-  // Top-level categories
-  { id: 'cat_technical', name: 'Technical', skillType: 'technical', isCategory: true },
-  { id: 'cat_behavioral', name: 'Behavioral', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_domain', name: 'Domain Knowledge', skillType: 'domain_knowledge', isCategory: true },
-
-  // Technical subcategories
-  { id: 'cat_languages', name: 'Languages & Frameworks', skillType: 'technical', isCategory: true },
-  { id: 'cat_databases', name: 'Databases & Data', skillType: 'technical', isCategory: true },
-  { id: 'cat_infrastructure', name: 'Infrastructure & DevOps', skillType: 'technical', isCategory: true },
-  { id: 'cat_design', name: 'Design & Architecture', skillType: 'technical', isCategory: true },
-  { id: 'cat_practices', name: 'Engineering Practices', skillType: 'technical', isCategory: true },
-
-  // Role-based categories (virtual groupings that span multiple subcategories)
-  { id: 'cat_backend', name: 'Backend', skillType: 'technical', isCategory: true },
-  { id: 'cat_frontend', name: 'Frontend', skillType: 'technical', isCategory: true },
-  { id: 'cat_fullstack', name: 'Full Stack', skillType: 'technical', isCategory: true },
-
   // Languages & Frameworks
   { id: 'skill_javascript', name: 'JavaScript', skillType: 'technical', isCategory: false },
   { id: 'skill_typescript', name: 'TypeScript', skillType: 'technical', isCategory: false },
@@ -40,9 +27,7 @@ export const skills: Skill[] = [
   { id: 'skill_go', name: 'Go', skillType: 'technical', isCategory: false },
   { id: 'skill_rust', name: 'Rust', skillType: 'technical', isCategory: false },
 
-  // Databases subcategories
-  { id: 'cat_relational', name: 'Relational Databases', skillType: 'technical', isCategory: true },
-  { id: 'cat_nosql', name: 'NoSQL Databases', skillType: 'technical', isCategory: true },
+  // Databases
   { id: 'skill_postgresql', name: 'PostgreSQL', skillType: 'technical', isCategory: false },
   { id: 'skill_mysql', name: 'MySQL', skillType: 'technical', isCategory: false },
   { id: 'skill_mongodb', name: 'MongoDB', skillType: 'technical', isCategory: false },
@@ -51,10 +36,7 @@ export const skills: Skill[] = [
   { id: 'skill_neo4j', name: 'Neo4j', skillType: 'technical', isCategory: false },
   { id: 'skill_kafka', name: 'Kafka', skillType: 'technical', isCategory: false },
 
-  // Infrastructure subcategories
-  { id: 'cat_cloud', name: 'Cloud Platforms', skillType: 'technical', isCategory: true },
-  { id: 'cat_containers', name: 'Containerization', skillType: 'technical', isCategory: true },
-  { id: 'cat_cicd', name: 'CI/CD', skillType: 'technical', isCategory: true },
+  // Infrastructure & DevOps
   { id: 'skill_aws', name: 'AWS', skillType: 'technical', isCategory: false },
   { id: 'skill_lambda', name: 'AWS Lambda', skillType: 'technical', isCategory: false },
   { id: 'skill_s3', name: 'S3', skillType: 'technical', isCategory: false },
@@ -77,10 +59,7 @@ export const skills: Skill[] = [
   { id: 'skill_distributed', name: 'Distributed Systems', skillType: 'technical', isCategory: false },
   { id: 'skill_data_modeling', name: 'Data Modeling', skillType: 'technical', isCategory: false },
 
-  // Practices subcategories
-  { id: 'cat_testing', name: 'Testing', skillType: 'technical', isCategory: true },
-  { id: 'cat_observability', name: 'Observability', skillType: 'technical', isCategory: true },
-  { id: 'cat_security', name: 'Security', skillType: 'technical', isCategory: true },
+  // Testing & Practices
   { id: 'skill_unit_testing', name: 'Unit Testing', skillType: 'technical', isCategory: false },
   { id: 'skill_integration_testing', name: 'Integration Testing', skillType: 'technical', isCategory: false },
   { id: 'skill_e2e_testing', name: 'E2E Testing', skillType: 'technical', isCategory: false },
@@ -89,14 +68,6 @@ export const skills: Skill[] = [
   { id: 'skill_monitoring', name: 'Monitoring', skillType: 'technical', isCategory: false },
   { id: 'skill_tracing', name: 'Distributed Tracing', skillType: 'technical', isCategory: false },
   { id: 'skill_auth', name: 'Authentication & Authorization', skillType: 'technical', isCategory: false },
-
-  // Behavioral categories
-  { id: 'cat_leadership', name: 'Leadership', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_communication', name: 'Communication', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_problem_solving', name: 'Problem Solving', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_execution', name: 'Execution & Delivery', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_collaboration', name: 'Collaboration', skillType: 'behavioral', isCategory: true },
-  { id: 'cat_growth', name: 'Growth & Adaptability', skillType: 'behavioral', isCategory: true },
 
   // Leadership skills
   { id: 'skill_team_leadership', name: 'Team Leadership', skillType: 'behavioral', isCategory: false },
@@ -148,170 +119,59 @@ export const skills: Skill[] = [
   { id: 'skill_resilience', name: 'Resilience', skillType: 'behavioral', isCategory: false },
   { id: 'skill_self_awareness', name: 'Self-Awareness', skillType: 'behavioral', isCategory: false },
   { id: 'skill_curiosity', name: 'Curiosity', skillType: 'behavioral', isCategory: false },
-
-  // Domain knowledge
-  { id: 'skill_ai_ml', name: 'AI/Machine Learning', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_blockchain', name: 'Blockchain/Web3', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_fintech', name: 'Fintech', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_healthcare', name: 'Healthcare', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_ecommerce', name: 'E-commerce', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_saas', name: 'SaaS', skillType: 'domain_knowledge', isCategory: false },
-  { id: 'skill_marketplace', name: 'Marketplaces', skillType: 'domain_knowledge', isCategory: false },
 ];
 
 // ============================================
 // SKILL HIERARCHY
 // ============================================
+// Technical skill-to-skill parent-child relationships only.
+// Categories are now handled via SkillCategory nodes (skill-categories.ts)
+// and TechnicalDomain nodes (domains.ts).
 
 export const skillHierarchy: SkillHierarchy[] = [
-  // Technical category structure
-  { childSkillId: 'cat_languages', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_databases', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_infrastructure', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_design', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_practices', parentSkillId: 'cat_technical' },
-
-  // Languages & Frameworks
-  { childSkillId: 'skill_javascript', parentSkillId: 'cat_languages' },
+  // JavaScript family
   { childSkillId: 'skill_typescript', parentSkillId: 'skill_javascript' },
   { childSkillId: 'skill_nodejs', parentSkillId: 'skill_javascript' },
-  { childSkillId: 'skill_express', parentSkillId: 'skill_nodejs' },
-  { childSkillId: 'skill_nestjs', parentSkillId: 'skill_nodejs' },
   { childSkillId: 'skill_react', parentSkillId: 'skill_javascript' },
-  { childSkillId: 'skill_nextjs', parentSkillId: 'skill_react' },
   { childSkillId: 'skill_vue', parentSkillId: 'skill_javascript' },
   { childSkillId: 'skill_angular', parentSkillId: 'skill_javascript' },
-  { childSkillId: 'skill_python', parentSkillId: 'cat_languages' },
+
+  // Node.js frameworks
+  { childSkillId: 'skill_express', parentSkillId: 'skill_nodejs' },
+  { childSkillId: 'skill_nestjs', parentSkillId: 'skill_nodejs' },
+
+  // React ecosystem
+  { childSkillId: 'skill_nextjs', parentSkillId: 'skill_react' },
+
+  // Python family
   { childSkillId: 'skill_django', parentSkillId: 'skill_python' },
   { childSkillId: 'skill_fastapi', parentSkillId: 'skill_python' },
-  { childSkillId: 'skill_java', parentSkillId: 'cat_languages' },
+
+  // Java family
   { childSkillId: 'skill_spring', parentSkillId: 'skill_java' },
-  { childSkillId: 'skill_go', parentSkillId: 'cat_languages' },
-  { childSkillId: 'skill_rust', parentSkillId: 'cat_languages' },
 
-  // Databases
-  { childSkillId: 'cat_relational', parentSkillId: 'cat_databases' },
-  { childSkillId: 'cat_nosql', parentSkillId: 'cat_databases' },
-  { childSkillId: 'skill_postgresql', parentSkillId: 'cat_relational' },
-  { childSkillId: 'skill_mysql', parentSkillId: 'cat_relational' },
-  { childSkillId: 'skill_mongodb', parentSkillId: 'cat_nosql' },
-  { childSkillId: 'skill_redis', parentSkillId: 'cat_nosql' },
-  { childSkillId: 'skill_dynamodb', parentSkillId: 'cat_nosql' },
-  { childSkillId: 'skill_neo4j', parentSkillId: 'cat_nosql' },
-  { childSkillId: 'skill_kafka', parentSkillId: 'cat_databases' },
-
-  // Infrastructure
-  { childSkillId: 'cat_cloud', parentSkillId: 'cat_infrastructure' },
-  { childSkillId: 'cat_containers', parentSkillId: 'cat_infrastructure' },
-  { childSkillId: 'cat_cicd', parentSkillId: 'cat_infrastructure' },
-  { childSkillId: 'skill_aws', parentSkillId: 'cat_cloud' },
+  // AWS services
   { childSkillId: 'skill_lambda', parentSkillId: 'skill_aws' },
   { childSkillId: 'skill_s3', parentSkillId: 'skill_aws' },
-  { childSkillId: 'skill_gcp', parentSkillId: 'cat_cloud' },
-  { childSkillId: 'skill_azure', parentSkillId: 'cat_cloud' },
-  { childSkillId: 'skill_docker', parentSkillId: 'cat_containers' },
-  { childSkillId: 'skill_kubernetes', parentSkillId: 'cat_containers' },
-  { childSkillId: 'skill_helm', parentSkillId: 'skill_kubernetes' },
-  { childSkillId: 'skill_terraform', parentSkillId: 'cat_cicd' },
-  { childSkillId: 'skill_github_actions', parentSkillId: 'cat_cicd' },
 
-  // Design & Architecture
-  { childSkillId: 'skill_api_design', parentSkillId: 'cat_design' },
+  // Kubernetes ecosystem
+  { childSkillId: 'skill_helm', parentSkillId: 'skill_kubernetes' },
+
+  // API Design patterns
   { childSkillId: 'skill_rest_api', parentSkillId: 'skill_api_design' },
   { childSkillId: 'skill_graphql', parentSkillId: 'skill_api_design' },
   { childSkillId: 'skill_grpc', parentSkillId: 'skill_api_design' },
-  { childSkillId: 'skill_system_design', parentSkillId: 'cat_design' },
+
+  // System Design patterns
   { childSkillId: 'skill_microservices', parentSkillId: 'skill_system_design' },
   { childSkillId: 'skill_event_driven', parentSkillId: 'skill_system_design' },
   { childSkillId: 'skill_distributed', parentSkillId: 'skill_system_design' },
-  { childSkillId: 'skill_data_modeling', parentSkillId: 'cat_design' },
 
-  // Practices
-  { childSkillId: 'cat_testing', parentSkillId: 'cat_practices' },
-  { childSkillId: 'cat_observability', parentSkillId: 'cat_practices' },
-  { childSkillId: 'cat_security', parentSkillId: 'cat_practices' },
-  { childSkillId: 'skill_unit_testing', parentSkillId: 'cat_testing' },
-  { childSkillId: 'skill_integration_testing', parentSkillId: 'cat_testing' },
-  { childSkillId: 'skill_e2e_testing', parentSkillId: 'cat_testing' },
-  { childSkillId: 'skill_tdd', parentSkillId: 'cat_testing' },
-  { childSkillId: 'skill_logging', parentSkillId: 'cat_observability' },
-  { childSkillId: 'skill_monitoring', parentSkillId: 'cat_observability' },
-  { childSkillId: 'skill_tracing', parentSkillId: 'cat_observability' },
-  { childSkillId: 'skill_auth', parentSkillId: 'cat_security' },
+  // Testing - TDD implies unit testing
+  { childSkillId: 'skill_tdd', parentSkillId: 'skill_unit_testing' },
 
-  // Behavioral category structure
-  { childSkillId: 'cat_leadership', parentSkillId: 'cat_behavioral' },
-  { childSkillId: 'cat_communication', parentSkillId: 'cat_behavioral' },
-  { childSkillId: 'cat_problem_solving', parentSkillId: 'cat_behavioral' },
-  { childSkillId: 'cat_execution', parentSkillId: 'cat_behavioral' },
-  { childSkillId: 'cat_collaboration', parentSkillId: 'cat_behavioral' },
-  { childSkillId: 'cat_growth', parentSkillId: 'cat_behavioral' },
-
-  // Leadership
-  { childSkillId: 'skill_team_leadership', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_tech_leadership', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_mentorship', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_coaching', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_delegation', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_decision_making', parentSkillId: 'cat_leadership' },
-  { childSkillId: 'skill_conflict_resolution', parentSkillId: 'cat_leadership' },
-
-  // Communication
-  { childSkillId: 'skill_technical_writing', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_documentation', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_presentation', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_stakeholder_comm', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_cross_functional', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_feedback_giving', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_feedback_receiving', parentSkillId: 'cat_communication' },
-  { childSkillId: 'skill_active_listening', parentSkillId: 'cat_communication' },
-
-  // Problem Solving
-  { childSkillId: 'skill_analytical', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_debugging', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_root_cause', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_ambiguity', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_creativity', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_prioritization', parentSkillId: 'cat_problem_solving' },
-  { childSkillId: 'skill_tradeoffs', parentSkillId: 'cat_problem_solving' },
-
-  // Execution
-  { childSkillId: 'skill_ownership', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_accountability', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_time_management', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_estimation', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_attention_detail', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_follow_through', parentSkillId: 'cat_execution' },
-  { childSkillId: 'skill_pressure', parentSkillId: 'cat_execution' },
-
-  // Collaboration
-  { childSkillId: 'skill_code_review', parentSkillId: 'cat_collaboration' },
-  { childSkillId: 'skill_pair_programming', parentSkillId: 'cat_collaboration' },
-  { childSkillId: 'skill_knowledge_sharing', parentSkillId: 'cat_collaboration' },
-  { childSkillId: 'skill_teamwork', parentSkillId: 'cat_collaboration' },
-  { childSkillId: 'skill_remote_collab', parentSkillId: 'cat_collaboration' },
-
-  // Growth
-  { childSkillId: 'skill_learning', parentSkillId: 'cat_growth' },
-  { childSkillId: 'skill_adaptability', parentSkillId: 'cat_growth' },
-  { childSkillId: 'skill_resilience', parentSkillId: 'cat_growth' },
-  { childSkillId: 'skill_self_awareness', parentSkillId: 'cat_growth' },
-  { childSkillId: 'skill_curiosity', parentSkillId: 'cat_growth' },
-
-  // Domain knowledge
-  { childSkillId: 'skill_ai_ml', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_blockchain', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_fintech', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_healthcare', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_ecommerce', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_saas', parentSkillId: 'cat_domain' },
-  { childSkillId: 'skill_marketplace', parentSkillId: 'cat_domain' },
-
-  // Role-based categories are now linked to cat_technical but their
-  // skill membership uses BELONGS_TO (see skillCategoryMemberships below)
-  { childSkillId: 'cat_backend', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_frontend', parentSkillId: 'cat_technical' },
-  { childSkillId: 'cat_fullstack', parentSkillId: 'cat_technical' },
+  // Observability chain
+  { childSkillId: 'skill_tracing', parentSkillId: 'skill_monitoring' },
 ];
 
 // ============================================
@@ -396,52 +256,134 @@ export const skillCorrelations: SkillCorrelation[] = [
 // ============================================
 // SKILL CATEGORY MEMBERSHIPS (BELONGS_TO)
 // ============================================
-// Non-transitive category membership for role-based categories
-// (Backend, Frontend, Full Stack)
+// Skills belong to SkillCategory nodes (defined in skill-categories.ts).
+// A skill can belong to multiple categories (e.g., JS/TS are both frontend and backend).
 
 export const skillCategoryMemberships: SkillCategoryMembership[] = [
-  // Frontend skills
-  { skillId: 'skill_javascript', categoryId: 'cat_frontend' },
-  { skillId: 'skill_typescript', categoryId: 'cat_frontend' },
-  { skillId: 'skill_react', categoryId: 'cat_frontend' },
-  { skillId: 'skill_nextjs', categoryId: 'cat_frontend' },
-  { skillId: 'skill_vue', categoryId: 'cat_frontend' },
-  { skillId: 'skill_angular', categoryId: 'cat_frontend' },
+  // Frontend frameworks
+  { skillId: 'skill_react', categoryId: 'sc_frontend_frameworks' },
+  { skillId: 'skill_nextjs', categoryId: 'sc_frontend_frameworks' },
+  { skillId: 'skill_vue', categoryId: 'sc_frontend_frameworks' },
+  { skillId: 'skill_angular', categoryId: 'sc_frontend_frameworks' },
 
-  // Backend skills - languages
-  { skillId: 'skill_javascript', categoryId: 'cat_backend' },  // JS is BOTH!
-  { skillId: 'skill_typescript', categoryId: 'cat_backend' },  // TS is BOTH!
-  { skillId: 'skill_nodejs', categoryId: 'cat_backend' },
-  { skillId: 'skill_express', categoryId: 'cat_backend' },
-  { skillId: 'skill_nestjs', categoryId: 'cat_backend' },
-  { skillId: 'skill_python', categoryId: 'cat_backend' },
-  { skillId: 'skill_django', categoryId: 'cat_backend' },
-  { skillId: 'skill_fastapi', categoryId: 'cat_backend' },
-  { skillId: 'skill_java', categoryId: 'cat_backend' },
-  { skillId: 'skill_spring', categoryId: 'cat_backend' },
-  { skillId: 'skill_go', categoryId: 'cat_backend' },
-  { skillId: 'skill_rust', categoryId: 'cat_backend' },
-  // Backend - databases
-  { skillId: 'skill_postgresql', categoryId: 'cat_backend' },
-  { skillId: 'skill_mysql', categoryId: 'cat_backend' },
-  { skillId: 'skill_mongodb', categoryId: 'cat_backend' },
-  { skillId: 'skill_redis', categoryId: 'cat_backend' },
-  { skillId: 'skill_dynamodb', categoryId: 'cat_backend' },
-  { skillId: 'skill_neo4j', categoryId: 'cat_backend' },
-  { skillId: 'skill_kafka', categoryId: 'cat_backend' },
-  // Backend - architecture
-  { skillId: 'skill_api_design', categoryId: 'cat_backend' },
-  { skillId: 'skill_rest_api', categoryId: 'cat_backend' },
-  { skillId: 'skill_graphql', categoryId: 'cat_backend' },
-  { skillId: 'skill_grpc', categoryId: 'cat_backend' },
-  { skillId: 'skill_system_design', categoryId: 'cat_backend' },
-  { skillId: 'skill_microservices', categoryId: 'cat_backend' },
-  { skillId: 'skill_event_driven', categoryId: 'cat_backend' },
-  { skillId: 'skill_distributed', categoryId: 'cat_backend' },
+  // JS/TS belong to BOTH frontend and backend
+  { skillId: 'skill_javascript', categoryId: 'sc_frontend_frameworks' },
+  { skillId: 'skill_javascript', categoryId: 'sc_backend_languages' },
+  { skillId: 'skill_typescript', categoryId: 'sc_frontend_frameworks' },
+  { skillId: 'skill_typescript', categoryId: 'sc_backend_languages' },
 
-  // Full Stack = skills that belong to BOTH Frontend and Backend
-  // (handled by having skills in both categories above)
-  // The cat_fullstack category itself gets BELONGS_TO from cat_backend and cat_frontend
-  { skillId: 'cat_backend', categoryId: 'cat_fullstack' },
-  { skillId: 'cat_frontend', categoryId: 'cat_fullstack' },
+  // Backend frameworks
+  { skillId: 'skill_express', categoryId: 'sc_backend_frameworks' },
+  { skillId: 'skill_nestjs', categoryId: 'sc_backend_frameworks' },
+  { skillId: 'skill_django', categoryId: 'sc_backend_frameworks' },
+  { skillId: 'skill_fastapi', categoryId: 'sc_backend_frameworks' },
+  { skillId: 'skill_spring', categoryId: 'sc_backend_frameworks' },
+
+  // Backend languages
+  { skillId: 'skill_nodejs', categoryId: 'sc_backend_languages' },
+  { skillId: 'skill_python', categoryId: 'sc_backend_languages' },
+  { skillId: 'skill_java', categoryId: 'sc_backend_languages' },
+  { skillId: 'skill_go', categoryId: 'sc_backend_languages' },
+  { skillId: 'skill_rust', categoryId: 'sc_backend_languages' },
+
+  // Databases
+  { skillId: 'skill_postgresql', categoryId: 'sc_databases' },
+  { skillId: 'skill_mysql', categoryId: 'sc_databases' },
+  { skillId: 'skill_mongodb', categoryId: 'sc_databases' },
+  { skillId: 'skill_redis', categoryId: 'sc_databases' },
+  { skillId: 'skill_dynamodb', categoryId: 'sc_databases' },
+  { skillId: 'skill_neo4j', categoryId: 'sc_databases' },
+  { skillId: 'skill_kafka', categoryId: 'sc_databases' },
+
+  // Cloud platforms
+  { skillId: 'skill_aws', categoryId: 'sc_cloud' },
+  { skillId: 'skill_gcp', categoryId: 'sc_cloud' },
+  { skillId: 'skill_azure', categoryId: 'sc_cloud' },
+  { skillId: 'skill_lambda', categoryId: 'sc_cloud' },
+  { skillId: 'skill_s3', categoryId: 'sc_cloud' },
+
+  // Containerization
+  { skillId: 'skill_docker', categoryId: 'sc_containers' },
+  { skillId: 'skill_kubernetes', categoryId: 'sc_containers' },
+  { skillId: 'skill_helm', categoryId: 'sc_containers' },
+
+  // CI/CD
+  { skillId: 'skill_terraform', categoryId: 'sc_cicd' },
+  { skillId: 'skill_github_actions', categoryId: 'sc_cicd' },
+
+  // Testing
+  { skillId: 'skill_unit_testing', categoryId: 'sc_testing' },
+  { skillId: 'skill_integration_testing', categoryId: 'sc_testing' },
+  { skillId: 'skill_e2e_testing', categoryId: 'sc_testing' },
+  { skillId: 'skill_tdd', categoryId: 'sc_testing' },
+
+  // Observability
+  { skillId: 'skill_logging', categoryId: 'sc_observability' },
+  { skillId: 'skill_monitoring', categoryId: 'sc_observability' },
+  { skillId: 'skill_tracing', categoryId: 'sc_observability' },
+
+  // Security
+  { skillId: 'skill_auth', categoryId: 'sc_security' },
+
+  // Design & Architecture
+  { skillId: 'skill_api_design', categoryId: 'sc_design' },
+  { skillId: 'skill_rest_api', categoryId: 'sc_design' },
+  { skillId: 'skill_graphql', categoryId: 'sc_design' },
+  { skillId: 'skill_grpc', categoryId: 'sc_design' },
+  { skillId: 'skill_system_design', categoryId: 'sc_design' },
+  { skillId: 'skill_microservices', categoryId: 'sc_design' },
+  { skillId: 'skill_event_driven', categoryId: 'sc_design' },
+  { skillId: 'skill_distributed', categoryId: 'sc_design' },
+  { skillId: 'skill_data_modeling', categoryId: 'sc_design' },
+
+  // Leadership behavioral skills
+  { skillId: 'skill_team_leadership', categoryId: 'sc_leadership' },
+  { skillId: 'skill_tech_leadership', categoryId: 'sc_leadership' },
+  { skillId: 'skill_mentorship', categoryId: 'sc_leadership' },
+  { skillId: 'skill_coaching', categoryId: 'sc_leadership' },
+  { skillId: 'skill_delegation', categoryId: 'sc_leadership' },
+  { skillId: 'skill_decision_making', categoryId: 'sc_leadership' },
+  { skillId: 'skill_conflict_resolution', categoryId: 'sc_leadership' },
+
+  // Communication behavioral skills
+  { skillId: 'skill_technical_writing', categoryId: 'sc_communication' },
+  { skillId: 'skill_documentation', categoryId: 'sc_communication' },
+  { skillId: 'skill_presentation', categoryId: 'sc_communication' },
+  { skillId: 'skill_stakeholder_comm', categoryId: 'sc_communication' },
+  { skillId: 'skill_cross_functional', categoryId: 'sc_communication' },
+  { skillId: 'skill_feedback_giving', categoryId: 'sc_communication' },
+  { skillId: 'skill_feedback_receiving', categoryId: 'sc_communication' },
+  { skillId: 'skill_active_listening', categoryId: 'sc_communication' },
+
+  // Problem solving behavioral skills
+  { skillId: 'skill_analytical', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_debugging', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_root_cause', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_ambiguity', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_creativity', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_prioritization', categoryId: 'sc_problem_solving' },
+  { skillId: 'skill_tradeoffs', categoryId: 'sc_problem_solving' },
+
+  // Execution behavioral skills
+  { skillId: 'skill_ownership', categoryId: 'sc_execution' },
+  { skillId: 'skill_accountability', categoryId: 'sc_execution' },
+  { skillId: 'skill_time_management', categoryId: 'sc_execution' },
+  { skillId: 'skill_estimation', categoryId: 'sc_execution' },
+  { skillId: 'skill_attention_detail', categoryId: 'sc_execution' },
+  { skillId: 'skill_follow_through', categoryId: 'sc_execution' },
+  { skillId: 'skill_pressure', categoryId: 'sc_execution' },
+
+  // Collaboration behavioral skills
+  { skillId: 'skill_code_review', categoryId: 'sc_collaboration' },
+  { skillId: 'skill_pair_programming', categoryId: 'sc_collaboration' },
+  { skillId: 'skill_knowledge_sharing', categoryId: 'sc_collaboration' },
+  { skillId: 'skill_teamwork', categoryId: 'sc_collaboration' },
+  { skillId: 'skill_remote_collab', categoryId: 'sc_collaboration' },
+
+  // Growth behavioral skills
+  { skillId: 'skill_learning', categoryId: 'sc_growth' },
+  { skillId: 'skill_adaptability', categoryId: 'sc_growth' },
+  { skillId: 'skill_resilience', categoryId: 'sc_growth' },
+  { skillId: 'skill_self_awareness', categoryId: 'sc_growth' },
+  { skillId: 'skill_curiosity', categoryId: 'sc_growth' },
 ];

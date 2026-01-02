@@ -4,7 +4,7 @@
  * Coordinates all services to fulfill search requests.
  */
 
-import type { Session } from 'neo4j-driver';
+import type { Session } from "neo4j-driver";
 import type {
   SearchFilterRequest,
   SearchFilterResponse,
@@ -14,24 +14,32 @@ import type {
   ConstraintViolation,
   ProficiencyLevel,
   SkillRequirement,
-} from '../types/search.types.js';
-import { expandSearchCriteria } from './constraint-expander.service.js';
+  BusinessDomainMatch,
+  TechnicalDomainMatch,
+  TechnicalDomainMatchType,
+} from "../types/search.types.js";
+import { expandSearchCriteria } from "./constraint-expander.service.js";
 import {
-  resolveSkillHierarchy,
   resolveSkillRequirements,
   type ResolvedSkillWithProficiency,
-} from './skill-resolver.service.js';
+} from "./skill-resolver.service.js";
+import {
+  resolveBusinessDomains,
+  resolveTechnicalDomains,
+} from "./domain-resolver.service.js";
 import {
   buildSearchQuery,
   type CypherQueryParams,
   type SkillProficiencyGroups,
-} from './cypher-query-builder/index.js';
+  type ResolvedTechnicalDomain,
+  type ResolvedBusinessDomain,
+} from "./cypher-query-builder/index.js";
 import {
   scoreAndSortEngineers,
   type EngineerData,
   type UtilityContext,
-} from './utility-calculator.service.js';
-import { knowledgeBaseConfig } from '../config/knowledge-base/index.js';
+} from "./utility-calculator.service.js";
+import { knowledgeBaseConfig } from "../config/knowledge-base/index.js";
 
 // Raw skill data from Cypher query (before splitting into matched/unmatched)
 interface RawSkillData {
@@ -40,10 +48,24 @@ interface RawSkillData {
   proficiencyLevel: string;
   confidenceScore: number;
   yearsUsed: number;
-  matchType: 'direct' | 'descendant' | 'none';
+  matchType: "direct" | "descendant" | "none";
   // These fields only exist when skill filtering is active
   meetsConfidence?: boolean;
   meetsProficiency?: boolean;
+}
+
+// Raw domain data from Cypher query
+interface RawBusinessDomainMatch {
+  domainId: string;
+  domainName: string;
+  years: number;
+}
+
+interface RawTechnicalDomainMatch {
+  domainId: string;
+  domainName: string;
+  years: number;
+  source: "explicit" | "inferred";
 }
 
 interface RawEngineerRecord {
@@ -58,7 +80,16 @@ interface RawEngineerRecord {
   unmatchedRelatedSkills: UnmatchedRelatedSkill[];
   matchedSkillCount: number;
   avgConfidence: number;
-  matchedDomainNames: string[];
+  matchedBusinessDomains: BusinessDomainMatch[];
+  matchedTechnicalDomains: TechnicalDomainMatch[];
+}
+
+// Context for computing meetsRequired/meetsPreferred flags on domain matches
+interface DomainConstraintContext {
+  requiredBusinessDomains: ResolvedBusinessDomain[];
+  preferredBusinessDomains: ResolvedBusinessDomain[];
+  requiredTechnicalDomains: ResolvedTechnicalDomain[];
+  preferredTechnicalDomains: ResolvedTechnicalDomain[];
 }
 
 // Result of resolving both required and preferred skills
@@ -102,9 +133,24 @@ export async function executeSearch(
     config.defaults.defaultMinProficiency
   );
 
-  // Step 2b: Resolve domain skill IDs (domains are skills with skillType: 'domain_knowledge')
-  const requiredDomainIds = await getSkillIdsForDomains(session, request.requiredDomains);
-  const preferredDomainIds = await getSkillIdsForDomains(session, request.preferredDomains);
+  // Step 2b: Resolve domain requirements using new domain model
+  // Note: Must run sequentially - Neo4j sessions are not thread-safe for concurrent queries
+  const requiredBusinessDomains = await resolveBusinessDomains(
+    session,
+    request.requiredBusinessDomains
+  );
+  const preferredBusinessDomains = await resolveBusinessDomains(
+    session,
+    request.preferredBusinessDomains
+  );
+  const requiredTechnicalDomains = await resolveTechnicalDomains(
+    session,
+    request.requiredTechnicalDomains
+  );
+  const preferredTechnicalDomains = await resolveTechnicalDomains(
+    session,
+    request.preferredTechnicalDomains
+  );
 
   // Step 3: Build query parameters with per-skill proficiency buckets
   const queryParams: CypherQueryParams = {
@@ -112,7 +158,8 @@ export async function executeSearch(
     learningLevelSkillIds: skillGroups.learningLevelSkillIds,
     proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
     expertLevelSkillIds: skillGroups.expertLevelSkillIds,
-    originalSkillIdentifiers: originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
+    originalSkillIdentifiers:
+      originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
     // Basic engineer filters
     startTimeline: expanded.startTimeline,
     minYearsExperience: expanded.minYearsExperience,
@@ -122,9 +169,21 @@ export async function executeSearch(
     minSalary: expanded.minSalary,
     offset: expanded.offset,
     limit: expanded.limit,
-    // Domain filtering
-    requiredDomainIds: requiredDomainIds.length > 0 ? requiredDomainIds : undefined,
-    preferredDomainIds: preferredDomainIds.length > 0 ? preferredDomainIds : undefined,
+    // Domain filtering with new model
+    requiredBusinessDomains:
+      requiredBusinessDomains.length > 0 ? requiredBusinessDomains : undefined,
+    preferredBusinessDomains:
+      preferredBusinessDomains.length > 0
+        ? preferredBusinessDomains
+        : undefined,
+    requiredTechnicalDomains:
+      requiredTechnicalDomains.length > 0
+        ? requiredTechnicalDomains
+        : undefined,
+    preferredTechnicalDomains:
+      preferredTechnicalDomains.length > 0
+        ? preferredTechnicalDomains
+        : undefined,
   };
 
   // Step 4: Execute main query (unified for skill-filtered and unfiltered search)
@@ -156,20 +215,30 @@ export async function executeSearch(
     alignedSkillIds: expanded.alignedSkillIds,
   };
 
+  // Build domain context for flag computation
+  const domainContext: DomainConstraintContext = {
+    requiredBusinessDomains,
+    preferredBusinessDomains,
+    requiredTechnicalDomains,
+    preferredTechnicalDomains,
+  };
+
   const rawEngineers: RawEngineerRecord[] = mainResult.records.map((record) =>
-    parseEngineerFromRecord(record, parseOptions)
+    parseEngineerFromRecord(record, parseOptions, domainContext)
   );
 
   // Extract totalCount from first record (all records have same value from early count step)
-  const totalCount = mainResult.records.length > 0
-    ? toNumber(mainResult.records[0].get('totalCount'))
-    : 0;
+  const totalCount =
+    mainResult.records.length > 0
+      ? toNumber(mainResult.records[0].get("totalCount"))
+      : 0;
 
   // Step 6: Calculate utility scores and rank
   const utilityContext: UtilityContext = {
     requestedSkillIds: allSkillIds,
     preferredSkillIds,
-    preferredDomainIds,
+    preferredBusinessDomains,
+    preferredTechnicalDomains,
     alignedSkillIds: expanded.alignedSkillIds,
     maxSalaryBudget: expanded.maxSalary,
     // Pass through preferred/required values
@@ -193,7 +262,8 @@ export async function executeSearch(
     matchedSkills: raw.matchedSkills,
     unmatchedRelatedSkills: raw.unmatchedRelatedSkills,
     avgConfidence: raw.avgConfidence,
-    matchedDomainNames: raw.matchedDomainNames,
+    matchedBusinessDomains: raw.matchedBusinessDomains,
+    matchedTechnicalDomains: raw.matchedTechnicalDomains,
   }));
 
   const scoredEngineers = scoreAndSortEngineers(engineerData, utilityContext);
@@ -209,7 +279,8 @@ export async function executeSearch(
     timezone: eng.timezone,
     matchedSkills: eng.matchedSkills,
     unmatchedRelatedSkills: eng.unmatchedRelatedSkills,
-    matchedDomains: eng.matchedDomainNames,
+    matchedBusinessDomains: eng.matchedBusinessDomains,
+    matchedTechnicalDomains: eng.matchedTechnicalDomains,
     utilityScore: eng.utilityScore,
     scoreBreakdown: eng.scoreBreakdown,
   }));
@@ -243,19 +314,23 @@ function groupSkillsByProficiency(
 
   for (const skill of resolvedSkills) {
     switch (skill.minProficiency) {
-      case 'learning':
+      case "learning":
         learningLevelSkillIds.push(skill.skillId);
         break;
-      case 'proficient':
+      case "proficient":
         proficientLevelSkillIds.push(skill.skillId);
         break;
-      case 'expert':
+      case "expert":
         expertLevelSkillIds.push(skill.skillId);
         break;
     }
   }
 
-  return { learningLevelSkillIds, proficientLevelSkillIds, expertLevelSkillIds };
+  return {
+    learningLevelSkillIds,
+    proficientLevelSkillIds,
+    expertLevelSkillIds,
+  };
 }
 
 /**
@@ -265,11 +340,11 @@ function toNumber(value: unknown): number {
   if (value === null || value === undefined) {
     return 0;
   }
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return value;
   }
   // Handle Neo4j Integer type
-  if (typeof value === 'object' && value !== null && 'toNumber' in value) {
+  if (typeof value === "object" && value !== null && "toNumber" in value) {
     return (value as { toNumber: () => number }).toNumber();
   }
   return Number(value) || 0;
@@ -300,11 +375,11 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
 
   for (const skill of allSkills) {
     const violations: ConstraintViolation[] = [];
-    if (!skill.meetsConfidence) violations.push('confidence_below_threshold');
-    if (!skill.meetsProficiency) violations.push('proficiency_below_minimum');
+    if (!skill.meetsConfidence) violations.push("confidence_below_threshold");
+    if (!skill.meetsProficiency) violations.push("proficiency_below_minimum");
 
     const isDirectMatchPassingConstraints =
-      skill.matchType === 'direct' && violations.length === 0;
+      skill.matchType === "direct" && violations.length === 0;
 
     if (isDirectMatchPassingConstraints) {
       matchedSkills.push({
@@ -333,22 +408,6 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
 }
 
 /**
- * Resolves domain identifiers to their corresponding skill IDs.
- * Domains are skills with skillType 'domain_knowledge' in the knowledge graph.
- * Returns empty array if no identifiers provided.
- */
-async function getSkillIdsForDomains(
-  session: Session,
-  domainIdentifiers: string[] | null | undefined
-): Promise<string[]> {
-  if (!domainIdentifiers || domainIdentifiers.length === 0) {
-    return [];
-  }
-  const { resolvedSkills } = await resolveSkillHierarchy(session, domainIdentifiers);
-  return resolvedSkills.map((s) => s.skillId);
-}
-
-/**
  * Resolves both required and preferred skills, returning all data needed for query building and ranking.
  */
 async function resolveAllSkills(
@@ -371,7 +430,11 @@ async function resolveAllSkills(
 
   // Resolve required skills
   if (requiredSkills && requiredSkills.length > 0) {
-    const result = await resolveSkillRequirements(session, requiredSkills, defaultProficiency);
+    const result = await resolveSkillRequirements(
+      session,
+      requiredSkills,
+      defaultProficiency
+    );
     skillGroups = groupSkillsByProficiency(result.resolvedSkills);
     expandedSkillNames = result.expandedSkillNames;
     unresolvedSkills = result.unresolvedIdentifiers;
@@ -380,20 +443,33 @@ async function resolveAllSkills(
     // Add preferred proficiencies from required skills
     for (const skill of result.resolvedSkills) {
       if (skill.preferredMinProficiency) {
-        skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
+        skillIdToPreferredProficiency.set(
+          skill.skillId,
+          skill.preferredMinProficiency
+        );
       }
     }
   }
 
   // Resolve preferred skills
   if (preferredSkills && preferredSkills.length > 0) {
-    const result = await resolveSkillRequirements(session, preferredSkills, defaultProficiency);
+    const result = await resolveSkillRequirements(
+      session,
+      preferredSkills,
+      defaultProficiency
+    );
     preferredSkillIds = result.resolvedSkills.map((s) => s.skillId);
 
     // Add preferred proficiencies (don't override existing from required)
     for (const skill of result.resolvedSkills) {
-      if (skill.preferredMinProficiency && !skillIdToPreferredProficiency.has(skill.skillId)) {
-        skillIdToPreferredProficiency.set(skill.skillId, skill.preferredMinProficiency);
+      if (
+        skill.preferredMinProficiency &&
+        !skillIdToPreferredProficiency.has(skill.skillId)
+      ) {
+        skillIdToPreferredProficiency.set(
+          skill.skillId,
+          skill.preferredMinProficiency
+        );
       }
     }
   }
@@ -418,15 +494,30 @@ function parseEngineerFromRecord(
     shouldClearSkills: boolean;
     isTeamFocusOnlyMode: boolean;
     alignedSkillIds: string[];
-  }
+  },
+  domainContext: DomainConstraintContext
 ): RawEngineerRecord {
   const { shouldClearSkills, isTeamFocusOnlyMode, alignedSkillIds } = options;
+
+  // Pre-flatten domain constraint IDs for efficient lookup
+  const allRequiredBusinessDomainIds = new Set(
+    domainContext.requiredBusinessDomains.flatMap((c) => c.expandedDomainIds)
+  );
+  const allPreferredBusinessDomainIds = new Set(
+    domainContext.preferredBusinessDomains.flatMap((c) => c.expandedDomainIds)
+  );
+  const allRequiredTechnicalDomainIds = new Set(
+    domainContext.requiredTechnicalDomains.flatMap((c) => c.expandedDomainIds)
+  );
+  const allPreferredTechnicalDomainIds = new Set(
+    domainContext.preferredTechnicalDomains.flatMap((c) => c.expandedDomainIds)
+  );
 
   let matchedSkills: MatchedSkill[] = [];
   let unmatchedRelatedSkills: UnmatchedRelatedSkill[] = [];
 
   if (!shouldClearSkills) {
-    const allSkills = (record.get('allRelevantSkills') as RawSkillData[]) || [];
+    const allSkills = (record.get("allRelevantSkills") as RawSkillData[]) || [];
 
     if (isTeamFocusOnlyMode) {
       // Team-focus-only: no constraints to categorize, just filter to aligned skills
@@ -449,22 +540,71 @@ function parseEngineerFromRecord(
     }
   }
 
-  // Extract matched domain names (filter out null values)
-  const rawDomainNames = (record.get('matchedDomainNames') as string[] | null) || [];
-  const matchedDomainNames = rawDomainNames.filter((name) => name !== null);
+  // Extract matched domains with correct flag computation
+  const matchedBusinessDomains = parseDomainMatches<
+    BusinessDomainMatch,
+    RawBusinessDomainMatch
+  >(
+    record.get("matchedBusinessDomains") as RawBusinessDomainMatch[] | null,
+    (raw) => ({
+      domainId: raw.domainId,
+      domainName: raw.domainName,
+      engineerYears: toNumber(raw.years),
+      meetsRequired: allRequiredBusinessDomainIds.has(raw.domainId),
+      meetsPreferred: allPreferredBusinessDomainIds.has(raw.domainId),
+    })
+  );
+
+  const matchedTechnicalDomains = parseDomainMatches<
+    TechnicalDomainMatch,
+    RawTechnicalDomainMatch
+  >(
+    record.get("matchedTechnicalDomains") as RawTechnicalDomainMatch[] | null,
+    (raw) => ({
+      domainId: raw.domainId,
+      domainName: raw.domainName,
+      engineerYears: toNumber(raw.years),
+      matchType: (raw.source === "inferred"
+        ? "skill_inferred"
+        : "direct") as TechnicalDomainMatchType,
+      meetsRequired: allRequiredTechnicalDomainIds.has(raw.domainId),
+      meetsPreferred: allPreferredTechnicalDomainIds.has(raw.domainId),
+    })
+  );
 
   return {
-    id: record.get('id') as string,
-    name: record.get('name') as string,
-    headline: record.get('headline') as string,
-    salary: toNumber(record.get('salary')),
-    yearsExperience: toNumber(record.get('yearsExperience')),
-    startTimeline: record.get('startTimeline') as string,
-    timezone: record.get('timezone') as string,
+    id: record.get("id") as string,
+    name: record.get("name") as string,
+    headline: record.get("headline") as string,
+    salary: toNumber(record.get("salary")),
+    yearsExperience: toNumber(record.get("yearsExperience")),
+    startTimeline: record.get("startTimeline") as string,
+    timezone: record.get("timezone") as string,
     matchedSkills,
     unmatchedRelatedSkills,
-    matchedSkillCount: shouldClearSkills ? 0 : toNumber(record.get('matchedSkillCount')),
-    avgConfidence: shouldClearSkills ? 0 : toNumber(record.get('avgConfidence')),
-    matchedDomainNames,
+    matchedSkillCount: shouldClearSkills
+      ? 0
+      : toNumber(record.get("matchedSkillCount")),
+    avgConfidence: shouldClearSkills
+      ? 0
+      : toNumber(record.get("avgConfidence")),
+    matchedBusinessDomains,
+    matchedTechnicalDomains,
   };
+}
+
+/**
+ * Parses raw domain match data from Cypher query results.
+ * Filters out null values and objects with null domainId (from OPTIONAL MATCH).
+ */
+function parseDomainMatches<T, R extends { domainId: unknown }>(
+  rawDomains: R[] | null,
+  mapper: (raw: R) => T
+): T[] {
+  if (!rawDomains) return [];
+  return rawDomains
+    .filter(
+      (d): d is R => d !== null && typeof d === "object" && d.domainId !== null
+    )
+    .map(mapper);
 }

@@ -48,6 +48,23 @@ export const SkillRequirementSchema = z.object({
   preferredMinProficiency: ProficiencyLevelSchema.optional(),
 });
 
+/**
+ * Domain requirement with years of experience thresholds.
+ * - minYears: Hard filter (must have at least this many years)
+ * - preferredMinYears: Ranking boost if exceeded
+ */
+export const BusinessDomainRequirementSchema = z.object({
+  domain: z.string(),
+  minYears: z.number().int().min(0).optional(),
+  preferredMinYears: z.number().int().min(0).optional(),
+});
+
+export const TechnicalDomainRequirementSchema = z.object({
+  domain: z.string(),
+  minYears: z.number().int().min(0).optional(),
+  preferredMinYears: z.number().int().min(0).optional(),
+});
+
 // ============================================
 // MAIN REQUEST SCHEMA
 // ============================================
@@ -77,9 +94,13 @@ export const SearchFilterRequestSchema = z.object({
   // Context
   teamFocus: TeamFocusSchema.optional(),
 
-  // Domains (no per-domain proficiency)
-  requiredDomains: z.array(z.string()).optional(),
-  preferredDomains: z.array(z.string()).optional(),
+  // Business Domains (Fintech, Healthcare, E-commerce, etc.)
+  requiredBusinessDomains: z.array(BusinessDomainRequirementSchema).optional(),
+  preferredBusinessDomains: z.array(BusinessDomainRequirementSchema).optional(),
+
+  // Technical Domains (Backend, Frontend, ML, DevOps, etc.)
+  requiredTechnicalDomains: z.array(TechnicalDomainRequirementSchema).optional(),
+  preferredTechnicalDomains: z.array(TechnicalDomainRequirementSchema).optional(),
 
   // Pagination
   limit: z.number().int().min(1).max(100).optional(),
@@ -119,4 +140,6 @@ export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
 export type TeamFocus = z.infer<typeof TeamFocusSchema>;
 export type PreferredSalaryRange = z.infer<typeof PreferredSalaryRangeSchema>;
 export type SkillRequirement = z.infer<typeof SkillRequirementSchema>;
+export type BusinessDomainRequirement = z.infer<typeof BusinessDomainRequirementSchema>;
+export type TechnicalDomainRequirement = z.infer<typeof TechnicalDomainRequirementSchema>;
 export type SearchFilterRequest = z.infer<typeof SearchFilterRequestSchema>;
