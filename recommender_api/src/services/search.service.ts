@@ -95,6 +95,7 @@ interface DomainConstraintContext {
 interface SkillResolutionResult {
   // From required skills (for query building)
   skillGroups: SkillProficiencyGroups;
+  allRequestedSkillIds: string[]; // All skill IDs from skillGroups combined
   expandedSkillNames: string[];
   unresolvedSkills: string[];
   originalSkillIdentifiers: string[];
@@ -120,6 +121,7 @@ export async function executeSearch(
   // Step 2: Resolve all skill requirements (both required and preferred)
   const {
     skillGroups,
+    allRequestedSkillIds,
     expandedSkillNames,
     unresolvedSkills,
     originalSkillIdentifiers,
@@ -228,15 +230,6 @@ export async function executeSearch(
       : 0;
 
   // Step 6: Calculate utility scores and rank
-  // Combine all required skill IDs for unified skill matching.
-  // The utility calculator scores each skill based on:
-  // - Whether the engineer has it (coverage)
-  // - How well they meet the preferred proficiency (if specified)
-  const allRequestedSkillIds = [
-    ...skillGroups.learningLevelSkillIds,
-    ...skillGroups.proficientLevelSkillIds,
-    ...skillGroups.expertLevelSkillIds,
-  ];
   const utilityContext: UtilityContext = {
     requestedSkillIds: allRequestedSkillIds,
     preferredSkillIds,
@@ -476,8 +469,15 @@ async function resolveAllSkills(
     }
   }
 
+  const allRequestedSkillIds = [
+    ...skillGroups.learningLevelSkillIds,
+    ...skillGroups.proficientLevelSkillIds,
+    ...skillGroups.expertLevelSkillIds,
+  ];
+
   return {
     skillGroups,
+    allRequestedSkillIds,
     expandedSkillNames,
     unresolvedSkills,
     originalSkillIdentifiers,
