@@ -28,7 +28,7 @@ export { START_TIMELINE_ORDER } from '../schemas/search.schema.js';
 
 export type MatchType = 'direct' | 'descendant' | 'correlated' | 'none';
 export type ConstraintSource = 'user' | 'knowledge_base';
-export type ConstraintViolation = 'confidence_below_threshold' | 'proficiency_below_minimum';
+export type ConstraintViolation = 'proficiency_below_minimum';
 
 export interface MatchedSkill {
   skillId: string;

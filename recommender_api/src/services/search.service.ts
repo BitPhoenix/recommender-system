@@ -49,8 +49,7 @@ interface RawSkillData {
   confidenceScore: number;
   yearsUsed: number;
   matchType: "direct" | "descendant" | "none";
-  // These fields only exist when skill filtering is active
-  meetsConfidence?: boolean;
+  // This field only exists when skill filtering is active
   meetsProficiency?: boolean;
 }
 
@@ -187,11 +186,6 @@ export async function executeSearch(
   };
 
   // Step 4: Execute main query (unified for skill-filtered and unfiltered search)
-  const allSkillIds = [
-    ...skillGroups.learningLevelSkillIds,
-    ...skillGroups.proficientLevelSkillIds,
-    ...skillGroups.expertLevelSkillIds,
-  ];
   const mainQuery = buildSearchQuery(queryParams);
 
   // Run main query (now includes totalCount computed before pagination)
@@ -234,8 +228,17 @@ export async function executeSearch(
       : 0;
 
   // Step 6: Calculate utility scores and rank
+  // Combine all required skill IDs into a single array for utility scoring.
+  // The utility calculator needs this to measure how well each engineer matches
+  // the search request—it doesn't care about proficiency buckets, just whether
+  // the engineer has skills the user asked for.
+  const allRequestedSkillIds = [
+    ...skillGroups.learningLevelSkillIds,
+    ...skillGroups.proficientLevelSkillIds,
+    ...skillGroups.expertLevelSkillIds,
+  ];
   const utilityContext: UtilityContext = {
-    requestedSkillIds: allSkillIds,
+    requestedSkillIds: allRequestedSkillIds,
     preferredSkillIds,
     preferredBusinessDomains,
     preferredTechnicalDomains,
@@ -375,7 +378,6 @@ function categorizeSkillsByConstraints(allSkills: RawSkillData[]): {
 
   for (const skill of allSkills) {
     const violations: ConstraintViolation[] = [];
-    if (!skill.meetsConfidence) violations.push("confidence_below_threshold");
     if (!skill.meetsProficiency) violations.push("proficiency_below_minimum");
 
     const isDirectMatchPassingConstraints =
