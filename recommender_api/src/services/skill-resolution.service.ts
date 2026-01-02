@@ -18,8 +18,8 @@ import type { SkillProficiencyGroups } from "./cypher-query-builder/index.js";
 export interface SkillResolutionResult {
   /** From required skills (for query building) */
   skillGroups: SkillProficiencyGroups;
-  /** All skill IDs from skillGroups combined */
-  allRequestedSkillIds: string[];
+  /** All required skill IDs (for coverage calculation in utility scoring) */
+  requiredSkillIds: string[];
   expandedSkillNames: string[];
   unresolvedSkills: string[];
   originalSkillIdentifiers: string[];
@@ -76,6 +76,7 @@ export async function resolveAllSkills(
     proficientLevelSkillIds: [],
     expertLevelSkillIds: [],
   };
+  let resolvedRequiredSkills: ResolvedSkillWithProficiency[] = [];
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
   let originalSkillIdentifiers: string[] = [];
@@ -89,7 +90,8 @@ export async function resolveAllSkills(
       requiredSkills,
       defaultProficiency
     );
-    skillGroups = groupSkillsByProficiency(result.resolvedSkills);
+    resolvedRequiredSkills = result.resolvedSkills;
+    skillGroups = groupSkillsByProficiency(resolvedRequiredSkills);
     expandedSkillNames = result.expandedSkillNames;
     unresolvedSkills = result.unresolvedIdentifiers;
     originalSkillIdentifiers = result.originalIdentifiers;
@@ -128,15 +130,11 @@ export async function resolveAllSkills(
     }
   }
 
-  const allRequestedSkillIds = [
-    ...skillGroups.learningLevelSkillIds,
-    ...skillGroups.proficientLevelSkillIds,
-    ...skillGroups.expertLevelSkillIds,
-  ];
+  const requiredSkillIds = resolvedRequiredSkills.map((s) => s.skillId);
 
   return {
     skillGroups,
-    allRequestedSkillIds,
+    requiredSkillIds,
     expandedSkillNames,
     unresolvedSkills,
     originalSkillIdentifiers,

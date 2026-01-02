@@ -52,7 +52,7 @@ export async function executeSearch(
   // Step 2: Resolve all skill requirements (both required and preferred)
   const {
     skillGroups,
-    allRequestedSkillIds,
+    requiredSkillIds,
     expandedSkillNames,
     unresolvedSkills,
     originalSkillIdentifiers,
@@ -178,7 +178,7 @@ export async function executeSearch(
   }));
 
   const utilityContext: UtilityContext = {
-    requestedSkillIds: allRequestedSkillIds,
+    requiredSkillIds,
     preferredSkillIds,
     preferredBusinessDomains,
     preferredTechnicalDomains,

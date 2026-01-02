@@ -43,7 +43,7 @@ export interface EngineerData {
 }
 
 export interface UtilityContext {
-  requestedSkillIds: string[];
+  requiredSkillIds: string[];
   preferredSkillIds: string[];
   preferredBusinessDomains: ResolvedBusinessDomain[];
   preferredTechnicalDomains: ResolvedTechnicalDomain[];
@@ -418,10 +418,10 @@ interface SkillMatchResult {
  */
 function calculateSkillMatch(
   matchedSkills: MatchedSkill[],
-  requestedSkillIds: string[],
+  requiredSkillIds: string[],
   skillIdToPreferredProficiency: Map<string, ProficiencyLevel>
 ): SkillMatchResult {
-  if (requestedSkillIds.length === 0) {
+  if (requiredSkillIds.length === 0) {
     return { score: 0.5, skillsExceedingPreferred: [] };
   }
 
@@ -432,7 +432,7 @@ function calculateSkillMatch(
   // Build a map for O(1) lookup
   const matchedSkillMap = new Map(matchedSkills.map(s => [s.skillId, s]));
 
-  for (const skillId of requestedSkillIds) {
+  for (const skillId of requiredSkillIds) {
     const matchedSkill = matchedSkillMap.get(skillId);
 
     if (!matchedSkill) {
@@ -459,7 +459,7 @@ function calculateSkillMatch(
     }
   }
 
-  const score = totalCredit / requestedSkillIds.length;
+  const score = totalCredit / requiredSkillIds.length;
 
   return { score, skillsExceedingPreferred };
 }
@@ -481,7 +481,7 @@ export function calculateUtilityWithBreakdown(
   // Calculate unified skill match (coverage + proficiency in one score)
   const skillMatchResult = calculateSkillMatch(
     engineer.matchedSkills,
-    context.requestedSkillIds,
+    context.requiredSkillIds,
     context.skillIdToPreferredProficiency
   );
   const skillMatchRaw = skillMatchResult.score;
@@ -680,7 +680,7 @@ export function calculateUtilityScore(
   // Calculate unified skill match (coverage + proficiency in one score)
   const skillMatchUtility = calculateSkillMatch(
     engineer.matchedSkills,
-    context.requestedSkillIds,
+    context.requiredSkillIds,
     context.skillIdToPreferredProficiency
   ).score;
 
