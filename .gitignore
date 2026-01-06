@@ -3,3 +3,10 @@ seeds/dist
 .DS_Store
 __pycache__
 code_walkthrough_plan.md
+pull_request_description.md
+
+# Vite cache
+client/.vite/
+
+# Test coverage
+recommender_api/coverage/
