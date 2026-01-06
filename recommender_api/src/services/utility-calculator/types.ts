@@ -80,8 +80,8 @@ export interface UtilityCalculationResult {
 // INTERNAL RESULT TYPES (used by scoring modules)
 // ============================================
 
-export interface SkillMatchResult {
-  /** Normalized score 0-1 representing skill coverage + proficiency match */
+export interface RequiredSkillsProficiencyResult {
+  /** Normalized score 0-1 representing how well engineer proficiency matches preferred levels */
   score: number;
   /** Skills that meet or exceed preferred proficiency (for display) */
   skillsExceedingPreferred: string[];

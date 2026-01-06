@@ -6,29 +6,29 @@
 import type { MatchedSkill, UnmatchedRelatedSkill, ProficiencyLevel } from '../../../types/search.types.js';
 import { PROFICIENCY_LEVEL_ORDER } from '../../../types/search.types.js';
 import type {
-  SkillMatchResult,
+  RequiredSkillsProficiencyResult,
   PreferredSkillsMatchResult,
   TeamFocusMatchResult,
   RelatedSkillsMatchResult,
 } from '../types.js';
 
 /**
- * Unified skill match scoring that combines coverage and proficiency matching.
+ * Scores how well an engineer's proficiency levels match the preferred levels
+ * for required skills.
  *
  * Function type: GRADUATED LINEAR (per-skill proficiency scoring)
  * Formula: average of (actual_level + 1) / (preferred_level + 1) across all skills
  *
- * Rationale: This unified approach replaces two separate mechanisms that were
- * unprincipled. By scoring each skill based on how close the engineer's proficiency
+ * Rationale: By scoring each skill based on how close the engineer's proficiency
  * is to the preferred level, we get intuitive graduated credit: an engineer with
  * "proficient" when you wanted "expert" gets 2/3 credit, not zero.
  *
- * For each requested skill:
+ * For each required skill:
  * - If engineer doesn't have it: 0 credit
  * - If engineer has it with no preferred proficiency: 1.0 credit (full)
  * - If engineer has it with preferred proficiency: graduated credit (actual+1)/(preferred+1)
  *
- * Final score = average credit across all requested skills.
+ * Final score = average credit across all required skills.
  *
  * Score table (when preference specified):
  *   | Preferred | learning | proficient | expert |
@@ -39,11 +39,11 @@ import type {
  *
  * When no preference specified: full credit (1.0) for having the skill.
  */
-export function calculateSkillMatch(
+export function calculateRequiredSkillsProficiencyMatch(
   matchedSkills: MatchedSkill[],
   requiredSkillIds: string[],
   skillIdToPreferredProficiency: Map<string, ProficiencyLevel>
-): SkillMatchResult {
+): RequiredSkillsProficiencyResult {
   if (requiredSkillIds.length === 0) {
     return { score: 0.5, skillsExceedingPreferred: [] };
   }

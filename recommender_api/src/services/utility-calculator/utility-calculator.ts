@@ -23,7 +23,7 @@ import {
   calculateExperienceUtility,
 } from './scoring/core-scoring.js';
 import {
-  calculateSkillMatch,
+  calculateRequiredSkillsProficiencyMatch,
   calculatePreferredSkillsMatch,
   calculateTeamFocusMatch,
   calculateRelatedSkillsMatch,
@@ -55,8 +55,8 @@ export function calculateUtilityWithBreakdown(
   const weights = config.utilityWeights;
   const params = config.utilityParams;
 
-  // Calculate unified skill match (coverage + proficiency in one score)
-  const skillMatchResult = calculateSkillMatch(
+  // Score how well engineer proficiency matches preferred levels for required skills
+  const skillMatchResult = calculateRequiredSkillsProficiencyMatch(
     engineer.matchedSkills,
     context.requiredSkillIds,
     context.skillIdToPreferredProficiency
