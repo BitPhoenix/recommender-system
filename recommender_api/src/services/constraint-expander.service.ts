@@ -33,9 +33,9 @@ export interface ExpandedSearchCriteria {
   // Timezone (converted glob patterns for STARTS WITH matching)
   timezonePrefixes: string[];
 
-  // Salary constraints
-  maxSalary: number | null;
-  minSalary: number | null;
+  // Budget constraints (job-centric)
+  maxBudget: number | null;
+  stretchBudget: number | null;
 
   // Team focus aligned skills
   alignedSkillIds: string[];
@@ -69,7 +69,6 @@ export interface ExpandedSearchCriteria {
   preferredMaxStartTime: StartTimeline | null;
   requiredMaxStartTime: StartTimeline | null;
   preferredTimezone: string[];
-  preferredSalaryRange: { min: number; max: number } | null;
 }
 
 interface ExpansionContext {
@@ -94,7 +93,7 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
   const seniority = expandSeniorityToYearsExperience(request.requiredSeniorityLevel, config);
   const timeline = expandStartTimelineConstraint(request.requiredMaxStartTime, config);
   const timezone = expandTimezoneToPrefixes(request.requiredTimezone);
-  const salary = expandSalaryConstraints(request.requiredMaxSalary, request.requiredMinSalary);
+  const budget = expandBudgetConstraints(request.maxBudget, request.stretchBudget);
   const teamFocus = expandTeamFocusToAlignedSkills(request.teamFocus, config);
   const pagination = expandPaginationConstraints(request.limit, request.offset, config);
 
@@ -107,7 +106,7 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
     seniority.context,
     timeline.context,
     timezone.context,
-    salary.context,
+    budget.context,
     teamFocus.context,
     pagination.context,
     skillsContext,
@@ -119,8 +118,8 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
     maxYearsExperience: seniority.maxYears,
     startTimeline: timeline.startTimeline,
     timezonePrefixes: timezone.timezonePrefixes,
-    maxSalary: salary.maxSalary,
-    minSalary: salary.minSalary,
+    maxBudget: budget.maxBudget,
+    stretchBudget: budget.stretchBudget,
     alignedSkillIds: teamFocus.alignedSkillIds,
     limit: pagination.limit,
     offset: pagination.offset,
@@ -132,7 +131,6 @@ export function expandSearchCriteria(request: SearchFilterRequest): ExpandedSear
     preferredMaxStartTime: request.preferredMaxStartTime ?? null,
     requiredMaxStartTime: timeline.requiredMaxStartTime,
     preferredTimezone: request.preferredTimezone ?? [],
-    preferredSalaryRange: request.preferredSalaryRange ?? null,
   };
 }
 
@@ -223,34 +221,34 @@ function expandTimezoneToPrefixes(
   return { timezonePrefixes, context };
 }
 
-function expandSalaryConstraints(
-  requiredMaxSalary: number | undefined,
-  requiredMinSalary: number | undefined
-): { maxSalary: number | null; minSalary: number | null; context: ExpansionContext } {
+/**
+ * Expands budget constraints into filter criteria.
+ *
+ * The hard filter ceiling is stretchBudget if set, otherwise maxBudget.
+ * Engineers with salary > ceiling are excluded from results.
+ */
+function expandBudgetConstraints(
+  maxBudget: number | undefined,
+  stretchBudget: number | undefined
+): { maxBudget: number | null; stretchBudget: number | null; context: ExpansionContext } {
   const context: ExpansionContext = { filters: [], preferences: [], defaults: [] };
 
-  const maxSalary = requiredMaxSalary ?? null;
-  const minSalary = requiredMinSalary ?? null;
+  const maxBudgetValue = maxBudget ?? null;
+  const stretchBudgetValue = stretchBudget ?? null;
 
-  if (maxSalary !== null) {
+  // Hard filter at the ceiling (stretchBudget if set, otherwise maxBudget)
+  const filterCeiling = stretchBudgetValue ?? maxBudgetValue;
+
+  if (filterCeiling !== null) {
     context.filters.push({
       field: 'salary',
       operator: '<=',
-      value: maxSalary.toString(),
+      value: filterCeiling.toString(),
       source: 'user',
     });
   }
 
-  if (minSalary !== null) {
-    context.filters.push({
-      field: 'salary',
-      operator: '>=',
-      value: minSalary.toString(),
-      source: 'user',
-    });
-  }
-
-  return { maxSalary, minSalary, context };
+  return { maxBudget: maxBudgetValue, stretchBudget: stretchBudgetValue, context };
 }
 
 function expandTeamFocusToAlignedSkills(
@@ -353,14 +351,6 @@ function trackPreferredValuesAsPreferences(request: SearchFilterRequest): Expans
     context.preferences.push({
       field: 'preferredTimezone',
       value: JSON.stringify(request.preferredTimezone),
-      source: 'user',
-    });
-  }
-
-  if (request.preferredSalaryRange) {
-    context.preferences.push({
-      field: 'preferredSalaryRange',
-      value: JSON.stringify(request.preferredSalaryRange),
       source: 'user',
     });
   }

@@ -5,11 +5,12 @@
 
 import type { SeniorityLevel, StartTimeline } from '../../../types/search.types.js';
 import { START_TIMELINE_ORDER } from '../../../types/search.types.js';
+import { seniorityMinYears } from '../../../config/knowledge-base/utility.config.js';
 import type {
   StartTimelineMatchResult,
   PreferredTimezoneMatchResult,
   PreferredSeniorityMatchResult,
-  PreferredSalaryRangeMatchResult,
+  BudgetMatchResult,
 } from '../types.js';
 
 /**
@@ -126,14 +127,6 @@ export function calculatePreferredSeniorityMatch(
     return { raw: 0, matchedLevel: false };
   }
 
-  const seniorityMinYears: Record<SeniorityLevel, number> = {
-    junior: 0,
-    mid: 3,
-    senior: 6,
-    staff: 10,
-    principal: 15,
-  };
-
   const requiredYears = seniorityMinYears[preferredSeniorityLevel];
   const matchedLevel = engineerYearsExperience >= requiredYears;
 
@@ -141,27 +134,47 @@ export function calculatePreferredSeniorityMatch(
 }
 
 /**
- * Calculates preferred salary range match.
- * Full score if salary is within preferred range.
+ * Calculates budget match score.
  *
- * Function type: BINARY (step function)
- * Formula: in range ? max : 0
+ * Function type: STEP + LINEAR DECAY
+ * Formula:
+ *   - No budget set: 1.0 (no salary-based ranking - fairness to all engineers)
+ *   - salary <= maxBudget: 1.0 (within budget)
+ *   - maxBudget < salary <= stretchBudget: linear decay from 1.0 to 0.5
  *
- * Rationale: Salary either fits the preferred budget range or doesn't. Unlike the
- * main salary utility (which uses inverse linear to prefer lower costs), this is
- * about matching an explicit preference - partial credit doesn't make sense.
+ * Rationale: When no budget is specified, we don't penalize higher-earning engineers -
+ * this would be unfair as salary reflects experience/market value, not candidate quality.
+ * The salary dimension only differentiates when candidates exceed the stated budget.
+ *
+ * For over-budget candidates (when stretchBudget is set), we use linear decay rather
+ * than a hard cutoff because teams often stretch budgets for exceptional candidates.
+ * Being $10k over is very different from being $50k over - the decay reflects this.
  */
-export function calculatePreferredSalaryRangeMatch(
+export function calculateBudgetMatch(
   engineerSalary: number,
-  preferredSalaryRange: { min: number; max: number } | null,
+  maxBudget: number | null,
+  stretchBudget: number | null,
   maxMatch: number
-): PreferredSalaryRangeMatchResult {
-  if (!preferredSalaryRange) {
-    return { raw: 0, inPreferredRange: false };
+): BudgetMatchResult {
+  // No budget specified: all engineers score equally (fairness)
+  if (maxBudget === null) {
+    return { raw: maxMatch, inBudget: true, inStretchZone: false };
   }
 
-  const inPreferredRange = engineerSalary >= preferredSalaryRange.min &&
-                           engineerSalary <= preferredSalaryRange.max;
+  // Within budget: full score
+  if (engineerSalary <= maxBudget) {
+    return { raw: maxMatch, inBudget: true, inStretchZone: false };
+  }
 
-  return { raw: inPreferredRange ? maxMatch : 0, inPreferredRange };
+  // Over budget but no stretch defined: shouldn't happen (filtered out)
+  // But handle gracefully with zero score
+  if (stretchBudget === null) {
+    return { raw: 0, inBudget: false, inStretchZone: false };
+  }
+
+  // In stretch zone: linear decay from maxMatch to maxMatch * 0.5
+  const progress = (engineerSalary - maxBudget) / (stretchBudget - maxBudget);
+  const decayedScore = maxMatch * (1 - progress * 0.5);
+
+  return { raw: decayedScore, inBudget: false, inStretchZone: true };
 }

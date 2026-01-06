@@ -31,13 +31,6 @@ export const TeamFocusSchema = z.enum([
 // NESTED OBJECT SCHEMAS
 // ============================================
 
-export const PreferredSalaryRangeSchema = z.object({
-  min: z.number().positive(),
-  max: z.number().positive(),
-}).refine(
-  (data) => data.min <= data.max,
-  { message: 'min must be less than or equal to max' }
-);
 
 /**
  * Skill requirement with per-skill proficiency thresholds.
@@ -88,10 +81,9 @@ export const SearchFilterRequestSchema = z.object({
   requiredTimezone: z.array(z.string()).optional(),
   preferredTimezone: z.array(z.string()).optional(),
 
-  // Salary (hard constraints)
-  requiredMaxSalary: z.number().positive().optional(),
-  requiredMinSalary: z.number().positive().optional(),
-  preferredSalaryRange: PreferredSalaryRangeSchema.optional(),
+  // Budget (job-centric, not engineer-centric)
+  maxBudget: z.number().positive().optional(),
+  stretchBudget: z.number().positive().optional(),
 
   // Context
   teamFocus: TeamFocusSchema.optional(),
@@ -109,14 +101,25 @@ export const SearchFilterRequestSchema = z.object({
   offset: z.number().int().min(0).optional(),
 }).refine(
   (data) => {
-    if (data.requiredMinSalary !== undefined && data.requiredMaxSalary !== undefined) {
-      return data.requiredMinSalary <= data.requiredMaxSalary;
+    if (data.stretchBudget !== undefined && data.maxBudget === undefined) {
+      return false;  // stretchBudget requires maxBudget
     }
     return true;
   },
   {
-    message: 'requiredMinSalary must be less than or equal to requiredMaxSalary',
-    path: ['requiredMinSalary'],
+    message: 'stretchBudget requires maxBudget to be set',
+    path: ['stretchBudget'],
+  }
+).refine(
+  (data) => {
+    if (data.stretchBudget !== undefined && data.maxBudget !== undefined) {
+      return data.stretchBudget >= data.maxBudget;
+    }
+    return true;
+  },
+  {
+    message: 'stretchBudget must be greater than or equal to maxBudget',
+    path: ['stretchBudget'],
   }
 ).refine(
   (data) => {
@@ -140,7 +143,6 @@ export type SeniorityLevel = z.infer<typeof SeniorityLevelSchema>;
 export type StartTimeline = z.infer<typeof StartTimelineSchema>;
 export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
 export type TeamFocus = z.infer<typeof TeamFocusSchema>;
-export type PreferredSalaryRange = z.infer<typeof PreferredSalaryRangeSchema>;
 export type SkillRequirement = z.infer<typeof SkillRequirementSchema>;
 export type BusinessDomainRequirement = z.infer<typeof BusinessDomainRequirementSchema>;
 export type TechnicalDomainRequirement = z.infer<typeof TechnicalDomainRequirementSchema>;

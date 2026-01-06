@@ -12,7 +12,6 @@ export type {
   StartTimeline,
   ProficiencyLevel,
   TeamFocus,
-  PreferredSalaryRange,
   SkillRequirement,
   BusinessDomainRequirement,
   TechnicalDomainRequirement,
@@ -113,8 +112,9 @@ export interface PreferredSeniorityMatch {
   score: number;
 }
 
-export interface PreferredSalaryRangeMatch {
+export interface BudgetMatch {
   score: number;
+  inStretchZone: boolean;
 }
 
 // Note: PreferredSkillProficiencyMatch removed - now absorbed into CoreScores.skillMatch
@@ -129,7 +129,7 @@ export interface PreferenceMatches {
   startTimelineMatch?: StartTimelineMatch;
   preferredTimezoneMatch?: PreferredTimezoneMatch;
   preferredSeniorityMatch?: PreferredSeniorityMatch;
-  preferredSalaryRangeMatch?: PreferredSalaryRangeMatch;
+  budgetMatch?: BudgetMatch;
 }
 
 export interface ScoreBreakdown {

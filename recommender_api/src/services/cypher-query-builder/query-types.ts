@@ -33,8 +33,8 @@ export interface CypherQueryParams extends SkillProficiencyGroups {
   minYearsExperience: number | null;
   maxYearsExperience: number | null;
   timezonePrefixes: string[];
-  maxSalary: number | null;
-  minSalary: number | null;
+  maxBudget: number | null;
+  stretchBudget: number | null;
 
   // Pagination
   offset: number;

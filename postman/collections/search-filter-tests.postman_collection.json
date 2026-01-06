@@ -367,7 +367,7 @@
 			}
 		},
 		{
-			"name": "16 - Salary Range Filter",
+			"name": "16 - Budget Filter (maxBudget Only)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -378,7 +378,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredMinSalary\": 100000,\n  \"requiredMaxSalary\": 180000\n}"
+					"raw": "{\n  \"maxBudget\": 180000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -387,11 +387,11 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| minSalary | `>=` | 100000 | user |\n| maxSalary | `<=` | 180000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **between $100k-$180k**\n- Engineers closer to minSalary have **HIGHER** salary utility\n- Salary utility is inverse: lower salary = better budget fit\n\n## Salary Utility Notes\n\n- Normalization range: $80k (min) to $300k (max)\n- Salary weight: 7% of total utility score"
+				"description": "## Budget Filter\n\nFilters engineers by job budget ceiling.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| salary | `<=` | 180000 | user |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected behavior\n\n- Only engineers with salary **<= $180k** returned\n- All returned engineers score **1.0** on budget dimension\n- No salary-based ranking within budget\n\n## Job-Centric Budget Model\n\nThis is a job budget parameter, not an engineer salary preference:\n- **maxBudget**: The job's budget ceiling\n- Engineers within budget are not differentiated by salary (fairness)"
 			}
 		},
 		{
-			"name": "17 - Max Salary Only (Budget Cap)",
+			"name": "17 - Budget with Stretch",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -402,7 +402,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredMaxSalary\": 150000\n}"
+					"raw": "{\n  \"maxBudget\": 150000,\n  \"stretchBudget\": 180000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -411,7 +411,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| maxSalary | `<=` | 150000 | user |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with salary **<= $150k**\n- Useful for budget-constrained searches\n- No minimum salary floor applied"
+				"description": "## Budget with Stretch Zone\n\nDemonstrates the stretch budget feature for exceptional candidates.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| salary | `<=` | 180000 | user |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected behavior\n\n- Engineers with salary **<= $180k** returned (stretchBudget is the ceiling)\n- Engineers at or under $150k: budgetMatch score = 1.0 (full score)\n- Engineers $150k-$180k: budgetMatch score decays linearly from 1.0 to 0.5\n\n## Budget Score Examples (with maxBudget=$150k, stretchBudget=$180k)\n\n| Salary | Score | In Stretch Zone |\n|--------|-------|----------------|\n| $140k | 1.0 | No |\n| $150k | 1.0 | No |\n| $165k | 0.75 | Yes |\n| $180k | 0.5 | Yes |"
 			}
 		},
 		{
@@ -522,7 +522,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Full Stack\", \"minProficiency\": \"expert\"}],\n  \"teamFocus\": \"scaling\",\n  \"requiredMaxSalary\": 200000\n}"
+					"raw": "{\n  \"requiredSkills\": [{\"skill\": \"Full Stack\", \"minProficiency\": \"expert\"}],\n  \"teamFocus\": \"scaling\",\n  \"maxBudget\": 200000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -531,7 +531,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| maxSalary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Salary **<= $200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
+				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| salary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Budget ceiling **$200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
 			}
 		},
 		{
@@ -785,7 +785,7 @@
 			}
 		},
 		{
-			"name": "31 - Preferred Salary Range",
+			"name": "31 - Validation: stretchBudget Requires maxBudget",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -796,7 +796,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"preferredSalaryRange\": {\n    \"min\": 120000,\n    \"max\": 160000\n  }\n}"
+					"raw": "{\n  \"stretchBudget\": 180000\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -805,7 +805,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredSalaryRange | `BOOST` | `{\"min\":120000,\"max\":160000}` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all salary ranges returned\n- Engineers with salary in $120k-$160k range rank higher\n- Uses `preferredSalaryRangeMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSalaryRangeMatch` component appears\n- Salary within range: 1.0 bonus\n- Salary outside range: 0.0 bonus"
+				"description": "## Validation: stretchBudget Requires maxBudget\n\nThis tests that providing stretchBudget without maxBudget returns a validation error.\n\n## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"custom\",\n        \"message\": \"stretchBudget requires maxBudget to be set\",\n        \"path\": [\"stretchBudget\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Business Rule\n\n- stretchBudget defines the upper stretch ceiling beyond maxBudget\n- Without maxBudget, stretchBudget has no meaning\n- Schema validation enforces this constraint"
 			}
 		},
 		{
@@ -820,7 +820,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"preferredSalaryRange\": {\n    \"min\": 100000,\n    \"max\": 150000\n  },\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 1}\n  ]\n}"
+					"raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"maxBudget\": 150000,\n  \"stretchBudget\": 180000,\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 1}\n  ]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -829,7 +829,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Salary $100k-$150k\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Soft constraints:** All preferred properties boost ranking\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - preferredSalaryRangeMatch: 3%\n  - preferredSkillProficiencyMatch: 4%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- Engineers matching more preferences rank higher"
+				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n  - Salary <= $180k (stretch budget ceiling)\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Budget with stretch zone ($150k max, $180k stretch)\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Hard filter:** Salary <= $180k (stretch ceiling)\n- **Soft constraints:** All preferred properties boost ranking\n- Engineers at/under $150k get full budget score, $150k-$180k decays\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - budgetMatch: 3%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- budgetMatch.inStretchZone indicates if in stretch zone\n- Engineers matching more preferences rank higher"
 			}
 		},
 		{
@@ -844,7 +844,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"requiredSeniorityLevel\": \"invalid_level\",\n  \"limit\": 500,\n  \"requiredMinSalary\": -100,\n  \"requiredSkills\": [{\"skill\": \"Node.js\", \"minProficiency\": \"invalid_level\"}]\n}"
+					"raw": "{\n  \"requiredSeniorityLevel\": \"invalid_level\",\n  \"limit\": 500,\n  \"maxBudget\": -100,\n  \"requiredSkills\": [{\"skill\": \"Node.js\", \"minProficiency\": \"invalid_level\"}]\n}"
 				},
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
@@ -853,7 +853,7 @@
 					"port": "4025",
 					"path": ["api", "search", "filter"]
 				},
-				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"requiredMinSalary\"]\n      },\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSkills\", 0, \"minProficiency\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| requiredMinSalary | -100 | Must be a positive number |\n| requiredSkills[0].minProficiency | \"invalid_level\" | Must be one of: learning, proficient, expert |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Per-skill proficiency validation included"
+				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"maxBudget\"]\n      },\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSkills\", 0, \"minProficiency\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| maxBudget | -100 | Must be a positive number |\n| requiredSkills[0].minProficiency | \"invalid_level\" | Must be one of: learning, proficient, expert |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Per-skill proficiency validation included"
 			}
 		},
 		{

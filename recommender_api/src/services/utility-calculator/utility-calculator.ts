@@ -36,7 +36,7 @@ import {
   calculateStartTimelineMatch,
   calculatePreferredTimezoneMatch,
   calculatePreferredSeniorityMatch,
-  calculatePreferredSalaryRangeMatch,
+  calculateBudgetMatch,
 } from './scoring/logistics-scoring.js';
 
 const config = knowledgeBaseConfig;
@@ -123,10 +123,11 @@ export function calculateUtilityWithBreakdown(
     params.preferredSeniorityMatchMax
   );
 
-  const preferredSalaryRangeResult = calculatePreferredSalaryRangeMatch(
+  const budgetResult = calculateBudgetMatch(
     engineer.salary,
-    context.preferredSalaryRange,
-    params.preferredSalaryRangeMatchMax
+    context.maxBudget,
+    context.stretchBudget,
+    params.budgetMatchMax
   );
 
   // Calculate core weighted scores
@@ -146,7 +147,7 @@ export function calculateUtilityWithBreakdown(
     startTimelineMatch: calculateWeighted(startTimelineResult.raw, weights.startTimelineMatch),
     preferredTimezoneMatch: calculateWeighted(preferredTimezoneResult.raw, weights.preferredTimezoneMatch),
     preferredSeniorityMatch: calculateWeighted(preferredSeniorityResult.raw, weights.preferredSeniorityMatch),
-    preferredSalaryRangeMatch: calculateWeighted(preferredSalaryRangeResult.raw, weights.preferredSalaryRangeMatch),
+    budgetMatch: calculateWeighted(budgetResult.raw, weights.budgetMatch),
   };
 
   // Sum all weighted scores
@@ -213,9 +214,12 @@ export function calculateUtilityWithBreakdown(
       score: matchScores.preferredSeniorityMatch,
     };
   }
-  if (matchScores.preferredSalaryRangeMatch > 0) {
-    preferenceMatches.preferredSalaryRangeMatch = {
-      score: matchScores.preferredSalaryRangeMatch,
+  // Only include budgetMatch if in stretch zone (partial score)
+  // Engineers within budget get full score but we don't need to show that
+  if (matchScores.budgetMatch > 0 && budgetResult.inStretchZone) {
+    preferenceMatches.budgetMatch = {
+      score: matchScores.budgetMatch,
+      inStretchZone: budgetResult.inStretchZone,
     };
   }
 

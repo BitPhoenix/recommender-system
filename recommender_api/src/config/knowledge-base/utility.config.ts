@@ -18,6 +18,7 @@ import type {
   UtilityWeights,
   UtilityFunctionParams,
 } from '../../types/knowledge-base.types.js';
+import type { SeniorityLevel } from '../../types/search.types.js';
 
 /**
  * Attribute Weights (Section 5.2.3, p.178)
@@ -50,7 +51,23 @@ export const utilityWeights: UtilityWeights = {
   startTimelineMatch: 0.10,
   preferredTimezoneMatch: 0.02,
   preferredSeniorityMatch: 0.03,
-  preferredSalaryRangeMatch: 0.03,
+  /*
+   * STEP + LINEAR DECAY (when stretchBudget is set):
+   *   - No budget: 1.0 (no salary-based ranking)
+   *   - At/under maxBudget: 1.0 (within budget)
+   *   - In stretch zone: linear decay from 1.0 to 0.5
+   *
+   * WHY THIS MODEL: When no budget is specified, we don't want to disadvantage
+   * higher-earning engineers - salary reflects experience/market value, not quality.
+   * The salary dimension only differentiates when candidates exceed the stated budget.
+   *
+   * For over-budget candidates, linear decay (not hard cutoff) because teams often
+   * stretch for exceptional candidates. Example with $200k max, $220k stretch:
+   *   - $200k: score = 1.0 (at budget)
+   *   - $210k: score = 0.75 (halfway through stretch)
+   *   - $220k: score = 0.5 (at stretch limit)
+   */
+  budgetMatch: 0.03,
 
   /* Team context alignment */
   teamFocusMatch: 0.04,
@@ -154,11 +171,27 @@ export const utilityParams: UtilityFunctionParams = {
 
   /*
    * BINARY: meets threshold ? max : 0
-   * WHY BINARY: These are qualification thresholds, not gradients. A mid-level engineer
-   * isn't "60% of a senior" - they either meet the seniority bar or don't. Similarly,
-   * salary either fits the preferred range or doesn't. Partial credit doesn't make sense.
+   * WHY BINARY: Seniority is a qualification threshold, not a gradient. A mid-level engineer
+   * isn't "60% of a senior" - they either meet the seniority bar or don't.
    */
   preferredSeniorityMatchMax: 1.0,
-  preferredSalaryRangeMatchMax: 1.0,
+  /*
+   * STEP + LINEAR DECAY: See budgetMatch weight comment above for formula details.
+   */
+  budgetMatchMax: 1.0,
+};
+
+/**
+ * Seniority Level Thresholds
+ *
+ * BINARY threshold mapping: minimum years of experience for each seniority level.
+ * Used by calculatePreferredSeniorityMatch - engineer either meets the bar or doesn't.
+ */
+export const seniorityMinYears: Record<SeniorityLevel, number> = {
+  junior: 0,
+  mid: 3,
+  senior: 6,
+  staff: 10,
+  principal: 15,
 };
 

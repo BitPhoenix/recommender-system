@@ -88,7 +88,7 @@ export interface UtilityWeights {
   startTimelineMatch: number;  // Threshold-based: full score if within preferred, degrades to required
   preferredTimezoneMatch: number;
   preferredSeniorityMatch: number;
-  preferredSalaryRangeMatch: number;
+  budgetMatch: number;  // Step + linear decay based on job budget
   // Note: preferredSkillProficiencyMatch removed - now absorbed into skillMatch
 
   // Team context alignment
@@ -115,7 +115,7 @@ export interface UtilityFunctionParams {
   startTimelineMatchMax: number;
   preferredTimezoneMatchMax: number;
   preferredSeniorityMatchMax: number;
-  preferredSalaryRangeMatchMax: number;
+  budgetMatchMax: number;
   // Note: preferredSkillProficiencyMatchMax removed - absorbed into skillMatch
 }
 

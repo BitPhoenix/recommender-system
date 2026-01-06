@@ -43,7 +43,13 @@ export interface UtilityContext {
   preferredBusinessDomains: ResolvedBusinessDomain[];
   preferredTechnicalDomains: ResolvedTechnicalDomain[];
   alignedSkillIds: string[];
-  maxSalaryBudget: number | null;
+  /*
+   * Budget parameters for scoring (job-centric, not engineer-centric).
+   * - maxBudget: Job's budget ceiling
+   * - stretchBudget: Optional stretch ceiling for exceptional candidates
+   */
+  maxBudget: number | null;
+  stretchBudget: number | null;
   /*
    * Preferred values for match calculation.
    *
@@ -56,7 +62,6 @@ export interface UtilityContext {
   preferredMaxStartTime: StartTimeline | null;
   requiredMaxStartTime: StartTimeline | null;
   preferredTimezone: string[];
-  preferredSalaryRange: { min: number; max: number } | null;
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
   skillIdToPreferredProficiency: Map<string, ProficiencyLevel>;
 }
@@ -124,7 +129,8 @@ export interface PreferredSeniorityMatchResult {
   matchedLevel: boolean;
 }
 
-export interface PreferredSalaryRangeMatchResult {
+export interface BudgetMatchResult {
   raw: number;
-  inPreferredRange: boolean;
+  inBudget: boolean;
+  inStretchZone: boolean;
 }

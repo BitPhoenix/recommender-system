@@ -15,11 +15,14 @@ type FilterParts = { conditions: string[]; queryParams: Record<string, unknown> 
 export function buildBasicEngineerFilters(
   params: CypherQueryParams
 ): BasicEngineerFilters {
+  // The ceiling is stretchBudget if set, otherwise maxBudget
+  const budgetCeiling = params.stretchBudget ?? params.maxBudget;
+
   return combineFilters([
     buildTimelineFilter(params.startTimeline),
     buildExperienceFilter(params.minYearsExperience, params.maxYearsExperience),
     buildTimezoneFilter(params.timezonePrefixes),
-    buildSalaryFilter(params.minSalary, params.maxSalary),
+    buildBudgetFilter(budgetCeiling),
   ]);
 }
 
@@ -79,21 +82,19 @@ function buildTimezoneFilter(timezonePrefixes: string[]): FilterParts {
   };
 }
 
-function buildSalaryFilter(
-  min: number | null,
-  max: number | null
+/**
+ * Builds salary filter for budget constraint.
+ * The ceiling is the hard filter - no engineers above this are returned.
+ */
+function buildBudgetFilter(
+  filterCeiling: number | null
 ): FilterParts {
   const conditions: string[] = [];
   const queryParams: Record<string, unknown> = {};
 
-  if (max !== null) {
-    conditions.push("e.salary <= $maxSalary");
-    queryParams.maxSalary = max;
-  }
-
-  if (min !== null) {
-    conditions.push("e.salary >= $minSalary");
-    queryParams.minSalary = min;
+  if (filterCeiling !== null) {
+    conditions.push("e.salary <= $budgetCeiling");
+    queryParams.budgetCeiling = filterCeiling;
   }
 
   return { conditions, queryParams };

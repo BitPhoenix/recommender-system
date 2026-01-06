@@ -97,8 +97,8 @@ export async function executeSearch(
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
     timezonePrefixes: expanded.timezonePrefixes,
-    maxSalary: expanded.maxSalary,
-    minSalary: expanded.minSalary,
+    maxBudget: expanded.maxBudget,
+    stretchBudget: expanded.stretchBudget,
     offset: expanded.offset,
     limit: expanded.limit,
     // Domain filtering with new model
@@ -183,13 +183,13 @@ export async function executeSearch(
     preferredBusinessDomains,
     preferredTechnicalDomains,
     alignedSkillIds: expanded.alignedSkillIds,
-    maxSalaryBudget: expanded.maxSalary,
+    maxBudget: expanded.maxBudget,
+    stretchBudget: expanded.stretchBudget,
     // Pass through preferred/required values
     preferredSeniorityLevel: expanded.preferredSeniorityLevel,
     preferredMaxStartTime: expanded.preferredMaxStartTime,
     requiredMaxStartTime: expanded.requiredMaxStartTime,
     preferredTimezone: expanded.preferredTimezone,
-    preferredSalaryRange: expanded.preferredSalaryRange,
     // Per-skill preferred proficiencies for ranking boost
     skillIdToPreferredProficiency,
   };
