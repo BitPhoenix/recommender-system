@@ -26,7 +26,7 @@ import {
   scoreAndSortEngineers,
   type EngineerData,
   type UtilityContext,
-} from "./utility-calculator.service.js";
+} from "./utility-calculator/index.js";
 import { knowledgeBaseConfig } from "../config/knowledge-base/index.js";
 import {
   parseEngineerFromRecord,
