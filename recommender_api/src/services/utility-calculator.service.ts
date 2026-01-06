@@ -106,6 +106,13 @@ interface PreferredTechnicalDomainMatchResult {
 /**
  * Calculates preferred skills match utility with matched skill details.
  * Engineers with preferred skills get a ranking boost.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred item is an explicit user wish with equal weight.
+ * Matching 2 of 4 preferred skills is genuinely twice as good as matching 1 of 4 -
+ * there's no diminishing returns on satisfying stated preferences.
  */
 function calculatePreferredSkillsMatchWithDetails(
   matchedSkills: MatchedSkill[],
@@ -133,6 +140,13 @@ function calculatePreferredSkillsMatchWithDetails(
 
 /**
  * Calculates team focus match utility with matched skill details.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max (0.5)
+ *
+ * Rationale: Team alignment is a tiebreaker, not a primary criterion. We use the
+ * same ratio logic as preferred skills but cap at 0.5 so "matches team stack"
+ * doesn't outweigh "has the actual required skills."
  */
 function calculateTeamFocusMatchWithDetails(
   matchedSkills: MatchedSkill[],
@@ -162,6 +176,13 @@ function calculateTeamFocusMatchWithDetails(
  * Calculates related skills match utility.
  * Engineers with more unmatched related skills (below threshold) get a small match score
  * to reward breadth of experience in the skill hierarchy.
+ *
+ * Function type: EXPONENTIAL DECAY
+ * Formula: (1 - e^(-count/scale)) * max
+ *
+ * Rationale: Having 1-2 related skills signals learning agility and T-shaped breadth.
+ * But accumulating 10+ doesn't make someone twice as valuable as having 5 - it just
+ * means a longer resume. We reward breadth but don't let it dominate.
  */
 function calculateRelatedSkillsMatchWithDetails(
   unmatchedRelatedSkills: UnmatchedRelatedSkill[],
@@ -184,6 +205,12 @@ function calculateRelatedSkillsMatchWithDetails(
 /**
  * Calculates preferred business domain match utility with matched domain details.
  * Engineers with preferred business domain experience get a ranking boost.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred domain is an explicit user wish with equal weight.
+ * Matching all requested domains = full score; partial matches scale linearly.
  */
 function calculatePreferredBusinessDomainMatchWithDetails(
   matchedBusinessDomains: BusinessDomainMatch[],
@@ -210,6 +237,12 @@ function calculatePreferredBusinessDomainMatchWithDetails(
 /**
  * Calculates preferred technical domain match utility with matched domain details.
  * Engineers with preferred technical domain experience get a ranking boost.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred domain is an explicit user wish with equal weight.
+ * Matching all requested domains = full score; partial matches scale linearly.
  */
 function calculatePreferredTechnicalDomainMatchWithDetails(
   matchedTechnicalDomains: TechnicalDomainMatch[],
@@ -262,6 +295,13 @@ interface PreferredSalaryRangeMatchResult {
 
 /**
  * Calculates start timeline match using threshold-based scoring.
+ *
+ * Function type: THRESHOLD-BASED with LINEAR DEGRADATION
+ * Formula: Full score at preferred threshold, linear decay to required threshold, zero beyond
+ *
+ * Rationale: Managers think "I need someone within X time" - threshold semantics are
+ * intuitive. Unlike position-based scoring, this rewards engineers who beat the
+ * deadline while gracefully degrading for those who are slower but acceptable.
  *
  * Scoring logic:
  * - Neither specified: No scoring (returns 0)
@@ -318,6 +358,13 @@ function calculateStartTimelineMatch(
 /**
  * Calculates preferred timezone match.
  * Matches against prefix patterns in preference order.
+ *
+ * Function type: POSITION-BASED
+ * Formula: (1 - index / length) * max
+ *
+ * Rationale: The user explicitly ordered their timezone preferences. First choice
+ * means "this is what we actually want," second choice means "acceptable fallback."
+ * Position order carries signal - flattening to binary "match/no-match" loses info.
  */
 function calculatePreferredTimezoneMatch(
   engineerTimezone: string,
@@ -343,6 +390,13 @@ function calculatePreferredTimezoneMatch(
 /**
  * Calculates preferred seniority match.
  * Full score if engineer meets or exceeds preferred level.
+ *
+ * Function type: BINARY (step function)
+ * Formula: meets threshold ? max : 0
+ *
+ * Rationale: Seniority is a qualification threshold, not a gradient. A mid-level
+ * engineer isn't "60% of a senior" - they either meet the seniority bar or don't.
+ * Partial credit doesn't make sense for role-level requirements.
  */
 function calculatePreferredSeniorityMatch(
   engineerYearsExperience: number,
@@ -370,6 +424,13 @@ function calculatePreferredSeniorityMatch(
 /**
  * Calculates preferred salary range match.
  * Full score if salary is within preferred range.
+ *
+ * Function type: BINARY (step function)
+ * Formula: in range ? max : 0
+ *
+ * Rationale: Salary either fits the preferred budget range or doesn't. Unlike the
+ * main salary utility (which uses inverse linear to prefer lower costs), this is
+ * about matching an explicit preference - partial credit doesn't make sense.
  */
 function calculatePreferredSalaryRangeMatch(
   engineerSalary: number,
@@ -396,16 +457,20 @@ interface SkillMatchResult {
 /**
  * Unified skill match scoring that combines coverage and proficiency matching.
  *
+ * Function type: GRADUATED LINEAR (per-skill proficiency scoring)
+ * Formula: average of (actual_level + 1) / (preferred_level + 1) across all skills
+ *
+ * Rationale: This unified approach replaces two separate mechanisms that were
+ * unprincipled. By scoring each skill based on how close the engineer's proficiency
+ * is to the preferred level, we get intuitive graduated credit: an engineer with
+ * "proficient" when you wanted "expert" gets 2/3 credit, not zero.
+ *
  * For each requested skill:
  * - If engineer doesn't have it: 0 credit
  * - If engineer has it with no preferred proficiency: 1.0 credit (full)
  * - If engineer has it with preferred proficiency: graduated credit (actual+1)/(preferred+1)
  *
  * Final score = average credit across all requested skills.
- *
- * This replaces the previous two-mechanism approach:
- * 1. Old skillMatch: coverage ratio + generic proficiency bonus (unprincipled)
- * 2. Old preferredSkillProficiencyMatch: graduated scoring but separate weight
  *
  * Score table (when preference specified):
  *   | Preferred | learning | proficient | expert |
@@ -784,7 +849,14 @@ export function calculateUtilityScore(
 
 /**
  * Calculates confidence score utility.
- * Linear function between min and max.
+ *
+ * Function type: LINEAR
+ * Formula: (confidence - min) / (max - min)
+ *
+ * Rationale: ML confidence scores are already calibrated probabilities. A 0.7→0.8
+ * jump represents a genuine 10% improvement in match certainty. Unlike experience
+ * (where gains diminish), each point of confidence means more reliable skill inference.
+ * Below 0.5 is filtered out, so this range is "acceptable" to "highly confident."
  */
 function calculateConfidenceUtility(
   avgConfidence: number,
@@ -799,7 +871,14 @@ function calculateConfidenceUtility(
 
 /**
  * Calculates years of experience utility.
- * Logarithmic function with diminishing returns.
+ *
+ * Function type: LOGARITHMIC
+ * Formula: log(1 + years) / log(1 + maxYears)
+ *
+ * Rationale: Early career years add distinct capabilities - junior→mid gains project
+ * ownership, mid→senior gains mentorship and architectural judgment. But 15→20 years
+ * adds polish, not fundamentally new capabilities. Hiring managers confirm: "5 years
+ * vs 0" is a different conversation than "22 years vs 17."
  */
 function calculateExperienceUtility(
   yearsExperience: number,
@@ -814,7 +893,15 @@ function calculateExperienceUtility(
 
 /**
  * Calculates salary utility.
- * Inverse linear: lower salary = higher utility (budget fit).
+ *
+ * Function type: INVERSE LINEAR
+ * Formula: (max - salary) / (max - min)
+ *
+ * Rationale: Every dollar saved has equal value - $20k under budget is $20k that
+ * could fund tooling or headcount, regardless of the salary level. We don't use
+ * logarithmic (where the first $50k saved matters more than the next) because
+ * budget math is linear, not diminishing returns. When maxSalaryBudget is specified
+ * in the request, it replaces salaryMax as the ceiling.
  */
 function calculateSalaryUtility(
   salary: number,
@@ -840,6 +927,13 @@ function calculateSalaryUtility(
  * Calculates related skills match utility.
  * Engineers with more unmatched related skills (below threshold) get a small match score
  * to reward breadth of experience in the skill hierarchy.
+ *
+ * Function type: EXPONENTIAL DECAY
+ * Formula: (1 - e^(-count/scale)) * max
+ *
+ * Rationale: Having 1-2 related skills signals learning agility and T-shaped breadth.
+ * But accumulating 10+ doesn't make someone twice as valuable as having 5 - it just
+ * means a longer resume. We reward breadth but don't let it dominate.
  */
 function calculateRelatedSkillsMatchUtility(
   unmatchedRelatedSkills: UnmatchedRelatedSkill[],
@@ -854,6 +948,13 @@ function calculateRelatedSkillsMatchUtility(
 /**
  * Calculates preferred skills match utility.
  * Accumulated score from matching user-specified preferred skills.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred item is an explicit user wish with equal weight.
+ * Matching 2 of 4 preferred skills is genuinely twice as good as matching 1 of 4 -
+ * there's no diminishing returns on satisfying stated preferences.
  */
 function calculatePreferredSkillsMatchUtility(
   matchedSkills: MatchedSkill[],
@@ -877,6 +978,13 @@ function calculatePreferredSkillsMatchUtility(
 /**
  * Calculates team focus match utility.
  * Accumulated score from matching aligned skills.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max (0.5)
+ *
+ * Rationale: Team alignment is a tiebreaker, not a primary criterion. We use the
+ * same ratio logic as preferred skills but cap at 0.5 so "matches team stack"
+ * doesn't outweigh "has the actual required skills."
  */
 function calculateTeamFocusMatchUtility(
   matchedSkills: MatchedSkill[],
@@ -900,6 +1008,12 @@ function calculateTeamFocusMatchUtility(
 /**
  * Calculates preferred business domain match utility.
  * Accumulated score from matching preferred business domains.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred domain is an explicit user wish with equal weight.
+ * Matching all requested domains = full score; partial matches scale linearly.
  */
 function calculatePreferredBusinessDomainMatchUtility(
   matchedBusinessDomains: BusinessDomainMatch[],
@@ -921,6 +1035,12 @@ function calculatePreferredBusinessDomainMatchUtility(
 /**
  * Calculates preferred technical domain match utility.
  * Accumulated score from matching preferred technical domains.
+ *
+ * Function type: RATIO (linear proportion)
+ * Formula: matched / requested, capped at max
+ *
+ * Rationale: Each preferred domain is an explicit user wish with equal weight.
+ * Matching all requested domains = full score; partial matches scale linearly.
  */
 function calculatePreferredTechnicalDomainMatchUtility(
   matchedTechnicalDomains: TechnicalDomainMatch[],
@@ -941,6 +1061,9 @@ function calculatePreferredTechnicalDomainMatchUtility(
 
 /**
  * Normalizes a value to [0, 1] using linear scaling.
+ *
+ * Function type: LINEAR (helper)
+ * Formula: (value - min) / (max - min)
  */
 function normalizeLinear(value: number, min: number, max: number): number {
   if (max === min) return 0.5;
@@ -950,6 +1073,9 @@ function normalizeLinear(value: number, min: number, max: number): number {
 /**
  * Normalizes a value to [0, 1] using inverse linear scaling.
  * Lower values get higher scores.
+ *
+ * Function type: INVERSE LINEAR (helper)
+ * Formula: (max - value) / (max - min)
  */
 function normalizeLinearInverse(value: number, min: number, max: number): number {
   if (max === min) return 0.5;
