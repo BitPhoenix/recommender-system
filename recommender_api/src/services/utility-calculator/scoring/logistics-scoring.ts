@@ -1,6 +1,6 @@
 /**
- * Preference Scoring Functions
- * Calculates utility scores for user preference matches.
+ * Logistics Scoring Functions
+ * Calculates utility scores for employment logistics: timeline, timezone, seniority, salary.
  */
 
 import type { SeniorityLevel, StartTimeline } from '../../../types/search.types.js';

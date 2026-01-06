@@ -37,7 +37,7 @@ import {
   calculatePreferredTimezoneMatch,
   calculatePreferredSeniorityMatch,
   calculatePreferredSalaryRangeMatch,
-} from './scoring/preference-scoring.js';
+} from './scoring/logistics-scoring.js';
 
 const config = knowledgeBaseConfig;
 
