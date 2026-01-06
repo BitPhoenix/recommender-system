@@ -36,6 +36,9 @@ export function normalizeLinearInverse(value: number, min: number, max: number):
  * jump represents a genuine 10% improvement in match certainty. Unlike experience
  * (where gains diminish), each point of confidence means more reliable skill inference.
  * Below 0.5 is filtered out, so this range is "acceptable" to "highly confident."
+ *
+ * When no skill filtering is applied, avgConfidence is 0 and we return 0 since
+ * confidence is irrelevant (all engineers get the same value, so ranking unaffected).
  */
 export function calculateConfidenceUtility(
   avgConfidence: number,
