@@ -71,34 +71,3 @@ export function calculateExperienceUtility(
   return Math.min(logYears / logMax, 1);
 }
 
-/**
- * Calculates salary utility.
- *
- * Function type: INVERSE LINEAR
- * Formula: (max - salary) / (max - min)
- *
- * Rationale: Every dollar saved has equal value - $20k under budget is $20k that
- * could fund tooling or headcount, regardless of the salary level. We don't use
- * logarithmic (where the first $50k saved matters more than the next) because
- * budget math is linear, not diminishing returns. When maxSalaryBudget is specified
- * in the request, it replaces salaryMax as the ceiling.
- */
-export function calculateSalaryUtility(
-  salary: number,
-  maxBudget: number | null,
-  minSalary: number,
-  maxSalary: number
-): number {
-  // If no budget specified, use neutral scoring
-  if (maxBudget === null) {
-    return normalizeLinearInverse(salary, minSalary, maxSalary);
-  }
-
-  // If salary exceeds budget, penalize heavily
-  if (salary > maxBudget) {
-    return 0;
-  }
-
-  // Otherwise, inverse linear within budget
-  return normalizeLinearInverse(salary, minSalary, maxBudget);
-}

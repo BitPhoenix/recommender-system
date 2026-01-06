@@ -75,11 +75,11 @@ export interface SearchDefaults {
 export interface UtilityWeights {
   // Candidate attributes (always evaluated)
   // Note: skillMatch now includes proficiency matching (unified scoring)
+  // Note: salary utility removed - was unfair to higher-earning engineers
   skillMatch: number;
   relatedSkillsMatch: number;
   confidenceScore: number;
   yearsExperience: number;
-  salary: number;
 
   // Preference matches (conditional on request specifying them)
   preferredSkillsMatch: number;
@@ -105,9 +105,7 @@ export interface UtilityFunctionParams {
   confidenceMax: number;
   // Years experience logarithmic params
   yearsExperienceMax: number;
-  // Salary inverse linear params
-  salaryMin: number;
-  salaryMax: number;
+  // Note: salaryMin/salaryMax removed - salary utility removed
   // Preference match maximums
   preferredSkillsMatchMax: number;
   teamFocusMatchMax: number;

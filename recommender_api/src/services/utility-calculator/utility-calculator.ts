@@ -21,7 +21,6 @@ import type {
 import {
   calculateConfidenceUtility,
   calculateExperienceUtility,
-  calculateSalaryUtility,
 } from './scoring/core-scoring.js';
 import {
   calculateSkillMatch,
@@ -73,13 +72,6 @@ export function calculateUtilityWithBreakdown(
   const experienceRaw = calculateExperienceUtility(
     engineer.yearsExperience,
     params.yearsExperienceMax
-  );
-
-  const salaryRaw = calculateSalaryUtility(
-    engineer.salary,
-    context.maxSalaryBudget,
-    params.salaryMin,
-    params.salaryMax
   );
 
   const preferredSkillsResult = calculatePreferredSkillsMatch(
@@ -142,7 +134,6 @@ export function calculateUtilityWithBreakdown(
     skillMatch: calculateWeighted(skillMatchRaw, weights.skillMatch),
     confidence: calculateWeighted(confidenceRaw, weights.confidenceScore),
     experience: calculateWeighted(experienceRaw, weights.yearsExperience),
-    salary: calculateWeighted(salaryRaw, weights.salary),
   };
 
   // Calculate match weighted scores

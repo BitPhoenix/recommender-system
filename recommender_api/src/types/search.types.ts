@@ -64,11 +64,11 @@ export interface TechnicalDomainMatch {
 }
 
 // Core scores (always present if > 0)
+// Note: salary removed - was unfair to higher-earning engineers, now handled by budget filter only
 export interface CoreScores {
   skillMatch: number;
   confidence: number;
   experience: number;
-  salary: number;
 }
 
 // Individual match types with score + match data

@@ -30,13 +30,13 @@ import type {
  */
 export const utilityWeights: UtilityWeights = {
   /* Candidate attributes (always evaluated) */
-  // skillMatch increased from 0.26 to 0.30 - absorbs old preferredSkillProficiencyMatch (0.04)
+  // skillMatch: 0.37 (absorbed 0.07 from removed salary utility + 0.04 from preferredSkillProficiencyMatch)
   // Now includes both coverage and proficiency matching in one unified score.
-  skillMatch: 0.30,
+  // Salary utility removed - was unfair to higher-earning engineers, now handled by budget filter only
+  skillMatch: 0.37,
   relatedSkillsMatch: 0.04,
   confidenceScore: 0.14,
   yearsExperience: 0.11,
-  salary: 0.07,
 
   /* Preference matches (conditional on request specifying them) */
   preferredSkillsMatch: 0.08,
@@ -111,17 +111,6 @@ export const utilityParams: UtilityFunctionParams = {
    * confirm: "5 years vs 0" is a different conversation than "22 years vs 17."
    */
   yearsExperienceMax: 20,
-
-  /*
-   * INVERSE LINEAR: (max - salary) / (max - min)
-   * WHY INVERSE LINEAR: Every dollar saved has equal value - $20k under budget is
-   * $20k that could fund tooling or headcount, regardless of the salary level.
-   * We don't use logarithmic (where the first $50k saved matters more than the next)
-   * because budget math is linear, not diminishing returns.
-   * When maxSalaryBudget is specified in the request, it replaces salaryMax as ceiling.
-   */
-  salaryMin: 80000,
-  salaryMax: 300000,
 
   /*
    * RATIO: matched / requested, capped at max
