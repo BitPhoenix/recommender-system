@@ -1,5 +1,20 @@
 import neo4j, { Driver, Session } from 'neo4j-driver';
 import * as data from './index';
+import {
+  businessDomains,
+  businessDomainHierarchy,
+  technicalDomains,
+  technicalDomainHierarchy,
+  technicalDomainEncompasses,
+} from './domains';
+import {
+  skillCategories,
+  skillCategoryDomainMappings,
+} from './skill-categories';
+import {
+  engineerBusinessDomainExperience,
+  engineerTechnicalDomainExperience,
+} from './engineers';
 
 // ============================================
 // CONFIGURATION
@@ -10,7 +25,7 @@ const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
 const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'password';
 
 // Category definitions
-type SeedCategory = 'skills' | 'engineers' | 'stories' | 'assessments' | 'all';
+type SeedCategory = 'skills' | 'engineers' | 'stories' | 'assessments' | 'domains' | 'all';
 
 const SEED_CATEGORIES = (process.env.SEED_CATEGORIES?.split(',') || ['all']) as SeedCategory[];
 
@@ -29,7 +44,7 @@ async function createConstraints(session: Session): Promise<void> {
     'CREATE CONSTRAINT skill_id IF NOT EXISTS FOR (s:Skill) REQUIRE s.id IS UNIQUE',
     'CREATE CONSTRAINT engineer_id IF NOT EXISTS FOR (e:Engineer) REQUIRE e.id IS UNIQUE',
     'CREATE CONSTRAINT manager_id IF NOT EXISTS FOR (m:EngineeringManager) REQUIRE m.id IS UNIQUE',
-    'CREATE CONSTRAINT engineer_skill_id IF NOT EXISTS FOR (es:EngineerSkill) REQUIRE es.id IS UNIQUE',
+    'CREATE CONSTRAINT user_skill_id IF NOT EXISTS FOR (us:UserSkill) REQUIRE us.id IS UNIQUE',
     'CREATE CONSTRAINT story_id IF NOT EXISTS FOR (s:InterviewStory) REQUIRE s.id IS UNIQUE',
     'CREATE CONSTRAINT analysis_id IF NOT EXISTS FOR (a:StoryAnalysis) REQUIRE a.id IS UNIQUE',
     'CREATE CONSTRAINT assessment_id IF NOT EXISTS FOR (a:Assessment) REQUIRE a.id IS UNIQUE',
@@ -37,6 +52,10 @@ async function createConstraints(session: Session): Promise<void> {
     'CREATE CONSTRAINT attempt_id IF NOT EXISTS FOR (a:AssessmentAttempt) REQUIRE a.id IS UNIQUE',
     'CREATE CONSTRAINT performance_id IF NOT EXISTS FOR (p:QuestionPerformance) REQUIRE p.id IS UNIQUE',
     'CREATE CONSTRAINT certification_id IF NOT EXISTS FOR (c:Certification) REQUIRE c.id IS UNIQUE',
+    // New domain model constraints
+    'CREATE CONSTRAINT business_domain_id IF NOT EXISTS FOR (bd:BusinessDomain) REQUIRE bd.id IS UNIQUE',
+    'CREATE CONSTRAINT technical_domain_id IF NOT EXISTS FOR (td:TechnicalDomain) REQUIRE td.id IS UNIQUE',
+    'CREATE CONSTRAINT skill_category_id IF NOT EXISTS FOR (sc:SkillCategory) REQUIRE sc.id IS UNIQUE',
   ];
 
   for (const constraint of constraints) {
@@ -93,6 +112,42 @@ async function seedSkillHierarchy(session: Session): Promise<void> {
   console.log(`   ✓ Seeded ${data.skillHierarchy.length} hierarchy relationships`);
 }
 
+async function cleanupRoleCategoryChildOf(session: Session): Promise<void> {
+  // Remove any stale CHILD_OF relationships pointing to role categories
+  // These were replaced by BELONGS_TO relationships
+  console.log('🧹 Cleaning up stale CHILD_OF relationships from role categories...');
+
+  const result = await session.run(
+    `MATCH (s:Skill)-[r:CHILD_OF]->(cat:Skill)
+     WHERE cat.id IN ['cat_backend', 'cat_frontend', 'cat_fullstack']
+       AND s.isCategory = false
+     DELETE r
+     RETURN count(r) AS deleted`
+  );
+
+  const deleted = result.records[0]?.get('deleted')?.toNumber() || 0;
+  if (deleted > 0) {
+    console.log(`   ✓ Removed ${deleted} stale CHILD_OF relationships`);
+  }
+}
+
+async function seedSkillCategoryMemberships(session: Session): Promise<void> {
+  console.log('🏷️  Seeding skill category memberships...');
+
+  for (const membership of data.skillCategoryMemberships) {
+    await session.run(
+      `MATCH (skill:Skill {id: $skillId})
+       MATCH (category:Skill {id: $categoryId})
+       MERGE (skill)-[:BELONGS_TO]->(category)`,
+      {
+        skillId: membership.skillId,
+        categoryId: membership.categoryId,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${data.skillCategoryMemberships.length} category membership relationships`);
+}
+
 async function seedSkillCorrelations(session: Session): Promise<void> {
   console.log('🔗 Seeding skill correlations...');
 
@@ -122,13 +177,13 @@ async function seedEngineers(session: Session): Promise<void> {
       `MERGE (e:Engineer {id: $id})
        ON CREATE SET
          e.name = $name, e.email = $email, e.headline = $headline,
-         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
-         e.availability = $availability, e.timezone = $timezone,
+         e.salary = $salary, e.yearsExperience = $yearsExperience,
+         e.startTimeline = $startTimeline, e.timezone = $timezone,
          e.createdAt = datetime($createdAt)
        ON MATCH SET
          e.name = $name, e.email = $email, e.headline = $headline,
-         e.hourlyRate = $hourlyRate, e.yearsExperience = $yearsExperience,
-         e.availability = $availability, e.timezone = $timezone`,
+         e.salary = $salary, e.yearsExperience = $yearsExperience,
+         e.startTimeline = $startTimeline, e.timezone = $timezone`,
       eng
     );
   }
@@ -152,26 +207,49 @@ async function seedManagers(session: Session): Promise<void> {
   console.log(`   ✓ Seeded ${data.managers.length} managers`);
 }
 
-async function seedEngineerSkills(session: Session): Promise<void> {
-  console.log('💪 Seeding engineer skills...');
+async function cleanupOldEngineerSkillNodes(session: Session): Promise<void> {
+  console.log('🧹 Cleaning up old EngineerSkill nodes...');
 
-  for (const es of data.engineerSkills) {
+  const result = await session.run(
+    `MATCH (es:EngineerSkill)
+     DETACH DELETE es
+     RETURN count(es) AS deleted`
+  );
+
+  const deleted = result.records[0]?.get('deleted')?.toNumber() || 0;
+  if (deleted > 0) {
+    console.log(`   ✓ Removed ${deleted} old EngineerSkill nodes`);
+  }
+
+  // Drop the old constraint if it exists
+  try {
+    await session.run('DROP CONSTRAINT engineer_skill_id IF EXISTS');
+    console.log('   ✓ Dropped old engineer_skill_id constraint');
+  } catch {
+    // Constraint may not exist
+  }
+}
+
+async function seedUserSkills(session: Session): Promise<void> {
+  console.log('💪 Seeding user skills...');
+
+  for (const us of data.userSkills) {
     await session.run(
       `MATCH (e:Engineer {id: $engineerId})
        MATCH (s:Skill {id: $skillId})
-       MERGE (es:EngineerSkill {id: $id})
+       MERGE (us:UserSkill {id: $id})
        ON CREATE SET
-         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
-         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
+         us.proficiencyLevel = $proficiencyLevel, us.yearsUsed = $yearsUsed,
+         us.confidenceScore = $confidenceScore, us.lastValidated = datetime($lastValidated)
        ON MATCH SET
-         es.proficiencyLevel = $proficiencyLevel, es.yearsUsed = $yearsUsed,
-         es.confidenceScore = $confidenceScore, es.lastValidated = datetime($lastValidated)
-       MERGE (e)-[:HAS]->(es)
-       MERGE (es)-[:FOR]->(s)`,
-      es
+         us.proficiencyLevel = $proficiencyLevel, us.yearsUsed = $yearsUsed,
+         us.confidenceScore = $confidenceScore, us.lastValidated = datetime($lastValidated)
+       MERGE (e)-[:HAS]->(us)
+       MERGE (us)-[:FOR]->(s)`,
+      us
     );
   }
-  console.log(`   ✓ Seeded ${data.engineerSkills.length} engineer skill records`);
+  console.log(`   ✓ Seeded ${data.userSkills.length} user skill records`);
 }
 
 async function seedInterviewStories(session: Session): Promise<void> {
@@ -403,13 +481,13 @@ async function seedSkillEvidence(session: Session): Promise<void> {
     }
 
     await session.run(
-      `MATCH (es:EngineerSkill {id: $engineerSkillId})
+      `MATCH (us:UserSkill {id: $userSkillId})
        MATCH (ev:${evidenceLabel} {id: $evidenceId})
-       MERGE (es)-[r:EVIDENCED_BY]->(ev)
+       MERGE (us)-[r:EVIDENCED_BY]->(ev)
        ON CREATE SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary
        ON MATCH SET r.relevanceScore = $relevanceScore, r.isPrimary = $isPrimary`,
       {
-        engineerSkillId: ev.engineerSkillId,
+        userSkillId: ev.userSkillId,
         evidenceId: ev.evidenceId,
         relevanceScore: ev.relevanceScore,
         isPrimary: ev.isPrimary,
@@ -417,6 +495,204 @@ async function seedSkillEvidence(session: Session): Promise<void> {
     );
   }
   console.log(`   ✓ Seeded ${data.skillEvidence.length} evidence relationships`);
+}
+
+// ============================================
+// DOMAIN MODEL SEEDING
+// ============================================
+
+async function cleanupOldDomainData(session: Session): Promise<void> {
+  console.log('🧹 Cleaning up old domain_knowledge skills and role categories...');
+
+  // Remove UserSkill nodes for domain_knowledge skills
+  const usResult = await session.run(`
+    MATCH (us:UserSkill)-[:FOR]->(s:Skill {skillType: 'domain_knowledge'})
+    DETACH DELETE us
+    RETURN count(us) AS deleted
+  `);
+  const usDeleted = usResult.records[0]?.get('deleted')?.toNumber() || 0;
+  if (usDeleted > 0) {
+    console.log(`   ✓ Removed ${usDeleted} domain_knowledge UserSkill nodes`);
+  }
+
+  // Remove domain_knowledge skills
+  const skillResult = await session.run(`
+    MATCH (s:Skill {skillType: 'domain_knowledge'})
+    DETACH DELETE s
+    RETURN count(s) AS deleted
+  `);
+  const skillDeleted = skillResult.records[0]?.get('deleted')?.toNumber() || 0;
+  if (skillDeleted > 0) {
+    console.log(`   ✓ Removed ${skillDeleted} domain_knowledge Skill nodes`);
+  }
+
+  // Remove role-based categories (cat_backend, cat_frontend, cat_fullstack)
+  const roleResult = await session.run(`
+    MATCH (s:Skill)
+    WHERE s.id IN ['cat_backend', 'cat_frontend', 'cat_fullstack']
+    DETACH DELETE s
+    RETURN count(s) AS deleted
+  `);
+  const roleDeleted = roleResult.records[0]?.get('deleted')?.toNumber() || 0;
+  if (roleDeleted > 0) {
+    console.log(`   ✓ Removed ${roleDeleted} role-based category nodes`);
+  }
+
+  // Remove old BELONGS_TO relationships from skills to category Skill nodes
+  const belongsResult = await session.run(`
+    MATCH (skill:Skill)-[r:BELONGS_TO]->(cat:Skill {isCategory: true})
+    DELETE r
+    RETURN count(r) AS deleted
+  `);
+  const belongsDeleted = belongsResult.records[0]?.get('deleted')?.toNumber() || 0;
+  if (belongsDeleted > 0) {
+    console.log(`   ✓ Removed ${belongsDeleted} old Skill→Skill BELONGS_TO relationships`);
+  }
+
+  // Remove old category Skill nodes (cat_languages, cat_databases, etc.)
+  const catResult = await session.run(`
+    MATCH (s:Skill {isCategory: true})
+    DETACH DELETE s
+    RETURN count(s) AS deleted
+  `);
+  const catDeleted = catResult.records[0]?.get('deleted')?.toNumber() || 0;
+  if (catDeleted > 0) {
+    console.log(`   ✓ Removed ${catDeleted} category Skill nodes`);
+  }
+}
+
+async function seedBusinessDomains(session: Session): Promise<void> {
+  console.log('🏢 Seeding business domains...');
+  for (const domain of businessDomains) {
+    await session.run(
+      `MERGE (d:BusinessDomain {id: $id})
+       ON CREATE SET d.name = $name, d.description = $description
+       ON MATCH SET d.name = $name, d.description = $description`,
+      { ...domain, description: domain.description || null }
+    );
+  }
+  console.log(`   ✓ Seeded ${businessDomains.length} business domains`);
+}
+
+async function seedBusinessDomainHierarchy(session: Session): Promise<void> {
+  console.log('🌳 Seeding business domain hierarchy (CHILD_OF)...');
+  for (const rel of businessDomainHierarchy) {
+    await session.run(
+      `MATCH (child:BusinessDomain {id: $childDomainId})
+       MATCH (parent:BusinessDomain {id: $parentDomainId})
+       MERGE (child)-[:CHILD_OF]->(parent)`,
+      rel
+    );
+  }
+  console.log(`   ✓ Seeded ${businessDomainHierarchy.length} CHILD_OF relationships`);
+}
+
+async function seedTechnicalDomains(session: Session): Promise<void> {
+  console.log('⚙️  Seeding technical domains...');
+  for (const domain of technicalDomains) {
+    await session.run(
+      `MERGE (d:TechnicalDomain {id: $id})
+       ON CREATE SET d.name = $name, d.description = $description, d.isComposite = $isComposite
+       ON MATCH SET d.name = $name, d.description = $description, d.isComposite = $isComposite`,
+      { ...domain, description: domain.description || null, isComposite: domain.isComposite ?? false }
+    );
+  }
+  console.log(`   ✓ Seeded ${technicalDomains.length} technical domains`);
+}
+
+async function seedTechnicalDomainHierarchy(session: Session): Promise<void> {
+  console.log('🌳 Seeding technical domain hierarchy (CHILD_OF)...');
+  for (const rel of technicalDomainHierarchy) {
+    await session.run(
+      `MATCH (child:TechnicalDomain {id: $childDomainId})
+       MATCH (parent:TechnicalDomain {id: $parentDomainId})
+       MERGE (child)-[:CHILD_OF]->(parent)`,
+      rel
+    );
+  }
+  console.log(`   ✓ Seeded ${technicalDomainHierarchy.length} CHILD_OF relationships`);
+}
+
+async function seedTechnicalDomainEncompasses(session: Session): Promise<void> {
+  console.log('🔗 Seeding technical domain encompasses relationships...');
+  for (const rel of technicalDomainEncompasses) {
+    await session.run(
+      `MATCH (composite:TechnicalDomain {id: $compositeDomainId})
+       MATCH (encompassed:TechnicalDomain {id: $encompassedDomainId})
+       MERGE (composite)-[:ENCOMPASSES]->(encompassed)`,
+      rel
+    );
+  }
+  console.log(`   ✓ Seeded ${technicalDomainEncompasses.length} ENCOMPASSES relationships`);
+}
+
+async function seedSkillCategories(session: Session): Promise<void> {
+  console.log('📁 Seeding skill categories...');
+  for (const category of skillCategories) {
+    await session.run(
+      `MERGE (sc:SkillCategory {id: $id})
+       ON CREATE SET sc.name = $name, sc.description = $description
+       ON MATCH SET sc.name = $name, sc.description = $description`,
+      { ...category, description: category.description || null }
+    );
+  }
+  console.log(`   ✓ Seeded ${skillCategories.length} skill categories`);
+}
+
+async function seedSkillToSkillCategoryMemberships(session: Session): Promise<void> {
+  console.log('🏷️  Seeding skill to skill category memberships...');
+  for (const membership of data.skillCategoryMemberships) {
+    await session.run(
+      `MATCH (s:Skill {id: $skillId})
+       MATCH (sc:SkillCategory {id: $categoryId})
+       MERGE (s)-[:BELONGS_TO]->(sc)`,
+      membership
+    );
+  }
+  console.log(`   ✓ Seeded ${data.skillCategoryMemberships.length} Skill→SkillCategory relationships`);
+}
+
+async function seedSkillCategoryDomainMappings(session: Session): Promise<void> {
+  console.log('🗺️  Seeding skill category to technical domain mappings...');
+  for (const mapping of skillCategoryDomainMappings) {
+    await session.run(
+      `MATCH (sc:SkillCategory {id: $skillCategoryId})
+       MATCH (td:TechnicalDomain {id: $technicalDomainId})
+       MERGE (sc)-[:BELONGS_TO]->(td)`,
+      mapping
+    );
+  }
+  console.log(`   ✓ Seeded ${skillCategoryDomainMappings.length} SkillCategory→TechnicalDomain relationships`);
+}
+
+async function seedEngineerBusinessDomainExperience(session: Session): Promise<void> {
+  console.log('💼 Seeding engineer business domain experience...');
+  for (const exp of engineerBusinessDomainExperience) {
+    await session.run(
+      `MATCH (e:Engineer {id: $engineerId})
+       MATCH (d:BusinessDomain {id: $businessDomainId})
+       MERGE (e)-[r:HAS_EXPERIENCE_IN]->(d)
+       ON CREATE SET r.years = $years
+       ON MATCH SET r.years = $years`,
+      exp
+    );
+  }
+  console.log(`   ✓ Seeded ${engineerBusinessDomainExperience.length} Engineer→BusinessDomain relationships`);
+}
+
+async function seedEngineerTechnicalDomainExperience(session: Session): Promise<void> {
+  console.log('🔧 Seeding engineer technical domain experience...');
+  for (const exp of engineerTechnicalDomainExperience) {
+    await session.run(
+      `MATCH (e:Engineer {id: $engineerId})
+       MATCH (d:TechnicalDomain {id: $technicalDomainId})
+       MERGE (e)-[r:HAS_EXPERIENCE_IN]->(d)
+       ON CREATE SET r.years = $years
+       ON MATCH SET r.years = $years`,
+      exp
+    );
+  }
+  console.log(`   ✓ Seeded ${engineerTechnicalDomainExperience.length} Engineer→TechnicalDomain relationships`);
 }
 
 // ============================================
@@ -442,13 +718,39 @@ async function seed(): Promise<void> {
     if (shouldSeedCategory('skills')) {
       await seedSkills(session);
       await seedSkillHierarchy(session);
+      await cleanupRoleCategoryChildOf(session);
+      // Note: Skill→SkillCategory memberships are seeded after domains
       await seedSkillCorrelations(session);
     }
 
+    if (shouldSeedCategory('domains')) {
+      // Clean up old domain model data first
+      await cleanupOldDomainData(session);
+
+      // Seed new domain nodes
+      await seedBusinessDomains(session);
+      await seedBusinessDomainHierarchy(session);
+      await seedTechnicalDomains(session);
+      await seedTechnicalDomainHierarchy(session);
+      await seedTechnicalDomainEncompasses(session);
+
+      // Seed skill categories and their mappings
+      await seedSkillCategories(session);
+      await seedSkillToSkillCategoryMemberships(session);
+      await seedSkillCategoryDomainMappings(session);
+    }
+
     if (shouldSeedCategory('engineers')) {
+      await cleanupOldEngineerSkillNodes(session);
       await seedEngineers(session);
       await seedManagers(session);
-      await seedEngineerSkills(session);
+      await seedUserSkills(session);
+
+      // Seed engineer domain experience (requires domains to be seeded)
+      if (shouldSeedCategory('domains')) {
+        await seedEngineerBusinessDomainExperience(session);
+        await seedEngineerTechnicalDomainExperience(session);
+      }
     }
 
     if (shouldSeedCategory('stories')) {

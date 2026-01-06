@@ -80,3 +80,20 @@ k8s_resource(
     port_forwards=['4025:4025'],
     resource_deps=['neo4j-db'],
 )
+
+# ============================================
+# Client (React Frontend)
+# ============================================
+
+local_resource(
+    'client',
+    serve_cmd='cd client && npm run dev',
+    labels=['recommender'],
+    deps=[
+        'client/src',
+        'client/index.html',
+        'client/vite.config.mjs',
+        'client/package.json',
+    ],
+    resource_deps=['recommender-api'],
+)

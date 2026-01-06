@@ -2,11 +2,11 @@
 // SKILL TYPES
 // ============================================
 
-export type SkillType = 'technical' | 'behavioral' | 'domain_knowledge';
+export type SkillType = 'technical' | 'behavioral';
 export type CorrelationType = 'complementary' | 'transferable' | 'co_occurring';
 export type ProficiencyLevel = 'learning' | 'proficient' | 'expert';
 export type TechnicalDepth = 'surface' | 'working' | 'deep' | 'expert';
-export type Availability = 'immediate' | 'two_weeks' | 'one_month' | 'not_available';
+export type StartTimeline = 'immediate' | 'two_weeks' | 'one_month' | 'three_months' | 'six_months' | 'one_year';
 export type AssessmentType = 'coding_challenge' | 'system_design' | 'take_home' | 'live_interview';
 
 export interface Skill {
@@ -29,6 +29,11 @@ export interface SkillHierarchy {
   parentSkillId: string;
 }
 
+export interface SkillCategoryMembership {
+  skillId: string;
+  categoryId: string;
+}
+
 // ============================================
 // ENGINEER TYPES
 // ============================================
@@ -38,14 +43,14 @@ export interface Engineer {
   name: string;
   email: string;
   headline: string;
-  hourlyRate: number;
+  salary: number;
   yearsExperience: number;
-  availability: Availability;
+  startTimeline: StartTimeline;
   timezone: string;
   createdAt: string;
 }
 
-export interface EngineerSkill {
+export interface UserSkill {
   id: string;
   engineerId: string;
   skillId: string;
@@ -184,9 +189,74 @@ export interface CertificationValidation {
 // ============================================
 
 export interface SkillEvidence {
-  engineerSkillId: string;
+  userSkillId: string;
   evidenceId: string;
   evidenceType: 'story' | 'performance' | 'certification';
   relevanceScore: number;
   isPrimary: boolean;
+}
+
+// ============================================
+// DOMAIN TYPES
+// ============================================
+
+export interface BusinessDomain {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface BusinessDomainHierarchy {
+  childDomainId: string;
+  parentDomainId: string;
+}
+
+export interface TechnicalDomain {
+  id: string;
+  name: string;
+  description?: string;
+  isComposite?: boolean; // true for Full Stack
+}
+
+export interface TechnicalDomainHierarchy {
+  childDomainId: string;
+  parentDomainId: string;
+}
+
+export interface TechnicalDomainEncompasses {
+  compositeDomainId: string;
+  encompassedDomainId: string;
+}
+
+// ============================================
+// SKILL CATEGORY TYPES
+// ============================================
+
+export interface SkillCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface SkillCategoryDomainMapping {
+  skillCategoryId: string;
+  technicalDomainId: string;
+}
+
+// ============================================
+// ENGINEER DOMAIN EXPERIENCE
+// ============================================
+
+export interface EngineerBusinessDomainExperience {
+  id: string;
+  engineerId: string;
+  businessDomainId: string;
+  years: number;
+}
+
+export interface EngineerTechnicalDomainExperience {
+  id: string;
+  engineerId: string;
+  technicalDomainId: string;
+  years: number;
 }
