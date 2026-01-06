@@ -17,6 +17,7 @@
 
 import type { Session } from 'neo4j-driver';
 import type { ProficiencyLevel, SkillRequirement } from '../types/search.types.js';
+import { PROFICIENCY_LEVEL_ORDER } from '../types/search.types.js';
 
 /**
  * A leaf skill with inherited proficiency requirements.
@@ -47,7 +48,7 @@ export interface SkillRequirementResolutionResult {
  * The skill graph uses two relationship types that we must traverse:
  *
  * 1. BELONGS_TO - Role-based membership (skill belongs to multiple categories)
- *    Example: Node.js BELONGS_TO Backend, Node.js BELONGS_TO "Full Stack"
+ *    Example: JavaScript BELONGS_TO "Frontend Frameworks", JavaScript BELONGS_TO "Backend Languages"
  *    Used for: Composite categories that group skills by role/function
  *
  * 2. CHILD_OF - Structural hierarchy (skill is a specialization of parent)
@@ -186,11 +187,10 @@ RETURN DISTINCT identifier
     // Handle overlap: same skill reached from multiple parents
     if (resolvedSkillMap.has(skillId)) {
       const existing = resolvedSkillMap.get(skillId)!;
-      const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
 
       // Keep the stricter (higher index) minProficiency
-      const existingIdx = proficiencyOrder.indexOf(existing.minProficiency);
-      const newIdx = proficiencyOrder.indexOf(proficiency.min);
+      const existingIdx = PROFICIENCY_LEVEL_ORDER.indexOf(existing.minProficiency);
+      const newIdx = PROFICIENCY_LEVEL_ORDER.indexOf(proficiency.min);
       if (newIdx > existingIdx) {
         existing.minProficiency = proficiency.min;
       }
@@ -198,9 +198,9 @@ RETURN DISTINCT identifier
       // Keep the stricter preferredMinProficiency
       if (proficiency.preferred) {
         const existingPrefIdx = existing.preferredMinProficiency
-          ? proficiencyOrder.indexOf(existing.preferredMinProficiency)
+          ? PROFICIENCY_LEVEL_ORDER.indexOf(existing.preferredMinProficiency)
           : -1;
-        const newPrefIdx = proficiencyOrder.indexOf(proficiency.preferred);
+        const newPrefIdx = PROFICIENCY_LEVEL_ORDER.indexOf(proficiency.preferred);
         if (newPrefIdx > existingPrefIdx) {
           existing.preferredMinProficiency = proficiency.preferred;
         }

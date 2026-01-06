@@ -20,7 +20,7 @@ export type {
 } from '../schemas/search.schema.js';
 
 // Re-export constants from schemas
-export { START_TIMELINE_ORDER } from '../schemas/search.schema.js';
+export { START_TIMELINE_ORDER, PROFICIENCY_LEVEL_ORDER } from '../schemas/search.schema.js';
 
 // ============================================
 // RESPONSE TYPES

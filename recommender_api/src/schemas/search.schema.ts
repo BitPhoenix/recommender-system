@@ -19,7 +19,9 @@ export const START_TIMELINE_ORDER = [
 
 export const StartTimelineSchema = z.enum(START_TIMELINE_ORDER);
 
-export const ProficiencyLevelSchema = z.enum(['learning', 'proficient', 'expert']);
+export const PROFICIENCY_LEVEL_ORDER = ['learning', 'proficient', 'expert'] as const;
+
+export const ProficiencyLevelSchema = z.enum(PROFICIENCY_LEVEL_ORDER);
 
 export const TeamFocusSchema = z.enum([
   'greenfield', 'migration', 'maintenance', 'scaling'

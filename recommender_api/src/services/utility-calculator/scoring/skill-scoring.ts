@@ -4,6 +4,7 @@
  */
 
 import type { MatchedSkill, UnmatchedRelatedSkill, ProficiencyLevel } from '../../../types/search.types.js';
+import { PROFICIENCY_LEVEL_ORDER } from '../../../types/search.types.js';
 import type {
   SkillMatchResult,
   PreferredSkillsMatchResult,
@@ -47,7 +48,6 @@ export function calculateSkillMatch(
     return { score: 0.5, skillsExceedingPreferred: [] };
   }
 
-  const proficiencyOrder: ProficiencyLevel[] = ['learning', 'proficient', 'expert'];
   const skillsExceedingPreferred: string[] = [];
   let totalCredit = 0;
 
@@ -66,8 +66,8 @@ export function calculateSkillMatch(
 
     if (preferredLevel) {
       // Has preferred proficiency: use graduated linear scoring
-      const preferredIndex = proficiencyOrder.indexOf(preferredLevel);
-      const actualIndex = proficiencyOrder.indexOf(matchedSkill.proficiencyLevel as ProficiencyLevel);
+      const preferredIndex = PROFICIENCY_LEVEL_ORDER.indexOf(preferredLevel);
+      const actualIndex = PROFICIENCY_LEVEL_ORDER.indexOf(matchedSkill.proficiencyLevel as ProficiencyLevel);
       const credit = Math.min(1.0, (actualIndex + 1) / (preferredIndex + 1));
       totalCredit += credit;
 
