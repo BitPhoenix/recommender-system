@@ -142,28 +142,6 @@ RETURN identifier, s IS NOT NULL AS exists
 }
 
 /**
- * Gets aligned skill IDs for team focus, validating they exist in the database.
- */
-export async function resolveAlignedSkills(
-  session: Session,
-  alignedSkillIds: string[]
-): Promise<string[]> {
-  if (!alignedSkillIds || alignedSkillIds.length === 0) {
-    return [];
-  }
-
-  const query = `
-MATCH (s:Skill)
-WHERE s.id IN $alignedSkillIds
-RETURN s.id AS skillId
-`;
-
-  const result = await session.run(query, { alignedSkillIds });
-
-  return result.records.map((record) => record.get('skillId') as string);
-}
-
-/**
  * Resolves skill requirements with per-skill proficiency.
  * Each skill can have its own minProficiency and preferredMinProficiency.
  * Expanded descendant skills inherit the parent's proficiency requirements.
