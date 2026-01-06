@@ -23,12 +23,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (empty)\n\n## Expected matches\n\n- All engineers (default includes all timeline options)\n- Sorted by `utilityScore` descending\n- Default pagination: 20 results starting at offset 0\n\n## Notes\n\n- Confidence score is fixed at 0.70 internally (medium risk equivalent)\n- No proficiency filter without skill requirements"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "02 - Seniority Level: Senior",
@@ -47,12 +98,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Seniority mapping:\n  - junior: 0-3 years\n  - mid: 3-6 years\n  - **senior: 6-10 years**\n  - staff: 10+ years\n  - principal: 15+ years"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "03 - Seniority Level: Junior",
@@ -71,12 +173,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 0 AND 3 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]` (empty - no skills requested)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **0-3 years experience**\n- Entry-level engineers"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "04 - Skill Category Expansion: Backend",
@@ -95,12 +248,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include ALL descendants of \"Backend\" category:\n  - **Languages:** Node.js, Express, NestJS, Python, Django, FastAPI, Java, Spring Boot, Go, Rust\n  - **Databases:** PostgreSQL, MySQL, MongoDB, Redis, DynamoDB, Neo4j, Kafka\n  - **Architecture:** API Design, REST API, GraphQL, gRPC, System Design, Microservices, Event-Driven, Distributed Systems\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Backend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Backend category\n- Default proficiency: 'learning' (all levels qualify)\n- `matchedSkills` array populated with matching skills\n- `matchType` should be `descendant` for inherited skills"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "05 - Skill Category Expansion: Frontend",
@@ -119,12 +323,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Frontend\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Should include descendants of \"Frontend\" category:\n  - JavaScript, TypeScript, React, Next.js, Vue, Angular\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]` (Frontend should resolve)\n\n## Expected matches\n\n- Engineers with ANY skill that belongs to Frontend category\n- `matchedSkills` populated with matching skills\n- Smaller expansion set compared to Backend"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "06 - Specific Skills: Node.js + TypeScript",
@@ -143,12 +398,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"TypeScript\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\", \"TypeScript\"]` (leaf skills, no expansion)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[]`\n\n## Expected matches\n\n- Engineers must have **at least one** of Node.js OR TypeScript skills\n- `matchedSkills` array shows skills with `matchType: \"direct\"`\n- Higher `skillMatch` utility for engineers proficient in both"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "07 - Per-Skill Proficiency: Expert TypeScript",
@@ -167,12 +473,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Per-Skill Proficiency Feature\n\nThis tests the new per-skill proficiency requirement where each skill can have its own minProficiency.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"TypeScript\"]` | user |\n| TypeScript.minProficiency | `=` | expert | user |\n\n## Expected matches\n\n- Only engineers with **expert-level TypeScript** proficiency\n- Excludes 'proficient' and 'learning' levels for TypeScript\n\n## Proficiency Hierarchy\n\n| Min Level | Includes |\n|-----------|----------|\n| learning | learning, proficient, expert |\n| proficient | proficient, expert |\n| expert | expert only |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "08 - Per-Skill Proficiency: Mixed Requirements",
@@ -191,12 +548,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Per-Skill Proficiency: Mixed Requirements\n\nDemonstrates different proficiency requirements per skill:\n- TypeScript: requires **expert** level\n- React: requires **proficient** or higher\n- GraphQL: accepts **any level** (default: learning)\n\n## Expected behavior\n\n- Engineers must meet each skill's specific proficiency requirement\n- TypeScript: only 'expert' qualifies\n- React: 'proficient' or 'expert' qualifies\n- GraphQL: 'learning', 'proficient', or 'expert' qualifies\n\n## Use Case\n\n> \"Need someone who is an expert in TypeScript, proficient in React, and has at least some GraphQL experience\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "09 - Per-Skill Preferred Proficiency (Ranking Boost)",
@@ -215,12 +623,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Per-Skill Preferred Proficiency\n\nDemonstrates the preferredMinProficiency feature:\n- **minProficiency: proficient** = Hard filter (must be at least proficient)\n- **preferredMinProficiency: expert** = Ranking boost (experts rank higher)\n\n## Expected behavior\n\n- All engineers with 'proficient' OR 'expert' Node.js qualify\n- Engineers with 'expert' Node.js get a ranking boost\n- Uses `preferredSkillProficiencyMatch` weight (4%)\n\n## Use Case\n\n> \"Must be proficient in Node.js, but would prefer an expert\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "10 - Timezone Filter: America/*",
@@ -239,12 +698,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH (any of)` | `[\"America/*\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "11 - Timezone Filter: Europe/*",
@@ -263,12 +773,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "12 - Start Timeline: Immediate Only",
@@ -287,12 +848,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredMaxStartTime` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start **immediately**\n- Excludes: `two_weeks`, `one_month`, `three_months`, `six_months`, `one_year`\n- Threshold-based filtering: requiredMaxStartTime = 'immediate'"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "13 - Quick Starters Only",
@@ -311,12 +923,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n- **Note:** `requiredMaxStartTime` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Only engineers who can start within **one month**\n- Excludes: `three_months`, `six_months`, `one_year`\n- Threshold-based filtering: requiredMaxStartTime = 'one_month'"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "14 - Team Focus: Scaling",
@@ -335,12 +998,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with scaling-related skills get **ranking BOOST**\n- Engineers with more bonus skills rank higher\n- Max team focus bonus: 0.5 utility points (4% weight)\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| greenfield | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| **scaling** | distributed, system_design, monitoring, kafka |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "15 - Team Focus: Greenfield",
@@ -359,12 +1073,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| teamFocusBonus | `BOOST` | `[ambiguity, creativity, ownership, system_design]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **All engineers returned** (teamFocus is NOT a hard filter)\n- Engineers with greenfield-related skills get **ranking BOOST**\n- Good for new projects with unclear requirements\n\n## Team Focus Options\n\n| Focus | Bonus Skills |\n|-------|-------------|\n| **greenfield** | ambiguity, creativity, ownership, system_design |\n| migration | system_design, debugging, attention_detail, documentation |\n| maintenance | debugging, root_cause, documentation, code_review |\n| scaling | distributed, system_design, monitoring, kafka |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "16 - Budget Filter (maxBudget Only)",
@@ -383,12 +1148,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Budget Filter\n\nFilters engineers by job budget ceiling.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| salary | `<=` | 180000 | user |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected behavior\n\n- Only engineers with salary **<= $180k** returned\n- All returned engineers score **1.0** on budget dimension\n- No salary-based ranking within budget\n\n## Job-Centric Budget Model\n\nThis is a job budget parameter, not an engineer salary preference:\n- **maxBudget**: The job's budget ceiling\n- Engineers within budget are not differentiated by salary (fairness)"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "17 - Budget with Stretch",
@@ -407,12 +1223,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Budget with Stretch Zone\n\nDemonstrates the stretch budget feature for exceptional candidates.\n\n## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| salary | `<=` | 180000 | user |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected behavior\n\n- Engineers with salary **<= $180k** returned (stretchBudget is the ceiling)\n- Engineers at or under $150k: budgetMatch score = 1.0 (full score)\n- Engineers $150k-$180k: budgetMatch score decays linearly from 1.0 to 0.5\n\n## Budget Score Examples (with maxBudget=$150k, stretchBudget=$180k)\n\n| Salary | Score | In Stretch Zone |\n|--------|-------|----------------|\n| $140k | 1.0 | No |\n| $150k | 1.0 | No |\n| $165k | 0.75 | Yes |\n| $180k | 0.5 | Yes |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "18 - Preferred Skills (Ranking Boost)",
@@ -431,12 +1298,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\"]` | user |\n| preferredSkills | `BOOST` | `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (required) + `[\"TypeScript\",\"PostgreSQL\",\"Docker\"]` (preferred)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- All matches **MUST have Node.js** (hard filter)\n- Engineers with preferred skills **rank HIGHER**\n- Preferred skills are nice-to-have, not requirements\n\n## Use Case\n\n> \"Must know Node.js, bonus if they know TypeScript/Postgres/Docker\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "19 - Preferred Skills with Proficiency",
@@ -455,12 +1373,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Per-Skill Proficiency on Preferred Skills\n\nDemonstrates preferredMinProficiency on preferred skills (ranking boost only).\n\n## Request Breakdown\n\n- **Node.js**: Required, must be proficient or better (hard filter)\n- **TypeScript**: Preferred, bonus if expert level\n- **PostgreSQL**: Preferred, bonus if proficient or better\n\n## Expected behavior\n\n- Must have proficient Node.js (hard filter)\n- Extra ranking boost for expert TypeScript\n- Extra ranking boost for proficient+ PostgreSQL\n\n## Use Case\n\n> \"Must be proficient in Node.js. Would prefer an expert TypeScript developer and someone proficient in PostgreSQL.\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "20 - Pagination: Page 2",
@@ -479,12 +1448,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\"]`\n- **Note:** `limit` and `offset` NOT in defaultsApplied (user specified)\n\n## Expected matches\n\n- Returns results **11-20** (second page of 10)\n- `totalCount` shows full count before pagination\n\n## Pagination Defaults\n\n| Field | Default | Max |\n|-------|---------|-----|\n| limit | 20 | 100 |\n| offset | 0 | - |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "21 - Combined: Senior Backend in America",
@@ -503,12 +1523,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers who can start within **two weeks** (threshold-based)\n- Must have at least one **Backend skill** at **proficient** level or higher"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "22 - Combined: Full Stack Scaling Team",
@@ -527,12 +1598,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| salary | `<=` | 200000 | user |\n| requiredSkills | `IN` | `[\"Full Stack\"]` | user |\n| Full Stack.minProficiency | `>=` | expert | user |\n| teamFocusBonus | `BOOST` | `[distributed, system_design, monitoring, kafka]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Stack = Backend + Frontend skills combined\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- **Expert proficiency required** for Full Stack skills\n- Budget ceiling **$200k**\n- Must have **Full Stack skills** (extensive skill tree)\n- Engineers with scaling skills **rank higher**\n\n> **Note:** Expert-only filters may return fewer results"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "23 - Unresolved Skills Handling",
@@ -551,12 +1673,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| requiredSkills | `IN` | `[\"Node.js\",\"FakeSkill123\",\"NonExistentTech\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[\"Node.js\"]` (only valid skill expanded)\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n- **unresolvedSkills:** `[\"FakeSkill123\", \"NonExistentTech\"]`\n\n## Expected behavior\n\n- API should **NOT fail**\n- Only valid skills are used for filtering\n- `unresolvedSkills` array reports skills not found in database\n- Useful for debugging skill name mismatches"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "24 - Required Business Domain Filter",
@@ -604,9 +1777,15 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## New Domain Model: Business Domains\n\nBusiness domains (Fintech, Healthcare, E-commerce) are flat and require explicit HAS_EXPERIENCE_IN claims.\n\n## Request\n\n- Required: Fintech domain with at least 3 years experience\n\n## Expected behavior\n\n- Only engineers with explicit Fintech domain experience >= 3 years\n- `matchedBusinessDomains` array shows matched domains with years\n- Business domains are separate from technical domains (Backend, Frontend, etc.)\n\n## Use Case\n\n> \"Need someone with at least 3 years of Fintech industry experience\""
 			}
@@ -657,9 +1836,15 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## New Domain Model: Preferred Business Domains\n\nPreferred business domains provide a ranking boost (not a hard filter).\n\n## Request\n\n- Prefer: Fintech with 2+ years, Healthcare with 1+ years\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with matching business domain experience **rank higher**\n- `preferredBusinessDomainMatch` component in score breakdown\n- Uses weight: 2%\n\n## Use Case\n\n> \"Prefer someone with Fintech or Healthcare background, but not required\""
 			}
@@ -681,12 +1866,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 10 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **10+ years experience**\n- Staff level has **no upper bound** (minYears: 10, maxYears: null)\n- Compare to senior (6-10 years bounded range)\n\n## Seniority Experience Mapping\n\n| Level | Min Years | Max Years |\n|-------|-----------|----------|\n| junior | 0 | 3 |\n| mid | 3 | 6 |\n| senior | 6 | 10 |\n| **staff** | 10 | none |\n| principal | 15 | none |"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "27 - Principal Level with Expert Skills",
@@ -705,12 +1941,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `>=` | 15 | knowledge_base |\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| System Design.minProficiency | `>=` | expert | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **15+ years experience**\n- **Expert-level System Design** required\n- Principal is highest seniority level\n\n> **Note:** May return very few results due to strict criteria"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "28 - Preferred Start Timeline (Ranking Boost)",
@@ -729,12 +2016,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredMaxStartTime | `BOOST` | `two_weeks` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned (default allows all timelines)\n- Engineers within the preferred threshold (immediate or two_weeks) get full score\n- Uses `startTimelineMatch` weight (10%)\n\n## Threshold-based scoring\n\n- Engineers with `immediate` or `two_weeks` start: full score (within threshold)\n- Engineers with later timelines: no boost (only preference, no required filter)\n- This demonstrates preferredMaxStartTime without requiredMaxStartTime\n\n## Expected scoreBreakdown\n\n- `startTimelineMatch` component appears with `withinPreferred: true/false`"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "29 - Preferred Timezone (Ranking Boost)",
@@ -753,12 +2091,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"America/Chicago\",\"Europe/London\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneMatch` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneMatch` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "30 - Preferred Seniority (Staff Preferred)",
@@ -777,12 +2166,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredSeniorityLevel | `BOOST` | staff | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - all seniority levels returned\n- Engineers with 10+ years experience (staff level) rank higher\n- Uses `preferredSeniorityMatch` weight (3%)\n\n## Expected scoreBreakdown\n\n- `preferredSeniorityMatch` component appears\n- Exact match (10+ years): 1.0 bonus\n- Nearby levels get partial bonus\n- Far from preferred: 0.0 bonus"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "31 - Validation: stretchBudget Requires maxBudget",
@@ -801,12 +2241,46 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Validation: stretchBudget Requires maxBudget\n\nThis tests that providing stretchBudget without maxBudget returns a validation error.\n\n## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"custom\",\n        \"message\": \"stretchBudget requires maxBudget to be set\",\n        \"path\": [\"stretchBudget\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Business Rule\n\n- stretchBudget defines the upper stretch ceiling beyond maxBudget\n- Without maxBudget, stretchBudget has no meaning\n- Schema validation enforces this constraint"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Response indicates validation failure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.equal(false);",
+							"    pm.expect(response.error).to.have.property('name');",
+							"    pm.expect(response.error.name).to.equal('ZodError');",
+							"    pm.expect(response.error).to.have.property('issues');",
+							"    pm.expect(response.error.issues).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Error mentions maxBudget requirement', function () {",
+							"    const response = pm.response.json();",
+							"    const issueText = JSON.stringify(response.error.issues);",
+							"    pm.expect(issueText).to.include('maxBudget');",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "32 - Combined: All Preferred Properties",
@@ -825,12 +2299,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n  - Salary <= $180k (stretch budget ceiling)\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Budget with stretch zone ($150k max, $180k stretch)\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Hard filter:** Salary <= $180k (stretch ceiling)\n- **Soft constraints:** All preferred properties boost ranking\n- Engineers at/under $150k get full budget score, $150k-$180k decays\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - budgetMatch: 3%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- budgetMatch.inStretchZone indicates if in stretch zone\n- Engineers matching more preferences rank higher"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "33 - Validation Error: Invalid Request",
@@ -849,12 +2374,40 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Expected Response\n\n**Status Code:** 400 Bad Request\n\n```json\n{\n  \"success\": false,\n  \"error\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSeniorityLevel\"]\n      },\n      {\n        \"code\": \"too_big\",\n        \"message\": \"Number must be less than or equal to 100\",\n        \"path\": [\"limit\"]\n      },\n      {\n        \"code\": \"too_small\",\n        \"message\": \"Number must be greater than 0\",\n        \"path\": [\"maxBudget\"]\n      },\n      {\n        \"code\": \"invalid_enum_value\",\n        \"message\": \"Invalid enum value...\",\n        \"path\": [\"requiredSkills\", 0, \"minProficiency\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}\n```\n\n## Validation Rules Tested\n\n| Field | Invalid Value | Validation Rule |\n|-------|---------------|----------------|\n| requiredSeniorityLevel | \"invalid_level\" | Must be one of: junior, mid, senior, staff, principal |\n| limit | 500 | Must be between 1 and 100 |\n| maxBudget | -100 | Must be a positive number |\n| requiredSkills[0].minProficiency | \"invalid_level\" | Must be one of: learning, proficient, expert |\n\n## Notes\n\n- Zod validation returns all errors at once (not just the first)\n- Each issue includes `code`, `message`, and `path`\n- Per-skill proficiency validation included"
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Response indicates validation failure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.equal(false);",
+							"    pm.expect(response.error).to.have.property('name');",
+							"    pm.expect(response.error.name).to.equal('ZodError');",
+							"    pm.expect(response.error).to.have.property('issues');",
+							"    pm.expect(response.error.issues).to.be.an('array');",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "34 - Skill Hierarchy with Inherited Proficiency",
@@ -873,12 +2426,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Skill Hierarchy Inheritance\n\nWhen a category skill (like \"Backend\") is requested with a minProficiency, ALL expanded skills inherit that proficiency requirement.\n\n## Request\n\n- Backend with minProficiency: proficient\n\n## Expected behavior\n\n- Backend expands to: Node.js, Express, Python, Django, PostgreSQL, etc.\n- ALL expanded skills require 'proficient' or 'expert' level\n- Engineers with only 'learning' level in Backend skills are excluded\n\n## Use Case\n\n> \"Need someone proficient in any Backend technology\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "35 - Required Technical Domain Filter",
@@ -926,9 +2530,15 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## New Domain Model: Technical Domains\n\nTechnical domains (Backend, Frontend, DevOps) are hierarchical and inferred from skills.\n\n## Request\n\n- Required: Backend technical domain\n\n## Expected behavior\n\n- Only engineers with skills in Backend technical domain\n- Technical domains are inferred through: Skill -> BELONGS_TO -> SkillCategory -> ENCOMPASSES <- TechnicalDomain\n- Hierarchical: requesting 'Backend' includes engineers with API Development, Database, etc.\n- `matchedTechnicalDomains` array shows matched domains\n\n## Technical Domain Hierarchy Example\n\n- Backend (parent)\n  - API Development (child)\n  - Database (child)\n  - System Design (child)\n\n## Use Case\n\n> \"Need someone with Backend technical expertise (any specialization)\""
 			}
@@ -979,9 +2589,15 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## New Domain Model: Preferred Technical Domains\n\nPreferred technical domains provide a ranking boost (not a hard filter).\n\n## Request\n\n- Prefer: Backend and DevOps technical domains\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with Backend or DevOps skills **rank higher**\n- `preferredTechnicalDomainMatch` component in score breakdown\n- Uses weight: 2%\n\n## Use Case\n\n> \"Prefer someone with Backend or DevOps experience, but not required\""
 			}
@@ -1003,12 +2619,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Combined: Business and Technical Domains\n\nDemonstrates using both business and technical domain constraints together.\n\n## Request Breakdown\n\n- **Hard filter:** Fintech business domain with 2+ years experience\n- **Ranking boost:** Backend or Security technical domain\n\n## Expected behavior\n\n- Only engineers with 2+ years Fintech experience (hard filter)\n- Engineers with Backend or Security skills rank higher\n- Separate utility components:\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n\n## Use Case\n\n> \"Need Fintech experience (2+ years required), prefer someone with Backend or Security technical skills\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "38 - Business Domain Hierarchy: Finance Parent",
@@ -1027,12 +2694,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Business Domain Hierarchy: Parent Domain Search\n\nDemonstrates searching for a parent business domain (Finance) and finding engineers with child domain experience.\n\n## Request\n\n- Required: Finance business domain (no minYears)\n\n## Expected behavior\n\n- Returns engineers with experience in ANY Finance child domain:\n  - Fintech\n  - Banking\n  - Payments\n  - Insurance\n- Hierarchy expansion: Finance expands to [Finance, Fintech, Banking, Payments, Insurance]\n- Engineers with explicit Finance experience also match\n\n## Test Data Expectations\n\n- Priya Sharma: has Fintech (6 years) and Payments (4 years) -> should match\n- James Okonkwo: has Fintech (5 years) and Banking (3 years) -> should match\n- Emily Nakamura: has E-commerce only -> should NOT match\n- Marcus Chen: has SaaS only -> should NOT match\n\n## Use Case\n\n> \"Need someone with any Finance industry experience (Fintech, Banking, Payments, or Insurance)\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "39 - Business Domain Hierarchy: Finance with minYears",
@@ -1051,12 +2769,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Business Domain Hierarchy: Parent Domain with Years Filter\n\nDemonstrates searching for a parent domain with minimum years requirement.\n\n## Request\n\n- Required: Finance business domain with 4+ years experience\n\n## Expected behavior\n\n- Returns engineers with 4+ years in ANY Finance child domain\n- Hierarchy expansion applies, then years filter on matched domains\n\n## Test Data Expectations\n\n- Priya Sharma: has Fintech (6 years) -> 6 >= 4 -> should match\n- James Okonkwo: has Fintech (5 years) -> 5 >= 4 -> should match\n- Neither has exactly 4+ years in Banking/Payments alone, but Priya has 4 years in Payments\n\n## Use Case\n\n> \"Need someone with 4+ years of Finance industry experience\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "40 - Business Domain Hierarchy: Retail Parent",
@@ -1075,12 +2844,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Business Domain Hierarchy: Retail Parent Domain\n\nDemonstrates searching for Retail parent domain.\n\n## Request\n\n- Required: Retail business domain\n\n## Expected behavior\n\n- Returns engineers with experience in Retail child domains:\n  - E-commerce\n  - Marketplace\n- Hierarchy expansion: Retail expands to [Retail, E-commerce, Marketplace]\n\n## Test Data Expectations\n\n- Emily Nakamura: has E-commerce (3 years) -> should match\n- Others: no Retail/E-commerce/Marketplace experience -> should NOT match\n\n## Use Case\n\n> \"Need someone with Retail industry experience (E-commerce or Marketplace)\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "41 - Business Domain Hierarchy: Preferred Finance",
@@ -1099,12 +2919,63 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Business Domain Hierarchy: Preferred Parent Domain\n\nDemonstrates preferred parent domain with hierarchy expansion for ranking.\n\n## Request\n\n- Preferred: Finance business domain with 2+ years preferred\n\n## Expected behavior\n\n- **NOT a hard filter** - all engineers returned\n- Engineers with Finance child domain experience (Fintech, Banking, Payments, Insurance) rank higher\n- Hierarchy expansion applies to preferred domains too\n- `matchedBusinessDomains` populated for engineers with matching experience\n\n## Test Data Expectations\n\n- Priya Sharma: Fintech (6y), Payments (4y) -> ranking boost\n- James Okonkwo: Fintech (5y), Banking (3y) -> ranking boost\n- Others: no Finance-related experience -> no boost, but still returned\n\n## Use Case\n\n> \"Prefer someone with Finance experience, but not required\""
-			}
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has required top-level fields', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('matches');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('totalCount');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('queryMetadata has required fields', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('executionTimeMs');",
+							"    pm.expect(metadata).to.have.property('skillsExpanded');",
+							"    pm.expect(metadata).to.have.property('defaultsApplied');",
+							"    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+							"});",
+							"",
+							"pm.test('Each match has required fields', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    matches.forEach(function(match) {",
+							"        pm.expect(match).to.have.property('id');",
+							"        pm.expect(match).to.have.property('name');",
+							"        pm.expect(match).to.have.property('utilityScore');",
+							"        pm.expect(match).to.have.property('scoreBreakdown');",
+							"        pm.expect(match.utilityScore).to.be.a('number');",
+							"        pm.expect(match.utilityScore).to.be.at.least(0);",
+							"        pm.expect(match.utilityScore).to.be.at.most(1);",
+							"    });",
+							"});"
+						]
+					}
+				}
+			]
 		},
 		{
 			"name": "42 - Domain with Both Required and Preferred (Both Flags)",
@@ -1157,11 +3028,317 @@
 				"url": {
 					"raw": "http://localhost:4025/api/search/filter",
 					"protocol": "http",
-					"host": ["localhost"],
+					"host": [
+						"localhost"
+					],
 					"port": "4025",
-					"path": ["api", "search", "filter"]
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
 				},
 				"description": "## Both Required and Preferred for Same Domain\n\nDemonstrates that a domain can appear in both required and preferred constraints, resulting in both flags being true.\n\n## Request\n\n- Required: Fintech with 2+ years (hard filter)\n- Preferred: Fintech with 4+ years (ranking boost)\n\n## Expected behavior\n\n- Only engineers with 2+ years Fintech experience (hard filter)\n- Engineers with 4+ years get additional ranking boost\n- `matchedBusinessDomains` shows Fintech with **both** `meetsRequired: true` AND `meetsPreferred: true`\n\n## Use Case\n\n> \"Must have at least 2 years Fintech experience, but prefer 4+ years\""
+			}
+		},
+		{
+			"name": "43 - Validation: stretchBudget less than maxBudget",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Response indicates validation failure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.equal(false);",
+							"    pm.expect(response.error).to.have.property('name');",
+							"    pm.expect(response.error.name).to.equal('ZodError');",
+							"    pm.expect(response.error).to.have.property('issues');",
+							"    pm.expect(response.error.issues).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Error mentions stretchBudget constraint', function () {",
+							"    const response = pm.response.json();",
+							"    const issueText = JSON.stringify(response.error.issues);",
+							"    pm.expect(issueText).to.include('stretchBudget');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"maxBudget\": 200000,\n  \"stretchBudget\": 180000\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4025",
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
+				},
+				"description": "## Validation: stretchBudget Less Than maxBudget\n\nTests that stretchBudget must be >= maxBudget.\n\n**Expected:** 400 Bad Request with ZodError"
+			}
+		},
+		{
+			"name": "44 - Validation: preferredMaxStartTime later than requiredMaxStartTime",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Response indicates validation failure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.equal(false);",
+							"    pm.expect(response.error).to.have.property('name');",
+							"    pm.expect(response.error.name).to.equal('ZodError');",
+							"    pm.expect(response.error).to.have.property('issues');",
+							"    pm.expect(response.error.issues).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Error mentions timeline constraint', function () {",
+							"    const response = pm.response.json();",
+							"    const issueText = JSON.stringify(response.error.issues);",
+							"    pm.expect(issueText.toLowerCase()).to.include('preferred');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredMaxStartTime\": \"two_weeks\",\n  \"preferredMaxStartTime\": \"one_month\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4025",
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
+				},
+				"description": "## Validation: preferredMaxStartTime Later Than Required\n\nTests that preferredMaxStartTime cannot be later than requiredMaxStartTime.\n\n**Expected:** 400 Bad Request with ZodError"
+			}
+		},
+		{
+			"name": "45 - Validation: negative limit",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Response indicates validation failure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.success).to.equal(false);",
+							"    pm.expect(response.error).to.have.property('name');",
+							"    pm.expect(response.error.name).to.equal('ZodError');",
+							"    pm.expect(response.error).to.have.property('issues');",
+							"    pm.expect(response.error.issues).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Error mentions limit constraint', function () {",
+							"    const response = pm.response.json();",
+							"    const issueText = JSON.stringify(response.error.issues);",
+							"    pm.expect(issueText).to.include('limit');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"limit\": -1\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4025",
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
+				},
+				"description": "## Validation: Negative Limit\n\nTests that limit must be positive.\n\n**Expected:** 400 Bad Request with ZodError"
+			}
+		},
+		{
+			"name": "46 - Edge Case: Unresolved skill (returns all with warning)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Returns matches (browse mode when skill unresolved)', function () {",
+							"    const matches = pm.response.json().matches;",
+							"    pm.expect(matches).to.be.an('array');",
+							"    // When skill is unresolved, API falls back to browse mode",
+							"});",
+							"",
+							"pm.test('Unresolved skill is reported in queryMetadata', function () {",
+							"    const metadata = pm.response.json().queryMetadata;",
+							"    pm.expect(metadata).to.have.property('unresolvedSkills');",
+							"    pm.expect(metadata.unresolvedSkills).to.be.an('array');",
+							"    pm.expect(metadata.unresolvedSkills).to.include('extremely-rare-skill-xyz-nonexistent');",
+							"});",
+							"",
+							"pm.test('Response still has required structure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"    pm.expect(response).to.have.property('appliedPreferences');",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"requiredSkills\": [\n    {\n      \"skill\": \"extremely-rare-skill-xyz-nonexistent\",\n      \"minProficiency\": \"expert\"\n    }\n  ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4025",
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
+				},
+				"description": "## Edge Case: Unresolved Skill\n\nTests behavior when a requested skill doesn't exist in the database.\n\n**Expected:** 200 OK with unresolvedSkills array populated - falls back to browse mode"
+			}
+		},
+		{
+			"name": "47 - Edge Case: High offset (pagination beyond results)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Returns empty matches array when offset exceeds total', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.matches).to.be.an('array');",
+							"    // With high offset, we expect empty results",
+							"    pm.expect(response.matches.length).to.equal(0);",
+							"});",
+							"",
+							"pm.test('totalCount shows actual total (not affected by offset)', function () {",
+							"    const response = pm.response.json();",
+							"    // totalCount at top level should reflect the actual number, not the paginated view",
+							"    pm.expect(response.totalCount).to.be.a('number');",
+							"    pm.expect(response.totalCount).to.be.at.least(0);",
+							"});",
+							"",
+							"pm.test('Response has required structure', function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response).to.have.property('queryMetadata');",
+							"    pm.expect(response).to.have.property('appliedFilters');",
+							"});"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"offset\": 10000,\n  \"limit\": 20\n}"
+				},
+				"url": {
+					"raw": "http://localhost:4025/api/search/filter",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "4025",
+					"path": [
+						"api",
+						"search",
+						"filter"
+					]
+				},
+				"description": "## Edge Case: High Offset\n\nTests pagination when offset exceeds total results.\n\n**Expected:** 200 OK with empty matches but correct totalCount"
 			}
 		}
 	]
