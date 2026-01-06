@@ -42,7 +42,7 @@ export interface SkillRequirementResolutionResult {
  * Resolves skill identifiers (names or IDs) to all descendant leaf skills.
  *
  * Uses two traversal strategies, combined with UNION:
- * - BELONGS_TO (1-2 hops): For role-based categories (Backend, Frontend, Full Stack)
+ * - BELONGS_TO (unlimited depth): For role-based categories (Backend, Frontend, Full Stack)
  * - CHILD_OF (unlimited depth): For structural categories (Databases, Languages) and regular skills
  *
  * Returns only leaf skills (isCategory = false)
@@ -60,11 +60,11 @@ export async function resolveSkillHierarchy(
   // Just follows whatever relationships exist in the graph
   const leafQuery = `
 // First: Find leaf skills via BELONGS_TO (for role-based categories)
-// Handles: Backend (1 hop), Frontend (1 hop), Full Stack (2 hops), any future composites
+// Handles: Backend, Frontend, Full Stack, and any future composites at any depth
 MATCH (rootSkill:Skill)
 WHERE (rootSkill.id IN $skillIdentifiers OR rootSkill.name IN $skillIdentifiers)
 
-MATCH (leafSkill:Skill)-[:BELONGS_TO*1..2]->(rootSkill)
+MATCH (leafSkill:Skill)-[:BELONGS_TO*1..]->(rootSkill)
 WHERE leafSkill.isCategory = false
 RETURN DISTINCT leafSkill.id AS skillId, leafSkill.name AS skillName
 
@@ -196,7 +196,7 @@ UNWIND $skillIdentifiers AS identifier
 MATCH (rootSkill:Skill)
 WHERE rootSkill.id = identifier OR rootSkill.name = identifier
 // Find leaf skills via BELONGS_TO (for role-based categories)
-OPTIONAL MATCH (leafBelongsTo:Skill)-[:BELONGS_TO*1..2]->(rootSkill)
+OPTIONAL MATCH (leafBelongsTo:Skill)-[:BELONGS_TO*1..]->(rootSkill)
 WHERE leafBelongsTo.isCategory = false
 // Find leaf skills via CHILD_OF (for structural categories and regular skills)
 OPTIONAL MATCH (leafChildOf:Skill)-[:CHILD_OF*0..]->(rootSkill)
