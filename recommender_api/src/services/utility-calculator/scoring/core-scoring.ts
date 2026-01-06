@@ -43,7 +43,7 @@ export function calculateConfidenceUtility(
   max: number
 ): number {
   if (avgConfidence <= 0) {
-    return 0.5; // Neutral when no skill filtering is applied
+    return 0; // No skill filtering applied, confidence is irrelevant
   }
   return normalizeLinear(avgConfidence, min, max);
 }
