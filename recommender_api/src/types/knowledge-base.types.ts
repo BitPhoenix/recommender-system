@@ -13,6 +13,7 @@ import type {
   ProficiencyLevel,
   StartTimeline,
 } from './search.types.js';
+import type { InferenceRuleDefinition } from './rule-engine.types.js';
 
 // ============================================
 // FILTER CONDITION RULES (Section 5.2.1)
@@ -130,4 +131,10 @@ export interface KnowledgeBaseConfig {
   defaults: SearchDefaults;
   utilityWeights: UtilityWeights;
   utilityParams: UtilityFunctionParams;
+
+  /** Inference rules for iterative expansion (Section 5.2.1) */
+  inferenceRules: InferenceRuleDefinition[];
+
+  /** Maximum iterations for forward chaining */
+  maxInferenceIterations: number;
 }

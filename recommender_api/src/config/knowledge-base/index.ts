@@ -41,6 +41,12 @@ import {
   utilityParams,
 } from './utility.config.js';
 
+// Inference Rules (Section 5.2.1 - Iterative Expansion)
+import {
+  inferenceRules,
+  maxInferenceIterations,
+} from './inference-rules/index.js';
+
 /**
  * Assembled Knowledge Base Configuration
  *
@@ -61,6 +67,10 @@ export const knowledgeBaseConfig: KnowledgeBaseConfig = {
   // Utility Function Config (Section 5.2.3, p.178)
   utilityWeights,
   utilityParams,
+
+  // Inference Rules (Section 5.2.1 - Iterative Expansion)
+  inferenceRules,
+  maxInferenceIterations,
 };
 
 // Re-export individual configs for granular imports
@@ -71,6 +81,8 @@ export {
   defaults,
   utilityWeights,
   utilityParams,
+  inferenceRules,
+  maxInferenceIterations,
 };
 
 export default knowledgeBaseConfig;

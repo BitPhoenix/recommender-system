@@ -518,15 +518,46 @@ interface SearchDefaults {
 
 ## Project Summary
 
-| # | Project | Section | Focus |
-|---|---------|---------|-------|
-| 1 | Basic Constraint Search | 5.2.1 | Filter engineers using knowledge base rules |
-| 2 | Constraint Relaxation | 5.2.4 | Detect conflicts, suggest repairs |
+| # | Project | Sections | Focus |
+|---|---------|----------|-------|
+| 1 | Basic Constraint Search | 5.2.1–5.2.3 | Filter engineers using knowledge base rules |
+| 2 | Constraint Relaxation | 5.2.4–5.2.5 | Detect conflicts, suggest repairs |
 | 3 | Similarity Scoring | 5.3.1 | Compute weighted similarity between engineers |
-| 4 | Combined Search | 5.2 + 5.3 | Filter with constraints, rank by similarity |
-| 5 | Critiquing System | 5.3.2 | Refine searches conversationally |
+| 4 | Combined Search | 5.2.1, 5.2.3, 5.3.1 | Filter with constraints, rank by similarity |
+| 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Refine searches conversationally |
 | 6 | Explanation Generation | 5.3.3 | Explain why engineers match |
 | 7 | Preference Learning | 5.4 | Learn from manager behavior over time |
+
+### Subsection Details
+
+**Project 1: Basic Constraint Search** (5.2.1–5.2.3)
+- 5.2.1 Returning Relevant Results — Rule-based expansion of requirements, iterative constraint propagation, building database queries
+- 5.2.2 Interaction Approach — Three-phase interaction (specify → refine → repeat), default value handling
+- 5.2.3 Ranking the Matched Items — Utility functions, weighted attribute scoring
+
+**Project 2: Constraint Relaxation** (5.2.4–5.2.5)
+- 5.2.4 Handling Unacceptable Results or Empty Sets — Minimal inconsistent constraint sets, repair proposals, QUICKXPLAIN/MINRELAX algorithms
+- 5.2.5 Adding Constraints — Suggesting constraints when too many results, mining historical sessions for popular constraints
+
+**Project 3: Similarity Scoring** (5.3.1)
+- 5.3.1 Similarity Metrics — Weighted attribute similarity, symmetric vs asymmetric functions, categorical hierarchy similarity
+- 5.3.1.1 Incorporating Diversity in Similarity Computation — Bounded greedy selection, quality metrics combining similarity and diversity
+
+**Project 4: Combined Search** (5.2.1, 5.2.3, 5.3.1)
+- 5.2.1 Returning Relevant Results — Hard constraint filtering (first pass)
+- 5.2.3 Ranking the Matched Items — Utility-based ranking of filtered candidates
+- 5.3.1 Similarity Metrics — Preference-based similarity scoring (second pass)
+
+**Project 5: Critiquing System** (5.3.2.1–5.3.2.3)
+- 5.3.2.1 Simple Critiques — Single attribute changes, directional critiques (more/less)
+- 5.3.2.2 Compound Critiques — Multiple attribute changes in one cycle, informal descriptions ("classier", "roomier")
+- 5.3.2.3 Dynamic Critiques — Data-mined critique suggestions, support-based ordering
+
+**Project 6: Explanation Generation** (5.3.3)
+- 5.3.3 Explanation in Critiques — Trade-off explanations, correlation statistics, fruitless session analysis
+
+**Project 7: Preference Learning** (5.4)
+- 5.4 Persistent Personalization — Tracking user actions (view, save, apply), learning personalized utility/similarity weights, constraint suggestion personalization, dynamic critique personalization
 
 ---
 

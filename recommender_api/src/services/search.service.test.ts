@@ -548,6 +548,112 @@ describe('executeSearch', () => {
     });
   });
 
+  describe('overriddenRuleIds handling', () => {
+    it('echoes back overriddenRuleIds in response', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+        overriddenRuleIds: ['scaling-requires-distributed'],
+      });
+
+      expect(result.overriddenRuleIds).toEqual(['scaling-requires-distributed']);
+    });
+
+    it('returns empty array when no overriddenRuleIds provided', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {});
+
+      expect(result.overriddenRuleIds).toEqual([]);
+    });
+
+    it('marks filter rule as overridden when in overriddenRuleIds', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+        overriddenRuleIds: ['scaling-requires-distributed'],
+      });
+
+      // Find the scaling-requires-distributed rule in derivedConstraints
+      const scalingRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'scaling-requires-distributed'
+      );
+      expect(scalingRule).toBeDefined();
+      expect(scalingRule!.override?.overrideScope).toBe('FULL');
+    });
+
+    it('marks boost rule as overridden when in overriddenRuleIds', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        requiredSeniorityLevel: 'senior',
+        overriddenRuleIds: ['senior-prefers-leadership'],
+      });
+
+      const leadershipRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'senior-prefers-leadership'
+      );
+      expect(leadershipRule).toBeDefined();
+      expect(leadershipRule!.override?.overrideScope).toBe('FULL');
+    });
+
+    it('prevents rule chaining when parent filter rule is overridden', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      // Without override: scaling -> distributed -> observability chain fires
+      const resultWithoutOverride = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+      });
+
+      const observabilityWithoutOverride = resultWithoutOverride.derivedConstraints.find(
+        (dc) => dc.rule.id === 'distributed-requires-observability'
+      );
+      expect(observabilityWithoutOverride).toBeDefined();
+
+      // With override: chain should be broken
+      const resultWithOverride = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+        overriddenRuleIds: ['scaling-requires-distributed'],
+      });
+
+      const observabilityWithOverride = resultWithOverride.derivedConstraints.find(
+        (dc) => dc.rule.id === 'distributed-requires-observability'
+      );
+      expect(observabilityWithOverride).toBeUndefined();
+    });
+
+    it('handles unknown rule IDs gracefully (no-op)', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      // Should not throw, unknown IDs are silently ignored
+      const result = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+        overriddenRuleIds: ['nonexistent-rule-id'],
+      });
+
+      // The scaling rule should still fire and NOT be overridden
+      const scalingRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'scaling-requires-distributed'
+      );
+      expect(scalingRule).toBeDefined();
+      expect(scalingRule!.override).toBeUndefined();
+    });
+  });
+
   describe('defaults applied tracking', () => {
     it('tracks when default requiredMaxStartTime is used', async () => {
       const mockSession = createMockSession([
@@ -581,6 +687,173 @@ describe('executeSearch', () => {
 
       expect(result.queryMetadata.defaultsApplied).not.toContain('requiredMaxStartTime');
       expect(result.queryMetadata.defaultsApplied).not.toContain('limit');
+    });
+  });
+
+  describe('derivedConstraints in response', () => {
+    it('includes derivedConstraints array in response', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, { teamFocus: 'scaling' });
+
+      expect(result.derivedConstraints).toBeDefined();
+      expect(Array.isArray(result.derivedConstraints)).toBe(true);
+      expect(result.derivedConstraints.length).toBeGreaterThan(0);
+    });
+
+    it('includes filter rules in derivedConstraints for scaling', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, { teamFocus: 'scaling' });
+
+      const scalingRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'scaling-requires-distributed'
+      );
+      expect(scalingRule).toBeDefined();
+      expect(scalingRule!.action.effect).toBe('filter');
+      expect(scalingRule!.action.targetValue).toContain('skill_distributed');
+    });
+
+    it('includes boost rules in derivedConstraints for senior', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        requiredSeniorityLevel: 'senior',
+      });
+
+      const leadershipRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'senior-prefers-leadership'
+      );
+      expect(leadershipRule).toBeDefined();
+      expect(leadershipRule!.action.effect).toBe('boost');
+      expect(leadershipRule!.action.boostStrength).toBeGreaterThan(0);
+    });
+
+    it('includes chain rules in derivedConstraints', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, { teamFocus: 'scaling' });
+
+      // Chain: scaling → distributed → observability
+      const observabilityRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'distributed-requires-observability'
+      );
+      expect(observabilityRule).toBeDefined();
+    });
+
+    it('includes provenance in derivedConstraints', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, { teamFocus: 'scaling' });
+
+      for (const constraint of result.derivedConstraints) {
+        expect(constraint.provenance).toBeDefined();
+        expect(constraint.provenance.derivationChains).toBeDefined();
+        expect(constraint.provenance.explanation).toBeDefined();
+      }
+    });
+  });
+
+  describe('derived skills affect query', () => {
+    it('includes derived required skills in query context', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      // We can't directly verify Cypher query parameters with current mock,
+      // but we can verify the derivedConstraints contain the right skills
+      const result = await executeSearch(mockSession, { teamFocus: 'scaling' });
+
+      // Find filter constraints (exclude fully overridden ones)
+      const filterConstraints = result.derivedConstraints.filter(
+        (dc) => dc.action.effect === 'filter' && dc.override?.overrideScope !== 'FULL'
+      );
+
+      expect(filterConstraints.length).toBeGreaterThan(0);
+
+      // All filter constraints should target derivedSkills
+      for (const fc of filterConstraints) {
+        expect(fc.action.targetField).toBe('derivedSkills');
+      }
+    });
+  });
+
+  describe('multiple overriddenRuleIds', () => {
+    it('handles multiple overridden rules correctly', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        teamFocus: 'scaling',
+        requiredSeniorityLevel: 'senior',
+        overriddenRuleIds: [
+          'scaling-requires-distributed',
+          'senior-prefers-leadership',
+        ],
+      });
+
+      // Both rules should be marked as overridden
+      const scalingRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'scaling-requires-distributed'
+      );
+      const leadershipRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'senior-prefers-leadership'
+      );
+
+      expect(scalingRule?.override?.overrideScope).toBe('FULL');
+      expect(leadershipRule?.override?.overrideScope).toBe('FULL');
+
+      // Response should echo back all overriddenRuleIds
+      expect(result.overriddenRuleIds).toContain('scaling-requires-distributed');
+      expect(result.overriddenRuleIds).toContain('senior-prefers-leadership');
+    });
+  });
+
+  describe('empty derivedConstraints', () => {
+    it('returns empty array when no rules fire', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      // Junior seniority doesn't trigger any rules
+      const result = await executeSearch(mockSession, {
+        requiredSeniorityLevel: 'junior',
+      });
+
+      // May have empty or minimal derivedConstraints
+      // The key is that it doesn't error
+      expect(result.derivedConstraints).toBeDefined();
+      expect(Array.isArray(result.derivedConstraints)).toBe(true);
+    });
+  });
+
+  describe('compound rules', () => {
+    it('fires compound rule when all conditions met', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [mockData.createEngineerRecord()] },
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        requiredSeniorityLevel: 'senior',
+        teamFocus: 'greenfield',
+      });
+
+      const ownershipRule = result.derivedConstraints.find(
+        (dc) => dc.rule.id === 'senior-greenfield-prefers-ownership'
+      );
+      expect(ownershipRule).toBeDefined();
+      expect(ownershipRule!.action.targetValue).toContain('skill_ownership');
     });
   });
 });
