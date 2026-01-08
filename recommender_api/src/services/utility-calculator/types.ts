@@ -17,6 +17,7 @@ import type {
   ResolvedBusinessDomain,
   ResolvedTechnicalDomain,
 } from '../cypher-query-builder/query-types.js';
+import type { DerivedConstraint } from '../../types/inference-rule.types.js';
 
 // ============================================
 // PUBLIC API TYPES (exported from index.ts)
@@ -64,6 +65,13 @@ export interface UtilityContext {
   preferredTimezone: string[];
   // Per-skill preferred proficiency requirements (skillId -> preferredMinProficiency)
   skillIdToPreferredProficiency: Map<string, ProficiencyLevel>;
+
+  /*
+   * Inference engine outputs (Section 5.2.1 - Iterative Expansion).
+   */
+  derivedRequiredSkillIds: string[];
+  derivedSkillBoosts: Map<string, number>;
+  derivedConstraints: DerivedConstraint[];
 }
 
 export interface ScoredEngineer extends EngineerData {

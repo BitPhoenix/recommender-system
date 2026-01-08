@@ -26,7 +26,7 @@ export { START_TIMELINE_ORDER, PROFICIENCY_LEVEL_ORDER } from '../schemas/search
 // ============================================
 
 export type MatchType = 'direct' | 'descendant' | 'correlated' | 'none';
-export type ConstraintSource = 'user' | 'knowledge_base';
+export type ConstraintSource = 'user' | 'knowledge_base' | 'inference';
 export type ConstraintViolation = 'proficiency_below_minimum';
 
 export interface MatchedSkill {
@@ -187,6 +187,32 @@ export interface SearchFilterResponse {
   totalCount: number;
   appliedFilters: AppliedFilter[];
   appliedPreferences: AppliedPreference[];
+  overriddenRuleIds: string[]; // Echo back the overridden rules from request
+  derivedConstraints: Array<{
+    rule: {
+      id: string;
+      name: string;
+    };
+    action: {
+      effect: 'filter' | 'boost';
+      targetField: string;
+      targetValue: unknown;
+      boostStrength?: number;
+    };
+    provenance: {
+      derivationChains: string[][];  // All causal paths (2D: array of chains)
+      explanation: string;
+    };
+    /**
+     * Override information - only present when user overrode this constraint.
+     * - FULL: Entire constraint overridden (explicit, implicit boost, or all skills user-handled)
+     * - PARTIAL: Some target skills user-handled, rule still applies for remaining skills
+     */
+    override?: {
+      overrideScope: 'FULL' | 'PARTIAL';
+      overriddenSkills: string[];
+    };
+  }>;
   queryMetadata: QueryMetadata;
 }
 

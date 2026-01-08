@@ -47,7 +47,8 @@ export async function executeSearch(
   const config = knowledgeBaseConfig;
 
   // Step 1: Expand search criteria using knowledge base rules
-  const expanded = expandSearchCriteria(request);
+  // Now async due to inference engine
+  const expanded = await expandSearchCriteria(request);
 
   // Step 2: Resolve all skill requirements (both required and preferred)
   const {
@@ -192,6 +193,10 @@ export async function executeSearch(
     preferredTimezone: expanded.preferredTimezone,
     // Per-skill preferred proficiencies for ranking boost
     skillIdToPreferredProficiency,
+    // Inference engine outputs
+    derivedRequiredSkillIds: expanded.derivedRequiredSkillIds,
+    derivedSkillBoosts: expanded.derivedSkillBoosts,
+    derivedConstraints: expanded.derivedConstraints,
   };
 
   const scoredEngineers = scoreAndSortEngineers(engineerData, utilityContext);
@@ -220,6 +225,14 @@ export async function executeSearch(
     totalCount,
     appliedFilters: expanded.appliedFilters,
     appliedPreferences: expanded.appliedPreferences,
+    overriddenRuleIds: request.overriddenRuleIds || [],
+    // Include derived constraints for client visibility (pass through nested structure)
+    derivedConstraints: expanded.derivedConstraints.map((dc) => ({
+      rule: dc.rule,
+      action: dc.action,
+      provenance: dc.provenance,
+      override: dc.override,
+    })),
     queryMetadata: {
       executionTimeMs,
       skillsExpanded: expandedSkillNames,

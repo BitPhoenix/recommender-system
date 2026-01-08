@@ -37,6 +37,10 @@ const createContext = (overrides: Partial<UtilityContext> = {}): UtilityContext 
   preferredSeniorityLevel: null,
   maxBudget: null,
   stretchBudget: null,
+  // Inference engine outputs (default to empty)
+  derivedRequiredSkillIds: [],
+  derivedSkillBoosts: new Map(),
+  derivedConstraints: [],
   ...overrides,
 });
 
