@@ -16,4 +16,4 @@ eval $(minikube docker-env)
 
 # Start Tilt
 echo "Starting Tilt..."
-tilt up
+tilt up --port 10351
