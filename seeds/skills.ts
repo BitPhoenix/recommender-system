@@ -119,6 +119,22 @@ export const skills: Skill[] = [
   { id: 'skill_resilience', name: 'Resilience', skillType: 'behavioral', isCategory: false },
   { id: 'skill_self_awareness', name: 'Self-Awareness', skillType: 'behavioral', isCategory: false },
   { id: 'skill_curiosity', name: 'Curiosity', skillType: 'behavioral', isCategory: false },
+
+  // Mobile Development Skills
+  { id: 'skill_react_native', name: 'React Native', skillType: 'technical', isCategory: false, description: 'Cross-platform mobile development with React Native' },
+  { id: 'skill_swift', name: 'Swift', skillType: 'technical', isCategory: false, description: 'iOS native development with Swift' },
+  { id: 'skill_kotlin', name: 'Kotlin', skillType: 'technical', isCategory: false, description: 'Android native development with Kotlin' },
+  { id: 'skill_firebase', name: 'Firebase', skillType: 'technical', isCategory: false, description: 'Google Firebase platform services' },
+
+  // Data Engineering Skills
+  { id: 'skill_spark', name: 'Apache Spark', skillType: 'technical', isCategory: false, description: 'Distributed data processing with Spark' },
+
+  // ML Skills
+  { id: 'skill_tensorflow', name: 'TensorFlow', skillType: 'technical', isCategory: false, description: 'Deep learning with TensorFlow' },
+
+  // Leadership/Hiring Skills
+  { id: 'skill_hiring', name: 'Hiring & Interviewing', skillType: 'behavioral', isCategory: false, description: 'Technical hiring and interview skills' },
+  { id: 'skill_performance_optimization', name: 'Performance Optimization', skillType: 'technical', isCategory: false, description: 'System and application performance tuning' },
 ];
 
 // ============================================
