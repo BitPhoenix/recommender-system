@@ -19,6 +19,7 @@ import type {
   UtilityFunctionParams,
 } from '../../types/knowledge-base.types.js';
 import type { SeniorityLevel } from '../../types/search.types.js';
+import { seniorityMapping } from './compatibility-constraints.config.js';
 
 /**
  * Attribute Weights (Section 5.2.3, p.178)
@@ -186,12 +187,10 @@ export const utilityParams: UtilityFunctionParams = {
  *
  * BINARY threshold mapping: minimum years of experience for each seniority level.
  * Used by calculatePreferredSeniorityMatch - engineer either meets the bar or doesn't.
+ *
+ * Derived from seniorityMapping to maintain single source of truth.
  */
-export const seniorityMinYears: Record<SeniorityLevel, number> = {
-  junior: 0,
-  mid: 3,
-  senior: 6,
-  staff: 10,
-  principal: 15,
-};
+export const seniorityMinYears = Object.fromEntries(
+  Object.entries(seniorityMapping).map(([level, range]) => [level, range.minYears])
+) as Record<SeniorityLevel, number>;
 

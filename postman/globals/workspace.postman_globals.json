@@ -1,7 +1,14 @@
 {
   "id": "3197cf12-bc50-4221-99d1-c2deb110607e",
   "name": "Globals",
-  "values": [],
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4025",
+      "type": "default",
+      "enabled": true
+    }
+  ],
   "_postman_variable_scope": "globals",
-  "_postman_exported_at": "2025-12-31T14:31:22.180Z"
+  "_postman_exported_at": "2026-01-14T10:00:00.000Z"
 }

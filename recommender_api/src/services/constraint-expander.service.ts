@@ -10,11 +10,19 @@ import type {
   SearchFilterRequest,
   AppliedFilter,
   AppliedPreference,
+  AppliedSkillFilter,
+  AppliedSkillPreference,
+  ResolvedSkillConstraint,
   StartTimeline,
   SeniorityLevel,
   TeamFocus,
   SkillRequirement,
 } from "../types/search.types.js";
+import {
+  AppliedFilterKind,
+  AppliedPreferenceKind,
+} from "../types/search.types.js";
+import type { ResolvedSkillWithProficiency } from "./skill-resolver.service.js";
 import { START_TIMELINE_ORDER } from "../types/search.types.js";
 import { knowledgeBaseConfig } from "../config/knowledge-base/index.js";
 import {
@@ -63,6 +71,8 @@ export interface ExpandedSearchCriteria {
    * These are not used for filtering - they inform how candidates are scored/ranked.
    */
   preferredSeniorityLevel: SeniorityLevel | null;
+  /** Original seniority constraint for tightening suggestions */
+  requiredSeniorityLevel: SeniorityLevel | null;
   /*
    * Timeline scoring thresholds (both optional):
    * - preferredMaxStartTime: Engineers at or faster get full startTimelineMatch score
@@ -110,9 +120,15 @@ type KnowledgeBaseConfig = typeof knowledgeBaseConfig;
 /**
  * Expands a search request into database-level constraints.
  * Now async to support the inference engine.
+ *
+ * @param request - The search filter request from the API
+ * @param resolvedRequiredSkills - Pre-resolved required skills (for structured AppliedFilter)
+ * @param resolvedPreferredSkills - Pre-resolved preferred skills (for structured AppliedPreference)
  */
 export async function expandSearchCriteria(
-  request: SearchFilterRequest
+  request: SearchFilterRequest,
+  resolvedRequiredSkills: ResolvedSkillWithProficiency[],
+  resolvedPreferredSkills: ResolvedSkillWithProficiency[]
 ): Promise<ExpandedSearchCriteria> {
   const config = knowledgeBaseConfig;
 
@@ -137,10 +153,12 @@ export async function expandSearchCriteria(
     config
   );
 
-  // Track skills and preferred values
+  // Track skills and preferred values (with resolved skill data for structured types)
   const skillsContext = trackSkillsAsConstraints(
     request.requiredSkills,
-    request.preferredSkills
+    request.preferredSkills,
+    resolvedRequiredSkills,
+    resolvedPreferredSkills
   );
   const preferredContext = trackPreferredValuesAsPreferences(request);
 
@@ -160,14 +178,19 @@ export async function expandSearchCriteria(
     if (isFullyOverridden(derivedConstraint)) continue;
 
     if (isFilterConstraint(derivedConstraint)) {
+      const skillIds = derivedConstraint.action.targetValue as string[];
       inferenceContext.filters.push({
-        field: derivedConstraint.action.targetField,
-        operator: "IN",
-        value: JSON.stringify(derivedConstraint.action.targetValue),
-        source: "inference",
+        kind: AppliedFilterKind.Skill,
+        field: 'derivedSkills',
+        operator: 'HAS_ALL',
+        skills: skillIds.map(id => ({ skillId: id, skillName: id })),
+        displayValue: `Derived: ${derivedConstraint.rule.name}`,
+        source: 'inference',
+        ruleId: derivedConstraint.rule.id,
       });
     } else {
       inferenceContext.preferences.push({
+        kind: AppliedPreferenceKind.Property,
         field: derivedConstraint.action.targetField,
         value: JSON.stringify(derivedConstraint.action.targetValue),
         source: "inference",
@@ -203,6 +226,7 @@ export async function expandSearchCriteria(
     defaultsApplied: concatenated.defaults,
     // Pass-through preferred/required values for utility calculation
     preferredSeniorityLevel: request.preferredSeniorityLevel ?? null,
+    requiredSeniorityLevel: request.requiredSeniorityLevel ?? null,
     preferredMaxStartTime: request.preferredMaxStartTime ?? null,
     requiredMaxStartTime: timeline.requiredMaxStartTime,
     preferredTimezone: request.preferredTimezone ?? [],
@@ -243,6 +267,7 @@ function expandSeniorityToYearsExperience(
     maxYears !== null ? `${minYears} AND ${maxYears}` : `>= ${minYears}`;
 
   context.filters.push({
+    kind: AppliedFilterKind.Property,
     field: "yearsExperience",
     operator: maxYears !== null ? "BETWEEN" : ">=",
     value: valueStr,
@@ -281,6 +306,7 @@ function expandStartTimelineConstraint(
   const allowedTimelines = START_TIMELINE_ORDER.slice(0, thresholdIndex + 1);
 
   context.filters.push({
+    kind: AppliedFilterKind.Property,
     field: "startTimeline",
     operator: "IN",
     value: JSON.stringify(allowedTimelines),
@@ -315,6 +341,7 @@ function expandTimezoneToPrefixes(requiredTimezone: string[] | undefined): {
   const timezonePrefixes = requiredTimezone.map((tz) => tz.replace(/\*$/, ""));
 
   context.filters.push({
+    kind: AppliedFilterKind.Property,
     field: "timezone",
     operator: "STARTS WITH (any of)",
     value: JSON.stringify(requiredTimezone),
@@ -352,6 +379,7 @@ function expandBudgetConstraints(
 
   if (filterCeiling !== null) {
     context.filters.push({
+      kind: AppliedFilterKind.Property,
       field: "salary",
       operator: "<=",
       value: filterCeiling.toString(),
@@ -384,6 +412,7 @@ function expandTeamFocusToAlignedSkills(
   const alignedSkillIds = alignment.alignedSkillIds;
 
   context.preferences.push({
+    kind: AppliedPreferenceKind.Property,
     field: "teamFocusMatch",
     value: alignedSkillIds.join(", "),
     source: "knowledge_base",
@@ -430,7 +459,9 @@ function formatSkillSummary(
 
 function trackSkillsAsConstraints(
   requiredSkills: SkillRequirement[] | undefined,
-  preferredSkills: SkillRequirement[] | undefined
+  preferredSkills: SkillRequirement[] | undefined,
+  resolvedRequiredSkills: ResolvedSkillWithProficiency[],
+  resolvedPreferredSkills: ResolvedSkillWithProficiency[]
 ): ExpansionContext {
   const context: ExpansionContext = {
     filters: [],
@@ -438,25 +469,41 @@ function trackSkillsAsConstraints(
     defaults: [],
   };
 
-  if (requiredSkills?.length) {
-    const skillSummary = requiredSkills.map((s) => formatSkillSummary(s, true));
-    context.filters.push({
-      field: "requiredSkills",
-      operator: "IN",
-      value: JSON.stringify(skillSummary),
-      source: "user",
-    });
+  if (requiredSkills?.length && resolvedRequiredSkills.length) {
+    const skills: ResolvedSkillConstraint[] = resolvedRequiredSkills.map((resolved, idx) => ({
+      skillId: resolved.skillId,
+      skillName: requiredSkills[idx]?.skill ?? resolved.skillId,
+      minProficiency: resolved.minProficiency,
+      preferredMinProficiency: resolved.preferredMinProficiency ?? undefined,
+    }));
+
+    const skillFilter: AppliedSkillFilter = {
+      kind: AppliedFilterKind.Skill,
+      field: 'requiredSkills',
+      operator: 'HAS_ALL',
+      skills,
+      displayValue: requiredSkills.map(s => formatSkillSummary(s, true)).join(', '),
+      source: 'user',
+    };
+    context.filters.push(skillFilter);
   }
 
-  if (preferredSkills?.length) {
-    const skillSummary = preferredSkills.map((s) =>
-      formatSkillSummary(s, false)
-    );
-    context.preferences.push({
-      field: "preferredSkills",
-      value: JSON.stringify(skillSummary),
-      source: "user",
-    });
+  if (preferredSkills?.length && resolvedPreferredSkills.length) {
+    const skills: ResolvedSkillConstraint[] = resolvedPreferredSkills.map((resolved, idx) => ({
+      skillId: resolved.skillId,
+      skillName: preferredSkills[idx]?.skill ?? resolved.skillId,
+      minProficiency: resolved.minProficiency,
+      preferredMinProficiency: resolved.preferredMinProficiency ?? undefined,
+    }));
+
+    const skillPreference: AppliedSkillPreference = {
+      kind: AppliedPreferenceKind.Skill,
+      field: 'preferredSkills',
+      skills,
+      displayValue: preferredSkills.map(s => formatSkillSummary(s, false)).join(', '),
+      source: 'user',
+    };
+    context.preferences.push(skillPreference);
   }
 
   return context;
@@ -473,6 +520,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredSeniorityLevel) {
     context.preferences.push({
+      kind: AppliedPreferenceKind.Property,
       field: "preferredSeniorityLevel",
       value: request.preferredSeniorityLevel,
       source: "user",
@@ -481,6 +529,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredMaxStartTime) {
     context.preferences.push({
+      kind: AppliedPreferenceKind.Property,
       field: "preferredMaxStartTime",
       value: request.preferredMaxStartTime,
       source: "user",
@@ -489,6 +538,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredTimezone && request.preferredTimezone.length > 0) {
     context.preferences.push({
+      kind: AppliedPreferenceKind.Property,
       field: "preferredTimezone",
       value: JSON.stringify(request.preferredTimezone),
       source: "user",

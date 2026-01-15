@@ -9,9 +9,11 @@ import { z } from 'zod';
 // ENUM SCHEMAS
 // ============================================
 
-export const SeniorityLevelSchema = z.enum([
+export const SENIORITY_LEVEL_ORDER = [
   'junior', 'mid', 'senior', 'staff', 'principal'
-]);
+] as const;
+
+export const SeniorityLevelSchema = z.enum(SENIORITY_LEVEL_ORDER);
 
 export const START_TIMELINE_ORDER = [
   'immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'

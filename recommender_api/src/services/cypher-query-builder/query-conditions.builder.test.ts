@@ -30,10 +30,16 @@ describe('buildBasicEngineerFilters', () => {
     });
 
     it('always includes timeline filter (even when empty array)', () => {
+      /*
+       * INTENTIONAL BEHAVIOR: Timeline filter is always included, even when empty.
+       * An empty array creates "e.startTimeline IN []" which matches no engineers.
+       * This is by design - if the request explicitly sets startTimeline to [],
+       * it means "no acceptable timelines" rather than "any timeline is acceptable".
+       * To allow any timeline, the calling code should populate with all valid values.
+       */
       const params = createQueryParams({ startTimeline: [] });
       const result = buildBasicEngineerFilters(params);
 
-      // Timeline filter is always added even with empty array
       const hasTimelineCondition = result.conditions.some(c => c.includes('startTimeline'));
       expect(hasTimelineCondition).toBe(true);
     });

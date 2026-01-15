@@ -27,6 +27,10 @@ export interface SkillResolutionResult {
   preferredSkillIds: string[];
   /** Merged from both (for utility calculation) */
   skillIdToPreferredProficiency: Map<string, ProficiencyLevel>;
+  /** Raw resolved required skills (for constraint expander) */
+  resolvedRequiredSkills: ResolvedSkillWithProficiency[];
+  /** Raw resolved preferred skills (for constraint expander) */
+  resolvedPreferredSkills: ResolvedSkillWithProficiency[];
 }
 
 /**
@@ -108,16 +112,18 @@ export async function resolveAllSkills(
   }
 
   // Resolve preferred skills
+  let resolvedPreferredSkills: ResolvedSkillWithProficiency[] = [];
   if (preferredSkills && preferredSkills.length > 0) {
     const result = await resolveSkillRequirements(
       session,
       preferredSkills,
       defaultProficiency
     );
-    preferredSkillIds = result.resolvedSkills.map((s) => s.skillId);
+    resolvedPreferredSkills = result.resolvedSkills;
+    preferredSkillIds = resolvedPreferredSkills.map((s) => s.skillId);
 
     // Add preferred proficiencies (don't override existing from required)
-    for (const skill of result.resolvedSkills) {
+    for (const skill of resolvedPreferredSkills) {
       if (
         skill.preferredMinProficiency &&
         !skillIdToPreferredProficiency.has(skill.skillId)
@@ -140,5 +146,7 @@ export async function resolveAllSkills(
     originalSkillIdentifiers,
     preferredSkillIds,
     skillIdToPreferredProficiency,
+    resolvedRequiredSkills,
+    resolvedPreferredSkills,
   };
 }

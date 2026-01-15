@@ -35,6 +35,7 @@ import {
   type DomainConstraintContext,
   type ParseOptions,
 } from "./engineer-record-parser.js";
+import { getConstraintAdvice } from "./constraint-advisor/index.js";
 
 /**
  * Executes a search filter request and returns ranked results.
@@ -46,11 +47,7 @@ export async function executeSearch(
   const startTime = Date.now();
   const config = knowledgeBaseConfig;
 
-  // Step 1: Expand search criteria using knowledge base rules
-  // Now async due to inference engine
-  const expanded = await expandSearchCriteria(request);
-
-  // Step 2: Resolve all skill requirements (both required and preferred)
+  // Step 1: Resolve all skill requirements FIRST (needed for constraint expansion)
   const {
     skillGroups,
     requiredSkillIds,
@@ -59,11 +56,21 @@ export async function executeSearch(
     originalSkillIdentifiers,
     preferredSkillIds,
     skillIdToPreferredProficiency,
+    resolvedRequiredSkills,
+    resolvedPreferredSkills,
   } = await resolveAllSkills(
     session,
     request.requiredSkills,
     request.preferredSkills,
     config.defaults.defaultMinProficiency
+  );
+
+  // Step 2: Expand search criteria using knowledge base rules
+  // Now receives resolved skills for structured AppliedFilter creation
+  const expanded = await expandSearchCriteria(
+    request,
+    resolvedRequiredSkills,
+    resolvedPreferredSkills
   );
 
   // Step 2b: Resolve domain requirements using new domain model
@@ -162,6 +169,15 @@ export async function executeSearch(
       ? toNumber(mainResult.records[0].get("totalCount"))
       : 0;
 
+  // Step 5.5: Get constraint advice if needed (sparse or many results)
+  // Note: Derived skill constraints are now embedded in appliedFilters as AppliedSkillFilter with ruleId
+  const constraintAdviceOutput = await getConstraintAdvice({
+    session,
+    totalCount,
+    expandedSearchCriteria: expanded,
+    appliedFilters: expanded.appliedFilters,
+  });
+
   // Step 6: Calculate utility scores and rank
   const engineerData: EngineerData[] = rawEngineers.map((raw) => ({
     id: raw.id,
@@ -239,5 +255,8 @@ export async function executeSearch(
       defaultsApplied: expanded.defaultsApplied,
       unresolvedSkills,
     },
+    // Include constraint advice results if present (Project 2)
+    ...(constraintAdviceOutput.relaxation && { relaxation: constraintAdviceOutput.relaxation }),
+    ...(constraintAdviceOutput.tightening && { tightening: constraintAdviceOutput.tightening }),
   };
 }

@@ -4,7 +4,7 @@
  */
 
 import { int } from "neo4j-driver";
-import type { CypherQueryParams, CypherQuery } from "./query-types.js";
+import type { CypherQueryParams, CypherQuery, SkillProficiencyGroups } from "./query-types.js";
 import { buildBasicEngineerFilters } from "./query-conditions.builder.js";
 import {
   getDomainFilterContext,
@@ -113,6 +113,176 @@ function getAllSkillIds(params: CypherQueryParams): string[] {
   ];
 }
 
+/**
+ * Builds the proficiency qualification CASE pattern.
+ * SINGLE SOURCE OF TRUTH for proficiency logic - used by both
+ * search query and skill relaxation count query.
+ *
+ * Returns Cypher that collects skill IDs that meet proficiency requirements:
+ * - learningLevelSkillIds: any proficiency qualifies
+ * - proficientLevelSkillIds: 'proficient' or 'expert' qualifies
+ * - expertLevelSkillIds: only 'expert' qualifies
+ */
+function buildProficiencyQualificationClause(): string {
+  return `COLLECT(DISTINCT CASE
+  WHEN s.id IN $learningLevelSkillIds THEN s.id
+  WHEN s.id IN $proficientLevelSkillIds
+   AND us.proficiencyLevel IN ['proficient', 'expert'] THEN s.id
+  WHEN s.id IN $expertLevelSkillIds
+   AND us.proficiencyLevel = 'expert' THEN s.id
+END)`;
+}
+
+/**
+ * Builds a count-only query for skill-filtered searches.
+ * Used by skill relaxation testing to check how many engineers would match
+ * with modified proficiency requirements.
+ *
+ * Reuses the same proficiency logic as the main search query.
+ *
+ * @param skillGroups - Proficiency buckets (from groupSkillsByProficiency)
+ * @param propertyConditions - WHERE clause conditions (from buildPropertyConditions)
+ */
+export function buildSkillFilterCountQuery(
+  skillGroups: SkillProficiencyGroups,
+  propertyConditions: { whereClauses: string[]; params: Record<string, unknown> },
+  derivedSkillIds: string[]
+): CypherQuery {
+  const allSkillIds = [
+    ...skillGroups.learningLevelSkillIds,
+    ...skillGroups.proficientLevelSkillIds,
+    ...skillGroups.expertLevelSkillIds,
+  ];
+
+  // If no skills, return a query that will return 0
+  if (allSkillIds.length === 0) {
+    return {
+      query: `RETURN 0 AS resultCount`,
+      params: {},
+    };
+  }
+
+  const params: Record<string, unknown> = {
+    ...propertyConditions.params,
+    allSkillIds,
+    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
+    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
+    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
+    derivedSkillIds,
+  };
+
+  const propertyWhereClause = propertyConditions.whereClauses.length > 0
+    ? propertyConditions.whereClauses.join('\n  AND ')
+    : 'true';
+
+  /*
+   * Build count query using the shared proficiency pattern.
+   * Requires ALL user skills to be matched (>= SIZE($allSkillIds)).
+   * Also requires ALL derived skills to exist (existence-only, no proficiency check).
+   */
+  const derivedSkillExistenceClause = derivedSkillIds.length > 0
+    ? `
+  AND ALL(derivedId IN $derivedSkillIds WHERE EXISTS {
+    MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill {id: derivedId})
+  })`
+    : '';
+
+  const query = `
+MATCH (e:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
+WHERE s.id IN $allSkillIds
+  AND ${propertyWhereClause}
+WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= SIZE($allSkillIds)${derivedSkillExistenceClause}
+RETURN count(DISTINCT e) AS resultCount
+`;
+
+  return { query, params };
+}
+
+/**
+ * Builds a query to find the most common skills among engineers matching constraints.
+ * Used by tightening suggestions to identify skills that could narrow results.
+ *
+ * Reuses the same proficiency logic as the main search query.
+ *
+ * @param skillGroups - Proficiency buckets (from groupSkillsByProficiency)
+ * @param propertyConditions - WHERE clause conditions (from buildPropertyConditions)
+ * @param derivedSkillIds - Derived skill IDs that must exist (existence-only check)
+ * @param limit - Maximum number of skills to return (default 10)
+ */
+export function buildSkillDistributionQuery(
+  skillGroups: SkillProficiencyGroups,
+  propertyConditions: { whereClauses: string[]; params: Record<string, unknown> },
+  derivedSkillIds: string[],
+  limit: number = 10
+): CypherQuery {
+  const allSkillIds = [
+    ...skillGroups.learningLevelSkillIds,
+    ...skillGroups.proficientLevelSkillIds,
+    ...skillGroups.expertLevelSkillIds,
+  ];
+
+  const params: Record<string, unknown> = {
+    ...propertyConditions.params,
+    allSkillIds,
+    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
+    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
+    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
+    derivedSkillIds,
+    distributionLimit: limit,
+  };
+
+  const propertyWhereClause = propertyConditions.whereClauses.length > 0
+    ? propertyConditions.whereClauses.join('\n  AND ')
+    : 'true';
+
+  const derivedSkillExistenceClause = derivedSkillIds.length > 0
+    ? `
+  AND ALL(derivedId IN $derivedSkillIds WHERE EXISTS {
+    MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill {id: derivedId})
+  })`
+    : '';
+
+  /*
+   * Two query structures based on whether we have skill constraints:
+   * 1. With skills: Filter engineers by skill match, then find their other skills
+   * 2. Without skills: Find all engineers matching properties, then get their skills
+   */
+  if (allSkillIds.length > 0) {
+    const query = `
+MATCH (e:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
+WHERE s.id IN $allSkillIds
+  AND ${propertyWhereClause}
+WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= SIZE($allSkillIds)${derivedSkillExistenceClause}
+WITH e
+MATCH (e)-[:HAS]->(us2:UserSkill)-[:FOR]->(s2:Skill)
+WITH s2.name AS skillName, s2.id AS skillId, count(DISTINCT e) AS engineerCount
+ORDER BY engineerCount DESC
+LIMIT $distributionLimit
+RETURN skillName, skillId, engineerCount
+`;
+    return { query, params };
+  }
+
+  // No skill constraints - simple distribution query
+  const whereClause = propertyConditions.whereClauses.length > 0
+    ? `WHERE ${propertyConditions.whereClauses.join("\n  AND ")}`
+    : "";
+
+  const query = `
+MATCH (e:Engineer)
+${whereClause}
+MATCH (e)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
+WITH s.name AS skillName, s.id AS skillId, count(DISTINCT e) AS engineerCount
+ORDER BY engineerCount DESC
+LIMIT $distributionLimit
+RETURN skillName, skillId, engineerCount
+`;
+
+  return { query, params };
+}
+
 function addSkillQueryParams(
   queryParams: Record<string, unknown>,
   params: CypherQueryParams,
@@ -150,13 +320,7 @@ function buildSkillProficiencyFilterClause(hasSkillFilter: boolean): string {
   return `
 // Check which engineers have at least one skill meeting per-skill proficiency constraints
 // Note: confidence score is used for ranking only, not exclusion
-WITH e, COLLECT(DISTINCT CASE
-  WHEN s.id IN $learningLevelSkillIds THEN s.id
-  WHEN s.id IN $proficientLevelSkillIds
-   AND us.proficiencyLevel IN ['proficient', 'expert'] THEN s.id
-  WHEN s.id IN $expertLevelSkillIds
-   AND us.proficiencyLevel = 'expert' THEN s.id
-END) AS qualifyingSkillIds
+WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
 // SIZE([...WHERE x IS NOT NULL]) filters out NULLs from CASE misses (skill didn't meet proficiency)
 WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`;
 }
