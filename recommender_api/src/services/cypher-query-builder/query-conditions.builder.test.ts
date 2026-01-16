@@ -10,7 +10,7 @@ const createQueryParams = (overrides: Partial<CypherQueryParams> = {}): CypherQu
   startTimeline: [],
   minYearsExperience: null,
   maxYearsExperience: null,
-  timezonePrefixes: [],
+  timezoneZones: [],
   maxBudget: null,
   stretchBudget: null,
   offset: 0,
@@ -90,38 +90,38 @@ describe('buildBasicEngineerFilters', () => {
 
   describe('timezone filter', () => {
     it('returns empty conditions when no timezone specified', () => {
-      const params = createQueryParams({ timezonePrefixes: [] });
+      const params = createQueryParams({ timezoneZones: [] });
       const result = buildBasicEngineerFilters(params);
 
       const hasTimezoneCondition = result.conditions.some(c => c.includes('timezone'));
       expect(hasTimezoneCondition).toBe(false);
     });
 
-    it('creates STARTS WITH condition for single timezone prefix', () => {
-      const params = createQueryParams({ timezonePrefixes: ['America/'] });
+    it('creates IN condition for single timezone zone', () => {
+      const params = createQueryParams({ timezoneZones: ['Eastern'] });
       const result = buildBasicEngineerFilters(params);
 
       const tzCondition = result.conditions.find(c => c.includes('timezone'));
-      expect(tzCondition).toContain('STARTS WITH');
-      expect(result.queryParams.tz0).toBe('America/');
+      expect(tzCondition).toContain('IN');
+      expect(result.queryParams.timezoneZones).toEqual(['Eastern']);
     });
 
-    it('creates OR condition for multiple timezone prefixes', () => {
-      const params = createQueryParams({ timezonePrefixes: ['America/', 'Europe/'] });
+    it('creates IN condition for multiple timezone zones', () => {
+      const params = createQueryParams({ timezoneZones: ['Eastern', 'Pacific'] });
       const result = buildBasicEngineerFilters(params);
 
       const tzCondition = result.conditions.find(c => c.includes('timezone'));
-      expect(tzCondition).toContain('OR');
-      expect(result.queryParams.tz0).toBe('America/');
-      expect(result.queryParams.tz1).toBe('Europe/');
+      expect(tzCondition).toContain('IN');
+      expect(result.queryParams.timezoneZones).toEqual(['Eastern', 'Pacific']);
     });
 
-    it('wraps multiple timezone conditions in parentheses', () => {
-      const params = createQueryParams({ timezonePrefixes: ['America/', 'Europe/'] });
+    it('handles all US timezone zones', () => {
+      const params = createQueryParams({ timezoneZones: ['Eastern', 'Central', 'Mountain', 'Pacific'] });
       const result = buildBasicEngineerFilters(params);
 
       const tzCondition = result.conditions.find(c => c.includes('timezone'));
-      expect(tzCondition).toMatch(/^\(.*\)$/);
+      expect(tzCondition).toContain('IN');
+      expect(result.queryParams.timezoneZones).toEqual(['Eastern', 'Central', 'Mountain', 'Pacific']);
     });
   });
 
@@ -172,7 +172,7 @@ describe('buildBasicEngineerFilters', () => {
         startTimeline: ['immediate'],
         minYearsExperience: 3,
         maxBudget: 200000,
-        timezonePrefixes: ['America/'],
+        timezoneZones: ['Eastern'],
       });
       const result = buildBasicEngineerFilters(params);
 
@@ -222,7 +222,7 @@ describe('buildBasicEngineerFilters', () => {
     });
 
     it('formats timezone condition with e. prefix', () => {
-      const params = createQueryParams({ timezonePrefixes: ['America/'] });
+      const params = createQueryParams({ timezoneZones: ['Eastern'] });
       const result = buildBasicEngineerFilters(params);
 
       const tzCondition = result.conditions.find(c => c.includes('timezone'));

@@ -56,8 +56,8 @@ describe('calculateStartTimelineMatch', () => {
 describe('calculatePreferredTimezoneMatch', () => {
   it('returns maxMatch for first preference', () => {
     const result = calculatePreferredTimezoneMatch(
-      'America/New_York',
-      ['America/New_York', 'America/Chicago'],
+      'Eastern',
+      ['Eastern', 'Central'],
       0.03
     );
     expect(result.raw).toBe(0.03);
@@ -66,8 +66,8 @@ describe('calculatePreferredTimezoneMatch', () => {
 
   it('returns reduced score for second preference', () => {
     const result = calculatePreferredTimezoneMatch(
-      'America/Chicago',
-      ['America/New_York', 'America/Chicago'],
+      'Central',
+      ['Eastern', 'Central'],
       0.03
     );
     expect(result.raw).toBe(0.015); // (1 - 1/2) * 0.03
@@ -76,8 +76,8 @@ describe('calculatePreferredTimezoneMatch', () => {
 
   it('returns 0 for non-matching timezone', () => {
     const result = calculatePreferredTimezoneMatch(
-      'Europe/London',
-      ['America/New_York', 'America/Chicago'],
+      'Pacific',
+      ['Eastern', 'Central'],
       0.03
     );
     expect(result.raw).toBe(0);
@@ -85,14 +85,14 @@ describe('calculatePreferredTimezoneMatch', () => {
   });
 
   it('returns 0 when no preferred timezones specified', () => {
-    const result = calculatePreferredTimezoneMatch('America/New_York', [], 0.03);
+    const result = calculatePreferredTimezoneMatch('Eastern', [], 0.03);
     expect(result.raw).toBe(0);
   });
 
-  it('matches timezone prefix patterns', () => {
+  it('matches timezone zone exactly', () => {
     const result = calculatePreferredTimezoneMatch(
-      'America/New_York',
-      ['America/*'], // Prefix match
+      'Mountain',
+      ['Mountain'],
       0.03
     );
     expect(result.raw).toBe(0.03);

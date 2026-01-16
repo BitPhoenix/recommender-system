@@ -130,30 +130,27 @@ describe("decomposeConstraints", () => {
     }
   });
 
-  it("creates separate constraints for multiple timezone prefixes", () => {
+  it("creates a single constraint for timezone zones (IN operator)", () => {
     const appliedFilters: AppliedFilter[] = [
       {
         kind: AppliedFilterKind.Property,
         field: "timezone",
-        operator: "STARTS WITH (any of)",
-        value: '["America/*", "Europe/*"]',
+        operator: "IN",
+        value: '["Eastern", "Central"]',
         source: "user",
       },
     ];
 
     const result = decomposeConstraints(appliedFilters);
 
-    expect(result.constraints).toHaveLength(2);
+    expect(result.constraints).toHaveLength(1);
     expect(result.constraints[0].field).toBe("timezone");
-    expect(result.constraints[1].field).toBe("timezone");
-    expect(result.constraints[0].value).toBe("America/");
-    expect(result.constraints[1].value).toBe("Europe/");
+    expect(result.constraints[0].operator).toBe("IN");
 
-    // Both should be string type
-    if (result.constraints[0].constraintType === ConstraintType.Property &&
-        result.constraints[1].constraintType === ConstraintType.Property) {
-      expect(result.constraints[0].fieldType).toBe(PropertyFieldType.String);
-      expect(result.constraints[1].fieldType).toBe(PropertyFieldType.String);
+    // Should be StringArray type for IN operator
+    if (result.constraints[0].constraintType === ConstraintType.Property) {
+      expect(result.constraints[0].fieldType).toBe(PropertyFieldType.StringArray);
+      expect(result.constraints[0].value).toEqual(["Eastern", "Central"]);
     }
   });
 
@@ -371,37 +368,22 @@ describe("buildQueryWithConstraints", () => {
     expect(params.diag_yearsExperience_1).toBe(6);
   });
 
-  it("ORs timezone constraints together", () => {
+  it("handles timezone IN constraint as a single clause", () => {
     const decomposed = {
       constraints: [
         {
-          id: "timezone_0_0",
+          id: "timezone_0",
           field: "timezone",
-          operator: "STARTS WITH",
-          value: "America/",
-          displayValue: "timezone America/*",
+          operator: "IN",
+          value: ["Eastern", "Central"],
+          displayValue: '["Eastern", "Central"]',
           source: "user" as const,
           constraintType: ConstraintType.Property as const,
-          fieldType: PropertyFieldType.String as const,
+          fieldType: PropertyFieldType.StringArray as const,
           cypher: {
-            clause: "e.timezone STARTS WITH $diag_tz_0",
-            paramName: "diag_tz_0",
-            paramValue: "America/",
-          },
-        },
-        {
-          id: "timezone_0_1",
-          field: "timezone",
-          operator: "STARTS WITH",
-          value: "Europe/",
-          displayValue: "timezone Europe/*",
-          source: "user" as const,
-          constraintType: ConstraintType.Property as const,
-          fieldType: PropertyFieldType.String as const,
-          cypher: {
-            clause: "e.timezone STARTS WITH $diag_tz_1",
-            paramName: "diag_tz_1",
-            paramValue: "Europe/",
+            clause: "e.timezone IN $diag_timezone_0",
+            paramName: "diag_timezone_0",
+            paramValue: ["Eastern", "Central"],
           },
         },
       ],
@@ -410,15 +392,12 @@ describe("buildQueryWithConstraints", () => {
 
     const { query, params } = buildQueryWithConstraints(
       decomposed,
-      new Set(["timezone_0_0", "timezone_0_1"])
+      new Set(["timezone_0"])
     );
 
-    // Timezone constraints should be ORed together
-    expect(query).toContain("OR");
-    expect(query).toContain("e.timezone STARTS WITH $diag_tz_0");
-    expect(query).toContain("e.timezone STARTS WITH $diag_tz_1");
-    expect(params.diag_tz_0).toBe("America/");
-    expect(params.diag_tz_1).toBe("Europe/");
+    // Timezone zones use IN operator - single clause, no OR needed
+    expect(query).toContain("e.timezone IN $diag_timezone_0");
+    expect(params.diag_timezone_0).toEqual(["Eastern", "Central"]);
   });
 
   it("builds empty WHERE clause when no constraints selected", () => {
@@ -532,37 +511,22 @@ describe("buildPropertyConditions", () => {
     expect(result.params.diag_yearsExperience_1).toBe(6);
   });
 
-  it("ORs timezone constraints together", () => {
+  it("handles timezone IN constraint as single clause", () => {
     const decomposed = {
       constraints: [
         {
-          id: "timezone_0_0",
+          id: "timezone_0",
           field: "timezone",
-          operator: "STARTS WITH",
-          value: "America/",
-          displayValue: "timezone America/*",
+          operator: "IN",
+          value: ["Eastern", "Central"],
+          displayValue: '["Eastern", "Central"]',
           source: "user" as const,
           constraintType: ConstraintType.Property as const,
-          fieldType: PropertyFieldType.String as const,
+          fieldType: PropertyFieldType.StringArray as const,
           cypher: {
-            clause: "e.timezone STARTS WITH $diag_tz_0",
-            paramName: "diag_tz_0",
-            paramValue: "America/",
-          },
-        },
-        {
-          id: "timezone_0_1",
-          field: "timezone",
-          operator: "STARTS WITH",
-          value: "Europe/",
-          displayValue: "timezone Europe/*",
-          source: "user" as const,
-          constraintType: ConstraintType.Property as const,
-          fieldType: PropertyFieldType.String as const,
-          cypher: {
-            clause: "e.timezone STARTS WITH $diag_tz_1",
-            paramName: "diag_tz_1",
-            paramValue: "Europe/",
+            clause: "e.timezone IN $diag_timezone_0",
+            paramName: "diag_timezone_0",
+            paramValue: ["Eastern", "Central"],
           },
         },
       ],
@@ -571,16 +535,13 @@ describe("buildPropertyConditions", () => {
 
     const result = buildPropertyConditions(
       decomposed,
-      new Set(["timezone_0_0", "timezone_0_1"])
+      new Set(["timezone_0"])
     );
 
-    // Should have one combined OR clause for timezones
+    // Should have one clause for timezone IN
     expect(result.whereClauses).toHaveLength(1);
-    expect(result.whereClauses[0]).toContain("OR");
-    expect(result.whereClauses[0]).toContain("e.timezone STARTS WITH $diag_tz_0");
-    expect(result.whereClauses[0]).toContain("e.timezone STARTS WITH $diag_tz_1");
-    expect(result.params.diag_tz_0).toBe("America/");
-    expect(result.params.diag_tz_1).toBe("Europe/");
+    expect(result.whereClauses[0]).toBe("e.timezone IN $diag_timezone_0");
+    expect(result.params.diag_timezone_0).toEqual(["Eastern", "Central"]);
   });
 
   it("ignores skill traversal constraints", () => {

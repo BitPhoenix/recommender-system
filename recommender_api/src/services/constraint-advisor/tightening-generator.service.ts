@@ -37,16 +37,12 @@ import { buildSkillDistributionQuery } from "../cypher-query-builder/index.js";
 import { extractSkillConstraints } from "./skill-extraction.utils.js";
 
 /*
- * Timezone region groupings for tightening suggestions.
- * Maps region names (from Cypher CASE) to glob patterns for the API.
+ * US timezone zones for tightening suggestions.
+ * These are the valid timezone values stored on Engineer nodes.
  *
- * IMPORTANT: Keep in sync with the CASE statement in generateTimezoneTighteningSuggestions().
+ * Order: East to West (matches usTimezoneZones in compatibility-constraints.config.ts)
  */
-const regionToTimezonePattern: Record<string, string> = {
-  Americas: "America/*",
-  Europe: "Europe/*",
-  APAC: "Asia/*",
-};
+const US_TIMEZONE_ZONES = ['Eastern', 'Central', 'Mountain', 'Pacific'] as const;
 
 /**
  * All fields that can have tightening suggestions.
@@ -154,8 +150,8 @@ export async function generateTighteningSuggestions(
 }
 
 /**
- * Analyze timezone distribution to suggest regional filters.
- * Groups engineers into Americas, Europe, and APAC regions.
+ * Analyze timezone distribution to suggest US timezone zone filters.
+ * Groups engineers into Eastern, Central, Mountain, and Pacific zones.
  *
  * Uses testAddedPropertyConstraint to ensure counts reflect ALL user constraints.
  */
@@ -167,30 +163,26 @@ async function generateTimezoneTighteningSuggestions(
 ): Promise<TimezoneTightening[]> {
   const suggestions: TimezoneTightening[] = [];
 
-  for (const [region, pattern] of Object.entries(regionToTimezonePattern)) {
-    const prefix = pattern.replace("*", "");
-
+  for (const zone of US_TIMEZONE_ZONES) {
     // Skip if user already has this timezone filter
-    const alreadyFiltered = expanded.timezonePrefixes.some(
-      (tz) => prefix.startsWith(tz) || tz.startsWith(prefix)
-    );
+    const alreadyFiltered = expanded.timezoneZones.includes(zone);
     if (alreadyFiltered) continue;
 
     const count = await testAddedPropertyConstraint(session, decomposed, {
       field: "timezone",
-      operator: "STARTS WITH",
-      value: prefix,
-      paramKey: `tz_${region.toLowerCase()}`,
+      operator: "=",
+      value: zone,
+      paramKey: `tz_${zone.toLowerCase()}`,
     });
 
     if (count > 0 && count < baselineCount) {
       const percentage = Math.round((count / baselineCount) * 100);
       suggestions.push({
         field: "requiredTimezone",
-        suggestedValue: [pattern],
-        rationale: `Filter to ${region} timezone engineers`,
+        suggestedValue: [zone],
+        rationale: `Filter to ${zone} timezone engineers`,
         resultingMatches: count,
-        distributionInfo: `${count} of ${baselineCount} matching engineers (${percentage}%) are in ${region}`,
+        distributionInfo: `${count} of ${baselineCount} matching engineers (${percentage}%) are in ${zone}`,
       });
     }
   }

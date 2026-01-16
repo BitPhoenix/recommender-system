@@ -473,7 +473,7 @@ describe('createInferenceContext edge cases', () => {
       requiredSeniorityLevel: 'senior',
       teamFocus: 'scaling',
       maxBudget: 200000,
-      requiredTimezone: ['America/*'],
+      requiredTimezone: ['Eastern'],
       limit: 50,
     };
 
@@ -482,7 +482,7 @@ describe('createInferenceContext edge cases', () => {
     expect(context.request.requiredSeniorityLevel).toBe('senior');
     expect(context.request.teamFocus).toBe('scaling');
     expect(context.request.maxBudget).toBe(200000);
-    expect(context.request.requiredTimezone).toEqual(['America/*']);
+    expect(context.request.requiredTimezone).toEqual(['Eastern']);
     expect(context.request.limit).toBe(50);
   });
 });

@@ -91,27 +91,22 @@ describe('expandSearchCriteria', () => {
   describe('timezone expansion', () => {
     it('returns empty array for no timezone requirement', async () => {
       const result = await expand({});
-      expect(result.timezonePrefixes).toEqual([]);
+      expect(result.timezoneZones).toEqual([]);
     });
 
-    it('expands America/* to America/ prefix', async () => {
-      const result = await expand({ requiredTimezone: ['America/*'] });
-      expect(result.timezonePrefixes).toEqual(['America/']);
+    it('passes through single timezone zone', async () => {
+      const result = await expand({ requiredTimezone: ['Eastern'] });
+      expect(result.timezoneZones).toEqual(['Eastern']);
     });
 
-    it('expands Europe/* to Europe/ prefix', async () => {
-      const result = await expand({ requiredTimezone: ['Europe/*'] });
-      expect(result.timezonePrefixes).toEqual(['Europe/']);
+    it('passes through multiple timezone zones', async () => {
+      const result = await expand({ requiredTimezone: ['Eastern', 'Pacific'] });
+      expect(result.timezoneZones).toEqual(['Eastern', 'Pacific']);
     });
 
-    it('keeps specific timezone as-is', async () => {
-      const result = await expand({ requiredTimezone: ['America/New_York'] });
-      expect(result.timezonePrefixes).toEqual(['America/New_York']);
-    });
-
-    it('handles multiple patterns', async () => {
-      const result = await expand({ requiredTimezone: ['America/*', 'Europe/*'] });
-      expect(result.timezonePrefixes).toEqual(['America/', 'Europe/']);
+    it('handles all US timezone zones', async () => {
+      const result = await expand({ requiredTimezone: ['Eastern', 'Central', 'Mountain', 'Pacific'] });
+      expect(result.timezoneZones).toEqual(['Eastern', 'Central', 'Mountain', 'Pacific']);
     });
   });
 
@@ -184,7 +179,7 @@ describe('expandSearchCriteria', () => {
     });
 
     it('tracks timezone as a filter', async () => {
-      const result = await expand({ requiredTimezone: ['America/*'] });
+      const result = await expand({ requiredTimezone: ['Eastern'] });
       const filter = result.appliedFilters.find((f) => f.field === 'timezone');
       expect(filter).toBeDefined();
       expect(filter!.source).toBe('user');
@@ -210,7 +205,7 @@ describe('expandSearchCriteria', () => {
     });
 
     it('tracks preferredTimezone as a preference', async () => {
-      const result = await expand({ preferredTimezone: ['America/New_York'] });
+      const result = await expand({ preferredTimezone: ['Eastern'] });
       const pref = result.appliedPreferences.find((p) => p.field === 'preferredTimezone');
       expect(pref).toBeDefined();
     });
@@ -242,9 +237,9 @@ describe('expandSearchCriteria', () => {
 
     it('passes through preferredTimezone', async () => {
       const result = await expand({
-        preferredTimezone: ['America/New_York', 'America/Chicago'],
+        preferredTimezone: ['Eastern', 'Central'],
       });
-      expect(result.preferredTimezone).toEqual(['America/New_York', 'America/Chicago']);
+      expect(result.preferredTimezone).toEqual(['Eastern', 'Central']);
     });
 
     it('sets requiredMaxStartTime from input or default', async () => {
@@ -262,8 +257,8 @@ describe('expandSearchCriteria', () => {
         requiredSeniorityLevel: 'senior',
         requiredMaxStartTime: 'one_month',
         preferredMaxStartTime: 'two_weeks',
-        requiredTimezone: ['America/*'],
-        preferredTimezone: ['America/New_York', 'America/Chicago'],
+        requiredTimezone: ['Eastern'],
+        preferredTimezone: ['Eastern', 'Central'],
         maxBudget: 200000,
         stretchBudget: 220000,
         teamFocus: 'greenfield',
@@ -280,7 +275,7 @@ describe('expandSearchCriteria', () => {
       expect(result.startTimeline).toEqual(['immediate', 'two_weeks', 'one_month']);
 
       // Timezone expansion
-      expect(result.timezonePrefixes).toEqual(['America/']);
+      expect(result.timezoneZones).toEqual(['Eastern']);
 
       // Budget pass-through
       expect(result.maxBudget).toBe(200000);
@@ -297,7 +292,7 @@ describe('expandSearchCriteria', () => {
       expect(result.preferredSeniorityLevel).toBe('staff');
       expect(result.preferredMaxStartTime).toBe('two_weeks');
       expect(result.requiredMaxStartTime).toBe('one_month');
-      expect(result.preferredTimezone).toEqual(['America/New_York', 'America/Chicago']);
+      expect(result.preferredTimezone).toEqual(['Eastern', 'Central']);
     });
   });
 

@@ -32,7 +32,7 @@ export interface CypherQueryParams extends SkillProficiencyGroups {
   startTimeline: StartTimeline[];
   minYearsExperience: number | null;
   maxYearsExperience: number | null;
-  timezonePrefixes: string[];
+  timezoneZones: string[];
   maxBudget: number | null;
   stretchBudget: number | null;
 

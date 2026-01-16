@@ -29,6 +29,12 @@ export const TeamFocusSchema = z.enum([
   'greenfield', 'migration', 'maintenance', 'scaling'
 ]);
 
+export const US_TIMEZONE_ZONE_ORDER = [
+  'Eastern', 'Central', 'Mountain', 'Pacific'
+] as const;
+
+export const USTimezoneZoneSchema = z.enum(US_TIMEZONE_ZONE_ORDER);
+
 // ============================================
 // NESTED OBJECT SCHEMAS
 // ============================================
@@ -79,9 +85,9 @@ export const SearchFilterRequestSchema = z.object({
   requiredMaxStartTime: StartTimelineSchema.optional(),
   preferredMaxStartTime: StartTimelineSchema.optional(),
 
-  // Timezone (glob patterns, e.g., "America/*" for any US timezone)
-  requiredTimezone: z.array(z.string()).optional(),
-  preferredTimezone: z.array(z.string()).optional(),
+  // Timezone (US zones: Eastern, Central, Mountain, Pacific)
+  requiredTimezone: z.array(USTimezoneZoneSchema).optional(),
+  preferredTimezone: z.array(USTimezoneZoneSchema).optional(),
 
   // Budget (job-centric, not engineer-centric)
   maxBudget: z.number().positive().optional(),
@@ -148,6 +154,7 @@ export type SeniorityLevel = z.infer<typeof SeniorityLevelSchema>;
 export type StartTimeline = z.infer<typeof StartTimelineSchema>;
 export type ProficiencyLevel = z.infer<typeof ProficiencyLevelSchema>;
 export type TeamFocus = z.infer<typeof TeamFocusSchema>;
+export type USTimezoneZone = z.infer<typeof USTimezoneZoneSchema>;
 export type SkillRequirement = z.infer<typeof SkillRequirementSchema>;
 export type BusinessDomainRequirement = z.infer<typeof BusinessDomainRequirementSchema>;
 export type TechnicalDomainRequirement = z.infer<typeof TechnicalDomainRequirementSchema>;

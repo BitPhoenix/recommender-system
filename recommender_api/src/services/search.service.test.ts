@@ -385,7 +385,7 @@ describe('executeSearch', () => {
               salary: 150000,
               yearsExperience: 8,
               startTimeline: 'two_weeks',
-              timezone: 'America/New_York',
+              timezone: 'Eastern',
             }),
           ],
         },
@@ -400,7 +400,7 @@ describe('executeSearch', () => {
       expect(match.salary).toBe(150000);
       expect(match.yearsExperience).toBe(8);
       expect(match.startTimeline).toBe('two_weeks');
-      expect(match.timezone).toBe('America/New_York');
+      expect(match.timezone).toBe('Eastern');
     });
 
     it('includes skill arrays in response', async () => {
@@ -459,7 +459,7 @@ describe('executeSearch', () => {
       ]);
 
       const result = await executeSearch(mockSession, {
-        requiredTimezone: ['America/*'],
+        requiredTimezone: ['Eastern'],
       });
 
       const tzFilter = result.appliedFilters.find((f) => f.field === 'timezone');
@@ -878,7 +878,7 @@ describe('executeSearch', () => {
 
       const result = await executeSearch(mockSession, {
         requiredSeniorityLevel: 'principal', // Very restrictive
-        requiredTimezone: ['Antarctica/*'], // Very restrictive
+        requiredTimezone: ['Mountain'], // Restrictive filter
       });
 
       // Response should include relaxation field when results are sparse

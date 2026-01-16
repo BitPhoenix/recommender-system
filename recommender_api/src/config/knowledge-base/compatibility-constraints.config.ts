@@ -81,3 +81,14 @@ export const teamFocusSkillAlignment: TeamFocusSkillAlignmentMapping = {
     rationale: 'Performance and scalability expertise',
   },
 };
+
+/**
+ * US Timezone Zones
+ *
+ * Canonical list of US timezone zones. Engineers are stored with one of these
+ * values directly (not IANA identifiers).
+ *
+ * Order: East to West (matches typical business hour overlap patterns).
+ */
+export const usTimezoneZones = ['Eastern', 'Central', 'Mountain', 'Pacific'] as const;
+export type USTimezoneZone = typeof usTimezoneZones[number];

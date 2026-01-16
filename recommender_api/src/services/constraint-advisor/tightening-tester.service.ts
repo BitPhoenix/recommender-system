@@ -105,7 +105,7 @@ export async function testTightenedPropertyValue(
  * Test what result count we'd get with an ADDED property constraint.
  * Used when the user doesn't currently have a constraint on this field.
  *
- * Example: User has no timezone filter, we want to test adding "America/*".
+ * Example: User has no timezone filter, we want to test adding "Eastern".
  */
 export async function testAddedPropertyConstraint(
   session: Session,

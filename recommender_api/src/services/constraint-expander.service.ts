@@ -44,8 +44,8 @@ export interface ExpandedSearchCriteria {
   // Start timeline (when candidate could start) - array for Cypher IN filter
   startTimeline: StartTimeline[];
 
-  // Timezone (converted glob patterns for STARTS WITH matching)
-  timezonePrefixes: string[];
+  // Timezone zones (Eastern, Central, Mountain, Pacific)
+  timezoneZones: string[];
 
   // Budget constraints (job-centric)
   maxBudget: number | null;
@@ -141,7 +141,7 @@ export async function expandSearchCriteria(
     request.requiredMaxStartTime,
     config
   );
-  const timezone = expandTimezoneToPrefixes(request.requiredTimezone);
+  const timezone = expandTimezoneZones(request.requiredTimezone);
   const budget = expandBudgetConstraints(
     request.maxBudget,
     request.stretchBudget
@@ -215,7 +215,7 @@ export async function expandSearchCriteria(
     minYearsExperience: seniority.minYears,
     maxYearsExperience: seniority.maxYears,
     startTimeline: timeline.startTimeline,
-    timezonePrefixes: timezone.timezonePrefixes,
+    timezoneZones: timezone.timezoneZones,
     maxBudget: budget.maxBudget,
     stretchBudget: budget.stretchBudget,
     alignedSkillIds: teamFocus.alignedSkillIds,
@@ -320,8 +320,8 @@ function expandStartTimelineConstraint(
   };
 }
 
-function expandTimezoneToPrefixes(requiredTimezone: string[] | undefined): {
-  timezonePrefixes: string[];
+function expandTimezoneZones(requiredTimezone: string[] | undefined): {
+  timezoneZones: string[];
   context: ExpansionContext;
 } {
   const context: ExpansionContext = {
@@ -331,24 +331,22 @@ function expandTimezoneToPrefixes(requiredTimezone: string[] | undefined): {
   };
 
   if (!requiredTimezone || requiredTimezone.length === 0) {
-    return { timezonePrefixes: [], context };
+    return { timezoneZones: [], context };
   }
 
-  /*
-   * Convert glob patterns to prefixes for STARTS WITH matching.
-   * Example: ["America/*", "Europe/London"] → ["America/", "Europe/London"]
-   */
-  const timezonePrefixes = requiredTimezone.map((tz) => tz.replace(/\*$/, ""));
+  // Timezone zones are stored directly (Eastern, Central, Mountain, Pacific)
+  // No conversion needed - pass through as-is for IN matching
+  const timezoneZones = requiredTimezone;
 
   context.filters.push({
     kind: AppliedFilterKind.Property,
     field: "timezone",
-    operator: "STARTS WITH (any of)",
+    operator: "IN",
     value: JSON.stringify(requiredTimezone),
     source: "user",
   });
 
-  return { timezonePrefixes, context };
+  return { timezoneZones, context };
 }
 
 /**

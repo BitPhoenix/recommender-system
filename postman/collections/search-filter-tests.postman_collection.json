@@ -709,7 +709,7 @@
       ]
     },
     {
-      "name": "10 - Timezone Filter: America/*",
+      "name": "10 - Timezone Filter: Eastern",
       "request": {
         "method": "POST",
         "header": [
@@ -720,7 +720,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredTimezone\": [\"America/*\"]\n}"
+          "raw": "{\n  \"requiredTimezone\": [\"Eastern\"]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -738,7 +738,7 @@
           "protocol": "http",
           "port": "4025"
         },
-        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH (any of)` | `[\"America/*\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **American timezones**\n- Includes: `America/New_York`, `America/Los_Angeles`, `America/Chicago`, `America/Denver`, etc.\n- Excludes: `Europe/*`, `Asia/*`, `Pacific/*`, etc."
+        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `IN` | `[\"Eastern\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **Eastern timezone**\n- US timezone zones: Eastern, Central, Mountain, Pacific"
       },
       "event": [
         {
@@ -787,7 +787,7 @@
       ]
     },
     {
-      "name": "11 - Timezone Filter: Europe/*",
+      "name": "11 - Timezone Filter: Central",
       "request": {
         "method": "POST",
         "header": [
@@ -798,7 +798,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredTimezone\": [\"Europe/*\"]\n}"
+          "raw": "{\n  \"requiredTimezone\": [\"Central\"]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -816,7 +816,7 @@
           "protocol": "http",
           "port": "4025"
         },
-        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `STARTS WITH` | Europe/ | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **European timezones**\n- Includes: `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Warsaw`, etc.\n- Excludes: `America/*`, `Asia/*`, `Pacific/*`, etc."
+        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| timezone | `IN` | `[\"Central\"]` | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** `[]`\n- **defaultsApplied:** `[\"requiredMaxStartTime\", \"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers in **Central timezone**\n- US timezone zones: Eastern, Central, Mountain, Pacific"
       },
       "event": [
         {
@@ -1578,7 +1578,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": [\"America/*\"],\n  \"requiredMaxStartTime\": \"two_weeks\"\n}"
+          "raw": "{\n  \"requiredSeniorityLevel\": \"senior\",\n  \"requiredSkills\": [{\"skill\": \"Backend\", \"minProficiency\": \"proficient\"}],\n  \"requiredTimezone\": [\"Eastern\"],\n  \"requiredMaxStartTime\": \"two_weeks\"\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -1596,7 +1596,7 @@
           "protocol": "http",
           "port": "4025"
         },
-        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `STARTS WITH` | America/ | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **America/* timezones**\n- Only engineers who can start within **two weeks** (threshold-based)\n- Must have at least one **Backend skill** at **proficient** level or higher"
+        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| yearsExperience | `BETWEEN` | 6 AND 10 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\"]` | user |\n| timezone | `IN` | `[\"Eastern\"]` | user |\n| requiredSkills | `IN` | `[\"Backend\"]` | user |\n| Backend.minProficiency | `>=` | proficient | user |\n\n## Expected queryMetadata\n\n- **skillsExpanded:** Full Backend skill tree (Node.js, Express, Python, Django, PostgreSQL, etc.)\n- **defaultsApplied:** `[\"limit\", \"offset\"]`\n\n## Expected matches\n\n- Only engineers with **6-10 years experience**\n- Only engineers in **Eastern timezone**\n- Only engineers who can start within **two weeks** (threshold-based)\n- Must have at least one **Backend skill** at **proficient** level or higher"
       },
       "event": [
         {
@@ -2170,7 +2170,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"preferredTimezone\": [\"America/New_York\", \"America/Chicago\", \"Europe/London\"]\n}"
+          "raw": "{\n  \"preferredTimezone\": [\"Eastern\", \"Central\", \"Mountain\"]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -2188,7 +2188,7 @@
           "protocol": "http",
           "port": "4025"
         },
-        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| confidenceScore | `>=` | 0.70 | knowledge_base |\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"America/New_York\",\"America/Chicago\",\"Europe/London\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneMatch` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneMatch` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
+        "description": "## Expected appliedConstraints\n\n| Field | Operator | Value | Source |\n|-------|----------|-------|--------|\n| startTimeline | `IN` | `[\"immediate\",\"two_weeks\",\"one_month\",\"three_months\",\"six_months\",\"one_year\"]` | knowledge_base |\n| preferredTimezone | `BOOST` | `[\"Eastern\",\"Central\",\"Mountain\"]` | user |\n\n## Expected behavior\n\n- **NOT a hard filter** - engineers from all timezones returned\n- Ranking boost for preferred timezones\n- Ordered preference: first timezone has highest priority\n- Uses `preferredTimezoneMatch` weight (2%)\n\n## Expected scoreBreakdown\n\n- `preferredTimezoneMatch` component appears\n- Exact match on first preference: 1.0 bonus\n- Exact match on later preference: decreasing bonus\n- No match: 0.0 bonus"
       },
       "event": [
         {
@@ -2387,7 +2387,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"America/New_York\", \"Europe/London\"],\n  \"maxBudget\": 150000,\n  \"stretchBudget\": 180000,\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 1}\n  ]\n}"
+          "raw": "{\n  \"requiredSkills\": [\n    {\"skill\": \"Backend\", \"minProficiency\": \"proficient\", \"preferredMinProficiency\": \"expert\"}\n  ],\n  \"preferredSkills\": [\n    {\"skill\": \"TypeScript\", \"preferredMinProficiency\": \"expert\"},\n    {\"skill\": \"PostgreSQL\"}\n  ],\n  \"preferredSeniorityLevel\": \"senior\",\n  \"preferredMaxStartTime\": \"immediate\",\n  \"preferredTimezone\": [\"Eastern\", \"Central\"],\n  \"maxBudget\": 150000,\n  \"stretchBudget\": 180000,\n  \"preferredBusinessDomains\": [\n    {\"domain\": \"Fintech\", \"preferredMinYears\": 1}\n  ]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -2405,7 +2405,7 @@
           "protocol": "http",
           "port": "4025"
         },
-        "description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n  - Salary <= $180k (stretch budget ceiling)\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - NY or London timezone\n  - Budget with stretch zone ($150k max, $180k stretch)\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Hard filter:** Salary <= $180k (stretch ceiling)\n- **Soft constraints:** All preferred properties boost ranking\n- Engineers at/under $150k get full budget score, $150k-$180k decays\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - budgetMatch: 3%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- budgetMatch.inStretchZone indicates if in stretch zone\n- Engineers matching more preferences rank higher"
+        "description": "## Combined: All Preferred Properties\n\nDemonstrates using multiple preference criteria together.\n\n## Request Breakdown\n\n- **Hard filters:**\n  - Must have Backend skills at proficient level or better\n  - Salary <= $180k (stretch budget ceiling)\n\n- **Ranking boosts:**\n  - Expert Backend (from preferredMinProficiency)\n  - Expert TypeScript\n  - PostgreSQL knowledge\n  - Senior seniority level\n  - Immediate start timeline (threshold-based)\n  - Eastern or Central timezone\n  - Budget with stretch zone ($150k max, $180k stretch)\n  - Fintech business domain experience (1+ years)\n\n## Expected behavior\n\n- **Hard filter:** Must have proficient+ Backend skills\n- **Hard filter:** Salary <= $180k (stretch ceiling)\n- **Soft constraints:** All preferred properties boost ranking\n- Engineers at/under $150k get full budget score, $150k-$180k decays\n- Utility weights:\n  - startTimelineMatch: 10%\n  - preferredTimezoneMatch: 2%\n  - preferredSeniorityMatch: 3%\n  - budgetMatch: 3%\n  - preferredBusinessDomainMatch: 2%\n  - preferredTechnicalDomainMatch: 2%\n  - preferredSkillsMatch: 8%\n\n## Expected scoreBreakdown\n\n- All preferred bonus components present\n- budgetMatch.inStretchZone indicates if in stretch zone\n- Engineers matching more preferences rank higher"
       },
       "event": [
         {

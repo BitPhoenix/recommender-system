@@ -11,7 +11,7 @@ const createQueryParams = (overrides: Partial<CypherQueryParams> = {}): CypherQu
   startTimeline: ['immediate', 'two_weeks', 'one_month'],
   minYearsExperience: null,
   maxYearsExperience: null,
-  timezonePrefixes: [],
+  timezoneZones: [],
   maxBudget: null,
   stretchBudget: null,
   offset: 0,
@@ -198,15 +198,14 @@ describe('buildSearchQuery', () => {
       expect(result.params.budgetCeiling).toBe(220000);
     });
 
-    it('includes timezone prefixes when specified', () => {
+    it('includes timezone zones when specified', () => {
       const params = createQueryParams({
-        timezonePrefixes: ['America/', 'Europe/'],
+        timezoneZones: ['Eastern', 'Pacific'],
       });
       const result = buildSearchQuery(params);
 
-      // Timezone params are dynamically named tz0, tz1, etc.
-      expect(result.params.tz0).toBe('America/');
-      expect(result.params.tz1).toBe('Europe/');
+      // Timezone zones are passed as array to IN clause
+      expect(result.params.timezoneZones).toEqual(['Eastern', 'Pacific']);
     });
   });
 

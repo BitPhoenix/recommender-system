@@ -104,7 +104,7 @@ export async function executeSearch(
     startTimeline: expanded.startTimeline,
     minYearsExperience: expanded.minYearsExperience,
     maxYearsExperience: expanded.maxYearsExperience,
-    timezonePrefixes: expanded.timezonePrefixes,
+    timezoneZones: expanded.timezoneZones,
     maxBudget: expanded.maxBudget,
     stretchBudget: expanded.stretchBudget,
     offset: expanded.offset,
