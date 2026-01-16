@@ -85,4 +85,11 @@ export {
   maxInferenceIterations,
 };
 
+// Relaxation Strategies (Section 5.2.4-5.2.5 - Constraint Advice)
+export {
+  fieldToRelaxationStrategy,
+  RelaxationStrategyType,
+} from "./relaxation-strategies.config.js";
+export type { RelaxationStrategy } from "./relaxation-strategies.config.js";
+
 export default knowledgeBaseConfig;

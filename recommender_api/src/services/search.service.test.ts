@@ -1,24 +1,34 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { executeSearch } from './search.service.js';
 import { createMockSession, mockData } from '../__mocks__/neo4j-session.mock.js';
-import type { SearchFilterRequest } from '../types/search.types.js';
+import {
+  isPropertyFilter,
+  isPropertyPreference,
+  type SearchFilterRequest,
+} from '../types/search.types.js';
 
 // Mock all dependent services
-vi.mock('./skill-resolution.service.js', () => ({
-  resolveAllSkills: vi.fn().mockResolvedValue({
-    skillGroups: {
-      learningLevelSkillIds: [],
-      proficientLevelSkillIds: [],
-      expertLevelSkillIds: [],
-    },
-    requiredSkillIds: [],
-    expandedSkillNames: [],
-    unresolvedSkills: [],
-    originalSkillIdentifiers: [],
-    preferredSkillIds: [],
-    skillIdToPreferredProficiency: new Map(),
-  }),
-}));
+vi.mock('./skill-resolution.service.js', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    resolveAllSkills: vi.fn().mockResolvedValue({
+      skillGroups: {
+        learningLevelSkillIds: [],
+        proficientLevelSkillIds: [],
+        expertLevelSkillIds: [],
+      },
+      requiredSkillIds: [],
+      expandedSkillNames: [],
+      unresolvedSkills: [],
+      originalSkillIdentifiers: [],
+      preferredSkillIds: [],
+      skillIdToPreferredProficiency: new Map(),
+      resolvedRequiredSkills: [],
+      resolvedPreferredSkills: [],
+    }),
+  };
+});
 
 vi.mock('./domain-resolver.service.js', () => ({
   resolveBusinessDomains: vi.fn().mockResolvedValue([]),
@@ -41,6 +51,8 @@ const defaultSkillResolutionResult = {
   originalSkillIdentifiers: [],
   preferredSkillIds: [],
   skillIdToPreferredProficiency: new Map(),
+  resolvedRequiredSkills: [],
+  resolvedPreferredSkills: [],
 };
 
 describe('executeSearch', () => {
@@ -119,6 +131,8 @@ describe('executeSearch', () => {
         originalSkillIdentifiers: ['typescript'],
         preferredSkillIds: [],
         skillIdToPreferredProficiency: new Map(),
+        resolvedRequiredSkills: [{ skillId: 'skill-ts', minProficiency: 'proficient', preferredMinProficiency: null }],
+        resolvedPreferredSkills: [],
       });
 
       const request: SearchFilterRequest = {
@@ -148,6 +162,8 @@ describe('executeSearch', () => {
         originalSkillIdentifiers: ['typescript'],
         preferredSkillIds: [],
         skillIdToPreferredProficiency: new Map(),
+        resolvedRequiredSkills: [{ skillId: 'skill-ts', minProficiency: 'proficient', preferredMinProficiency: null }],
+        resolvedPreferredSkills: [],
       });
 
       const mockSession = createMockSession([
@@ -175,6 +191,8 @@ describe('executeSearch', () => {
         originalSkillIdentifiers: ['nonexistent-skill'],
         preferredSkillIds: [],
         skillIdToPreferredProficiency: new Map(),
+        resolvedRequiredSkills: [],
+        resolvedPreferredSkills: [],
       });
 
       const mockSession = createMockSession([
@@ -460,7 +478,10 @@ describe('executeSearch', () => {
 
       const budgetFilter = result.appliedFilters.find((f) => f.field === 'salary');
       expect(budgetFilter).toBeDefined();
-      expect(budgetFilter?.value).toBe('200000');
+      expect(isPropertyFilter(budgetFilter!)).toBe(true);
+      if (isPropertyFilter(budgetFilter!)) {
+        expect(budgetFilter.value).toBe('200000');
+      }
     });
   });
 
@@ -478,7 +499,10 @@ describe('executeSearch', () => {
         (p) => p.field === 'preferredSeniorityLevel'
       );
       expect(seniorityPref).toBeDefined();
-      expect(seniorityPref?.value).toBe('senior');
+      expect(isPropertyPreference(seniorityPref!)).toBe(true);
+      if (isPropertyPreference(seniorityPref!)) {
+        expect(seniorityPref.value).toBe('senior');
+      }
     });
 
     it('tracks preferred timeline as preference', async () => {
@@ -494,7 +518,10 @@ describe('executeSearch', () => {
         (p) => p.field === 'preferredMaxStartTime'
       );
       expect(timelinePref).toBeDefined();
-      expect(timelinePref?.value).toBe('immediate');
+      expect(isPropertyPreference(timelinePref!)).toBe(true);
+      if (isPropertyPreference(timelinePref!)) {
+        expect(timelinePref.value).toBe('immediate');
+      }
     });
 
     it('tracks team focus as preference', async () => {
@@ -835,6 +862,47 @@ describe('executeSearch', () => {
       // The key is that it doesn't error
       expect(result.derivedConstraints).toBeDefined();
       expect(Array.isArray(result.derivedConstraints)).toBe(true);
+    });
+  });
+
+  describe('constraint advisor integration', () => {
+    /*
+     * Note: Full constraint advisor integration requires complex mocking.
+     * These tests verify the response structure includes advisor fields.
+     * E2E tests cover actual relaxation/tightening logic.
+     */
+    it('includes relaxation field in response for sparse results', async () => {
+      const mockSession = createMockSession([
+        { pattern: 'MATCH', result: [] }, // Empty results trigger relaxation
+      ]);
+
+      const result = await executeSearch(mockSession, {
+        requiredSeniorityLevel: 'principal', // Very restrictive
+        requiredTimezone: ['Antarctica/*'], // Very restrictive
+      });
+
+      // Response should include relaxation field when results are sparse
+      expect(result).toHaveProperty('relaxation');
+      expect(result.relaxation).toBeDefined();
+      expect(result.relaxation?.suggestions).toBeDefined();
+    });
+
+    it('includes tightening field in response for broad search', async () => {
+      const mockSession = createMockSession([
+        {
+          pattern: 'MATCH',
+          result: Array.from({ length: 30 }, (_, i) =>
+            mockData.createEngineerRecord({ id: `eng-${i}`, totalCount: 30 })
+          ),
+        },
+      ]);
+
+      const result = await executeSearch(mockSession, {}); // Very broad search
+
+      // Response should include tightening field when results are abundant
+      expect(result).toHaveProperty('tightening');
+      expect(result.tightening).toBeDefined();
+      expect(result.tightening?.suggestions).toBeDefined();
     });
   });
 

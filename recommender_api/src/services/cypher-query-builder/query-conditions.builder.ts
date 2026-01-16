@@ -9,6 +9,7 @@ import type {
   CypherQueryParams,
   BasicEngineerFilters,
 } from "./query-types.js";
+import { buildCypherFragment } from "../../utils/cypher-fragment.builder.js";
 
 type FilterParts = { conditions: string[]; queryParams: Record<string, unknown> };
 
@@ -39,9 +40,10 @@ function combineFilters(filters: FilterParts[]): BasicEngineerFilters {
 }
 
 function buildTimelineFilter(startTimeline: StartTimeline[]): FilterParts {
+  const fragment = buildCypherFragment("startTimeline", "IN", startTimeline, "startTimeline");
   return {
-    conditions: ["e.startTimeline IN $startTimeline"],
-    queryParams: { startTimeline },
+    conditions: [fragment.clause],
+    queryParams: { [fragment.paramName]: fragment.paramValue },
   };
 }
 
@@ -53,13 +55,15 @@ function buildExperienceFilter(
   const queryParams: Record<string, unknown> = {};
 
   if (min !== null) {
-    conditions.push("e.yearsExperience >= $minYearsExperience");
-    queryParams.minYearsExperience = min;
+    const fragment = buildCypherFragment("yearsExperience", ">=", min, "minYearsExperience");
+    conditions.push(fragment.clause);
+    queryParams[fragment.paramName] = fragment.paramValue;
   }
 
   if (max !== null) {
-    conditions.push("e.yearsExperience < $maxYearsExperience");
-    queryParams.maxYearsExperience = max;
+    const fragment = buildCypherFragment("yearsExperience", "<", max, "maxYearsExperience");
+    conditions.push(fragment.clause);
+    queryParams[fragment.paramName] = fragment.paramValue;
   }
 
   return { conditions, queryParams };
@@ -70,14 +74,17 @@ function buildTimezoneFilter(timezonePrefixes: string[]): FilterParts {
     return { conditions: [], queryParams: {} };
   }
 
-  const tzConditions = timezonePrefixes.map((_, i) => `e.timezone STARTS WITH $tz${i}`);
+  const fragments = timezonePrefixes.map((prefix, i) =>
+    buildCypherFragment("timezone", "STARTS WITH", prefix, `tz${i}`)
+  );
+
   const queryParams: Record<string, unknown> = {};
-  timezonePrefixes.forEach((tz, i) => {
-    queryParams[`tz${i}`] = tz;
+  fragments.forEach((fragment) => {
+    queryParams[fragment.paramName] = fragment.paramValue;
   });
 
   return {
-    conditions: [`(${tzConditions.join(" OR ")})`],
+    conditions: [`(${fragments.map((f) => f.clause).join(" OR ")})`],
     queryParams,
   };
 }
@@ -89,13 +96,13 @@ function buildTimezoneFilter(timezonePrefixes: string[]): FilterParts {
 function buildBudgetFilter(
   filterCeiling: number | null
 ): FilterParts {
-  const conditions: string[] = [];
-  const queryParams: Record<string, unknown> = {};
-
-  if (filterCeiling !== null) {
-    conditions.push("e.salary <= $budgetCeiling");
-    queryParams.budgetCeiling = filterCeiling;
+  if (filterCeiling === null) {
+    return { conditions: [], queryParams: {} };
   }
 
-  return { conditions, queryParams };
+  const fragment = buildCypherFragment("salary", "<=", filterCeiling, "budgetCeiling");
+  return {
+    conditions: [fragment.clause],
+    queryParams: { [fragment.paramName]: fragment.paramValue },
+  };
 }

@@ -11,6 +11,4 @@ export type {
   ResolvedTechnicalDomain,
 } from "./query-types.js";
 
-import { buildSearchQuery } from "./search-query.builder.js";
-
-export { buildSearchQuery };
+export { buildSearchQuery, buildSkillFilterCountQuery, buildSkillDistributionQuery } from "./search-query.builder.js";

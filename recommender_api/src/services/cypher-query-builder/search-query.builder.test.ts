@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildSearchQuery } from './search-query.builder.js';
-import type { CypherQueryParams } from './query-types.js';
+import { buildSearchQuery, buildSkillFilterCountQuery } from './search-query.builder.js';
+import type { CypherQueryParams, SkillProficiencyGroups } from './query-types.js';
 
 // Factory helper for test params
 const createQueryParams = (overrides: Partial<CypherQueryParams> = {}): CypherQueryParams => ({
@@ -335,5 +335,168 @@ describe('buildSearchQuery', () => {
       expect(result.query).toContain('matchedBusinessDomains');
       expect(result.query).toContain('matchedTechnicalDomains');
     });
+  });
+
+  describe('matchType classification', () => {
+    it('includes matchType CASE expression in skill-filtered query', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill-1'],
+        originalSkillIdentifiers: ['typescript'],
+      });
+      const result = buildSearchQuery(params);
+
+      // Verify the matchType CASE pattern exists
+      expect(result.query).toContain('matchType: CASE');
+      // Both ID and name are checked on the same line with OR
+      expect(result.query).toContain("s2.id IN $originalSkillIdentifiers OR s2.name IN $originalSkillIdentifiers");
+      expect(result.query).toContain("'direct'");
+      expect(result.query).toContain("'descendant'");
+    });
+
+    it('sets matchType to none in unfiltered query', () => {
+      const params = createQueryParams({
+        learningLevelSkillIds: [],
+        proficientLevelSkillIds: [],
+        expertLevelSkillIds: [],
+      });
+      const result = buildSearchQuery(params);
+
+      // Unfiltered mode uses 'none' for matchType
+      expect(result.query).toContain("matchType: 'none'");
+    });
+
+    it('passes originalSkillIdentifiers for direct match detection', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill_typescript', 'skill_javascript'],
+        originalSkillIdentifiers: ['typescript', 'skill_javascript'],
+      });
+      const result = buildSearchQuery(params);
+
+      // Both ID and name should be checked
+      expect(result.params.originalSkillIdentifiers).toEqual(['typescript', 'skill_javascript']);
+    });
+  });
+
+  describe('ORDER BY clauses', () => {
+    it('orders skill-filtered results by qualifying skills count DESC, then experience DESC', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill-1', 'skill-2'],
+      });
+      const result = buildSearchQuery(params);
+
+      // Skill-filtered mode: ORDER BY SIZE(qualifyingSkillIds) DESC, e.yearsExperience DESC
+      expect(result.query).toContain('ORDER BY SIZE(qualifyingSkillIds) DESC');
+      expect(result.query).toContain('e.yearsExperience DESC');
+    });
+
+    it('orders unfiltered results by experience DESC only', () => {
+      const params = createQueryParams({
+        learningLevelSkillIds: [],
+        proficientLevelSkillIds: [],
+        expertLevelSkillIds: [],
+      });
+      const result = buildSearchQuery(params);
+
+      // Unfiltered mode: ORDER BY e.yearsExperience DESC only
+      expect(result.query).toContain('ORDER BY e.yearsExperience DESC');
+      // Should NOT have skill-count ordering
+      expect(result.query).not.toContain('SIZE(qualifyingSkillIds)');
+    });
+  });
+});
+
+describe('buildSkillFilterCountQuery', () => {
+  const createSkillGroups = (overrides: Partial<SkillProficiencyGroups> = {}): SkillProficiencyGroups => ({
+    learningLevelSkillIds: [],
+    proficientLevelSkillIds: [],
+    expertLevelSkillIds: [],
+    ...overrides,
+  });
+
+  it('builds count query with proficiency buckets', () => {
+    const skillGroups = createSkillGroups({
+      learningLevelSkillIds: ['skill_1'],
+      proficientLevelSkillIds: ['skill_2'],
+      expertLevelSkillIds: ['skill_3'],
+    });
+    const propertyConditions = { whereClauses: [], params: {} };
+
+    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+
+    expect(result.query).toContain('$learningLevelSkillIds');
+    expect(result.query).toContain('$proficientLevelSkillIds');
+    expect(result.query).toContain('$expertLevelSkillIds');
+    expect(result.query).toContain('count(DISTINCT e) AS resultCount');
+    expect(result.params.learningLevelSkillIds).toEqual(['skill_1']);
+    expect(result.params.proficientLevelSkillIds).toEqual(['skill_2']);
+    expect(result.params.expertLevelSkillIds).toEqual(['skill_3']);
+  });
+
+  it('includes property conditions in WHERE clause', () => {
+    const skillGroups = createSkillGroups({
+      learningLevelSkillIds: ['skill_1'],
+    });
+    const propertyConditions = {
+      whereClauses: ['e.salary <= $maxSalary'],
+      params: { maxSalary: 100000 },
+    };
+
+    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+
+    expect(result.query).toContain('e.salary <= $maxSalary');
+    expect(result.params.maxSalary).toBe(100000);
+  });
+
+  it('returns 0-result query when no skills provided', () => {
+    const skillGroups = createSkillGroups();
+    const result = buildSkillFilterCountQuery(skillGroups, { whereClauses: [], params: {} }, []);
+
+    expect(result.query).toContain('RETURN 0 AS resultCount');
+  });
+
+  it('combines multiple property conditions with AND', () => {
+    const skillGroups = createSkillGroups({
+      proficientLevelSkillIds: ['skill_1'],
+    });
+    const propertyConditions = {
+      whereClauses: ['e.salary <= $maxSalary', 'e.yearsExperience >= $minExp'],
+      params: { maxSalary: 100000, minExp: 5 },
+    };
+
+    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+
+    expect(result.query).toContain('e.salary <= $maxSalary');
+    expect(result.query).toContain('e.yearsExperience >= $minExp');
+    expect(result.query).toContain('AND');
+    expect(result.params.maxSalary).toBe(100000);
+    expect(result.params.minExp).toBe(5);
+  });
+
+  it('uses proficiency CASE pattern for skill matching', () => {
+    const skillGroups = createSkillGroups({
+      expertLevelSkillIds: ['skill_1'],
+    });
+    const propertyConditions = { whereClauses: [], params: {} };
+
+    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+
+    // Check for the proficiency qualification CASE pattern
+    expect(result.query).toContain('COLLECT(DISTINCT CASE');
+    expect(result.query).toContain('WHEN s.id IN $learningLevelSkillIds');
+    expect(result.query).toContain('WHEN s.id IN $proficientLevelSkillIds');
+    expect(result.query).toContain('WHEN s.id IN $expertLevelSkillIds');
+    expect(result.query).toContain("us.proficiencyLevel = 'expert'");
+  });
+
+  it('requires all skills to match (>= SIZE($allSkillIds))', () => {
+    const skillGroups = createSkillGroups({
+      proficientLevelSkillIds: ['skill_1', 'skill_2'],
+    });
+    const propertyConditions = { whereClauses: [], params: {} };
+
+    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+
+    expect(result.query).toContain('>= SIZE($allSkillIds)');
+    expect(result.params.allSkillIds).toEqual(['skill_1', 'skill_2']);
   });
 });

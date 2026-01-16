@@ -9,6 +9,18 @@ The API server runs via Tilt in a Kubernetes cluster (minikube). **Do not start 
 - Neo4j available at: `bolt://localhost:7687` and `http://localhost:7474`
 - Client available at: `http://localhost:5173`
 
+## Design Philosophy
+
+**Prioritize correctness and clean design over simplicity or minimal changes.** When evaluating implementation approaches:
+
+- **Embrace refactoring**: If the cleanest solution requires restructuring existing code, do it. Don't work around poor designs just to avoid touching existing code.
+- **Breaking changes are acceptable**: Don't preserve backwards compatibility for its own sake. If a better API or interface design requires breaking changes, prefer the better design.
+- **Choose the most correct solution**: Don't default to "simplest" or "fastest to implement." Evaluate options based on correctness, maintainability, and how well they fit the domain model.
+- **Fix root causes**: Don't add workarounds or bandaids. If you encounter technical debt while implementing a feature, address it rather than working around it.
+- **Design for the actual requirements**: Not for hypothetical future ones, but also not artificially constrained by "what's easiest right now."
+
+When presenting options, don't weight "requires no refactoring" or "minimal changes" as advantages. The right solution is the one with the best design, regardless of how much existing code needs to change.
+
 ## Seeding
 
 **Seeding runs automatically via Tilt.** The `neo4j-seed` local_resource watches these files and triggers a rebuild/redeploy when any change:
@@ -56,15 +68,18 @@ npm run test:coverage
 
 ### E2E Tests (Newman/Postman)
 
-**Requires Tilt to be running** (tests hit the live API at localhost:4025).
+**Requires Tilt to be running** (tests hit the live API).
+
+**Note:** The API binds to the Tailscale hostname (`mac-studio.tailb9e408.ts.net:4025`) rather than `localhost:4025`. The Postman collection URLs are configured for this hostname. If you need to change the host, update the URLs in the collection or use the `--env-var` flag:
 
 ```bash
-# Run E2E tests via npm script
+# Run E2E tests via npm script (uses Tailscale hostname)
 npm run test:e2e
 
-# Or run directly with newman
+# Or run with a different host
 npx newman run ../postman/collections/search-filter-tests.postman_collection.json \
-  --globals ../postman/globals/workspace.postman_globals.json
+  --globals ../postman/globals/workspace.postman_globals.json \
+  --env-var "baseUrl=http://localhost:4025"
 ```
 
 ### Full Test Suite
@@ -75,13 +90,46 @@ Run both unit/integration and E2E tests:
 npm test && npm run test:e2e
 ```
 
+### Verification Policy
+
+**Always run automated tests instead of asking for manual testing.** After completing implementation:
+1. Run `npm run typecheck` to verify TypeScript compiles
+2. Run `npm test` to run unit/integration tests
+3. Run `npm run test:e2e` to run E2E tests (if Tilt is running)
+
+Do not pause for manual verification or ask the user to test manually. If E2E tests require Tilt, attempt to run them - they will pass if Tilt is running, or fail gracefully if not.
+
 ### Postman Collection
 
-The Postman collection at `postman/collections/search-filter-tests.postman_collection.json` contains 47 test scenarios with 172 assertions.
+The Postman collection at `postman/collections/search-filter-tests.postman_collection.json` contains 62 test scenarios with 215 assertions.
 
 **Important:** Update the Postman collection whenever API changes are made (new endpoints, changed request/response schemas, new filters, etc.).
 
 ## Code Style
+
+### Function Ordering
+
+Place parent/caller functions **above** the functions they call. This makes code easier to read top-down:
+
+```typescript
+/* Good: caller above callees */
+export function processData(input: Input): Output {
+  const parsed = parseInput(input);
+  return formatOutput(parsed);
+}
+
+function parseInput(input: Input): Parsed { /* ... */ }
+function formatOutput(parsed: Parsed): Output { /* ... */ }
+
+/* Bad: helpers before the function that uses them */
+function parseInput(input: Input): Parsed { /* ... */ }
+function formatOutput(parsed: Parsed): Output { /* ... */ }
+
+export function processData(input: Input): Output {
+  const parsed = parseInput(input);
+  return formatOutput(parsed);
+}
+```
 
 ### Comments
 
@@ -102,6 +150,54 @@ For multi-line comments, use block comments (`/* */`) instead of multiple single
 ```
 
 Single-line `//` comments are fine for brief annotations.
+
+### Map/Record Naming
+
+Name maps and records using `keyToValue` pattern to make the mapping direction clear:
+
+```typescript
+/* Good: clear what maps to what */
+const fieldToRelaxationStrategy: Record<string, RelaxationStrategy> = { ... };
+const skillIdToDisplayName: Map<string, string> = new Map();
+const ruleIdToDerivationChain: Record<string, string[]> = { ... };
+
+/* Bad: ambiguous names */
+const relaxationStrategies: Record<string, RelaxationStrategy> = { ... };
+const skillNames: Map<string, string> = new Map();
+const derivationChains: Record<string, string[]> = { ... };
+```
+
+### Type/Interface Placement
+
+Place local interfaces and type aliases at the **top of the file**, after imports but before any functions:
+
+```typescript
+/* Good: types at the top */
+import { SomeDependency } from "./dependency.js";
+
+interface LocalResult {
+  value: string;
+  count: number;
+}
+
+export function processData(): LocalResult {
+  // ...
+}
+
+/* Bad: types scattered in the middle of the file */
+import { SomeDependency } from "./dependency.js";
+
+export function processData(): LocalResult {
+  // ...
+}
+
+interface LocalResult {  // Hard to find, breaks reading flow
+  value: string;
+  count: number;
+}
+
+function helperFunction() { /* ... */ }
+```
 
 ## Inference Rules (Section 5.2.1)
 
