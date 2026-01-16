@@ -4281,7 +4281,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"maxBudget\": 80000,\n  \"requiredTimezone\": [\"Asia/*\"]\n}"
+          "raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"maxBudget\": 50000,\n  \"requiredTimezone\": [\"Mountain\"]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -4333,7 +4333,15 @@
               "  pm.expect(json.relaxation.conflictAnalysis.conflictSets.length).to.be.at.least(1);",
               "  const firstConflict = json.relaxation.conflictAnalysis.conflictSets[0];",
               "  pm.expect(firstConflict).to.have.property('constraints');",
-              "  pm.expect(firstConflict).to.have.property('explanation');",
+              "  // Dual explanation fields (Project 2.5: Local LLM Integration)",
+              "  pm.expect(firstConflict).to.have.property('dataAwareExplanation');",
+              "  pm.expect(firstConflict.dataAwareExplanation).to.be.a('string').and.not.empty;",
+              "  // llmExplanation may be null if Ollama unavailable",
+              "  pm.expect(firstConflict).to.have.property('llmExplanation');",
+              "  // Stats provide transparency into constraint matching",
+              "  pm.expect(firstConflict).to.have.property('stats');",
+              "  pm.expect(firstConflict.stats).to.have.property('countMatchingAll');",
+              "  pm.expect(firstConflict.stats).to.have.property('conflictingConstraintStats');",
               "});",
               "",
               "pm.test('Relaxation suggestions array exists', function() {",
@@ -4355,7 +4363,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"maxBudget\": 50000,\n  \"requiredTimezone\": [\"Australia/*\"]\n}"
+          "raw": "{\n  \"requiredSeniorityLevel\": \"principal\",\n  \"maxBudget\": 40000,\n  \"requiredTimezone\": [\"Mountain\"]\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
@@ -4438,7 +4446,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"teamFocus\": \"scaling\",\n  \"requiredTimezone\": [\"Australia/*\"],\n  \"maxBudget\": 60000\n}"
+          "raw": "{\n  \"teamFocus\": \"scaling\",\n  \"requiredTimezone\": [\"Mountain\"],\n  \"maxBudget\": 50000\n}"
         },
         "url": {
           "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter",
