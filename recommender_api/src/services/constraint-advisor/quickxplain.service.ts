@@ -11,6 +11,7 @@ import type {
   DecomposedConstraints,
 } from "./constraint.types.js";
 import { buildQueryWithConstraints } from "./constraint-decomposer.service.js";
+import { toNumber } from "../engineer-record-parser.js";
 
 /**
  * Result of QUICKXPLAIN analysis.
@@ -67,7 +68,7 @@ export async function findMinimalConflictSets(
       constraintIds
     );
     const result = await session.run(query, params);
-    return result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+    return toNumber(result.records[0]?.get("resultCount"));
   }
 
   // Helper: check if constraint set is consistent (returns sufficient results)

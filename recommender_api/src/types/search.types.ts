@@ -311,8 +311,12 @@ export interface SearchFilterResponse {
 export interface ConflictSet {
   /** Structured constraints that form the conflict set */
   constraints: AppliedFilter[];
-  /** Explanation of why these constraints conflict */
-  explanation: string;
+  /** Data-aware template explanation using actual DB statistics (always present) */
+  dataAwareExplanation: string;
+  /** RAG-enhanced LLM explanation with reasoning (null if LLM unavailable) */
+  llmExplanation: string | null;
+  /** Per-constraint statistics from the database */
+  stats: import("../services/constraint-advisor/conflict-stats.types.js").ConflictStats;
   /** Evidence: result counts when each constraint is removed */
   evidence?: {
     /** Field name referencing AppliedFilter.field in constraints array */

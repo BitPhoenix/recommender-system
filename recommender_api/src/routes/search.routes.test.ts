@@ -30,7 +30,8 @@ describe('POST /api/search/filter', () => {
       const mockSession = createMockSession([
         {
           pattern: 'MATCH (e:Engineer)',
-          result: [mockData.createEngineerRecord()],
+          /* totalCount >= 3 avoids triggering constraint advisor */
+          result: [mockData.createEngineerRecord({ totalCount: 10 })],
         },
       ]);
       vi.mocked(driver.session).mockReturnValue(mockSession);
@@ -49,8 +50,13 @@ describe('POST /api/search/filter', () => {
         {
           pattern: 'MATCH (e:Engineer)',
           result: [
-            mockData.createEngineerRecord({ id: 'eng-1', name: 'Alice' }),
-            mockData.createEngineerRecord({ id: 'eng-2', name: 'Bob' }),
+            /*
+             * Set totalCount >= 3 to avoid triggering constraint advisor
+             * (sparse results threshold), which would make additional queries
+             * that the mock isn't configured to handle.
+             */
+            mockData.createEngineerRecord({ id: 'eng-1', name: 'Alice', totalCount: 10 }),
+            mockData.createEngineerRecord({ id: 'eng-2', name: 'Bob', totalCount: 10 }),
           ],
         },
       ]);
@@ -89,7 +95,8 @@ describe('POST /api/search/filter', () => {
       const mockSession = createMockSession([
         {
           pattern: 'MATCH',
-          result: [mockData.createEngineerRecord()],
+          /* totalCount >= 3 avoids triggering constraint advisor */
+          result: [mockData.createEngineerRecord({ totalCount: 10 })],
         },
       ]);
       vi.mocked(driver.session).mockReturnValue(mockSession);

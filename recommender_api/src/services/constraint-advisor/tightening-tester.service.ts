@@ -10,6 +10,7 @@ import { buildSkillFilterCountQuery } from "../cypher-query-builder/index.js";
 import type { ResolvedSkillWithProficiency } from "../skill-resolver.service.js";
 import type { ProficiencyLevel } from "../../types/search.types.js";
 import { extractSkillConstraints } from "./skill-extraction.utils.js";
+import { toNumber } from "../engineer-record-parser.js";
 
 // ============================================================================
 // LOCAL TYPES
@@ -250,7 +251,7 @@ async function runCountQuery(
       derivedSkillIds
     );
     const result = await session.run(query, params);
-    return result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+    return toNumber(result.records[0]?.get("resultCount"));
   }
 
   // Property-only query
@@ -265,5 +266,5 @@ RETURN count(e) AS resultCount
 `;
 
   const result = await session.run(query, params);
-  return result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+  return toNumber(result.records[0]?.get("resultCount"));
 }

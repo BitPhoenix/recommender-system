@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Generated test results
+results/
+
+# npm
+package-lock.json
