@@ -12,6 +12,7 @@ import { groupSkillsByProficiency } from "../skill-resolution.service.js";
 import { buildSkillFilterCountQuery } from "../cypher-query-builder/index.js";
 import type { ResolvedSkillWithProficiency } from "../skill-resolver.service.js";
 import { extractSkillConstraintsFromArray } from "./skill-extraction.utils.js";
+import { toNumber } from "../engineer-record-parser.js";
 
 // ============================================================================
 // PUBLIC API
@@ -52,7 +53,7 @@ export async function testRelaxedValue(
   const { query, params } = buildQueryWithConstraints(modifiedDecomposedConstraints, allIds);
 
   const result = await session.run(query, params);
-  return result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+  return toNumber(result.records[0]?.get("resultCount"));
 }
 
 /**
@@ -102,7 +103,7 @@ export async function testSkillRelaxation(
 
   // Execute and return count
   const result = await session.run(query, params);
-  return result.records[0]?.get('resultCount')?.toNumber() ?? 0;
+  return toNumber(result.records[0]?.get('resultCount'));
 }
 
 /**
@@ -118,7 +119,7 @@ export async function testSkillRemoval(
   const { query, params } = buildQueryWithConstraints(decomposedConstraints, allIds);
 
   const result = await session.run(query, params);
-  return result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+  return toNumber(result.records[0]?.get("resultCount"));
 }
 
 // ============================================================================

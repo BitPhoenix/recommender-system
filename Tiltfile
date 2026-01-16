@@ -78,7 +78,7 @@ k8s_resource(
     'recommender-api',
     labels=['recommender'],
     port_forwards=['4025:4025'],
-    resource_deps=['neo4j-db'],
+    resource_deps=['neo4j-db', 'ollama'],
 )
 
 # ============================================
@@ -96,4 +96,17 @@ local_resource(
         'client/package.json',
     ],
     resource_deps=['recommender-api'],
+)
+
+# ============================================
+# Ollama (Local LLM) - Health Check
+# ============================================
+# Ollama runs as a system service on macOS (brew services or Ollama.app).
+# This resource verifies it's available rather than trying to start it.
+
+local_resource(
+    'ollama',
+    cmd='curl -sf http://127.0.0.1:11434/api/tags > /dev/null && echo "Ollama is running"',
+    labels=['recommender'],
+    auto_init=True,
 )

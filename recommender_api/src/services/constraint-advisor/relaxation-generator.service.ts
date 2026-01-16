@@ -37,6 +37,7 @@ import {
   testSkillRelaxation,
   testSkillRemoval,
 } from "./relaxation-tester.service.js";
+import { toNumber } from "../engineer-record-parser.js";
 
 // ============================================================================
 // PUBLIC API
@@ -236,7 +237,7 @@ async function applyRemoveStrategy(
   const { query, params } = buildQueryWithConstraints(decomposedConstraints, allIds);
 
   const result = await session.run(query, params);
-  const count = result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+  const count = toNumber(result.records[0]?.get("resultCount"));
 
   if (count > 0) {
     const rationale = fillTemplate(strategy.rationaleTemplate, {
@@ -275,7 +276,7 @@ async function applyDerivedOverrideStrategy(
   const { query, params } = buildQueryWithConstraints(decomposedConstraints, allIds);
 
   const result = await session.run(query, params);
-  const count = result.records[0]?.get("resultCount")?.toNumber() ?? 0;
+  const count = toNumber(result.records[0]?.get("resultCount"));
 
   const rationale = fillTemplate(strategy.rationaleTemplate, {
     displayValue: constraint.displayValue,

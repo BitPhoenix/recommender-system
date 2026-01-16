@@ -7,6 +7,22 @@ import {
   type DerivedConstraintOverride,
   type AppliedFilter,
 } from "../../types/search.types.js";
+import { ConstraintStatsType } from "./conflict-stats.types.js";
+
+/*
+ * Mock the conflict explanation service to avoid real LLM calls in tests.
+ */
+vi.mock("./conflict-explanation.service.js", () => ({
+  generateConflictExplanations: vi.fn().mockResolvedValue({
+    dataAwareExplanation: "Your search returns 0 engineers. The conflict: 0 matching constraints.",
+    llmExplanation: null,
+    stats: {
+      countMatchingAll: 0,
+      allConstraintStats: [],
+      conflictingConstraintStats: [],
+    },
+  }),
+}));
 
 /*
  * Create a mock session that simulates Neo4j behavior.

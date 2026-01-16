@@ -16,8 +16,8 @@ import { generateTighteningSuggestions } from "./tightening-generator.service.js
 import {
   type TestableConstraint,
   isSkillTraversalConstraint,
-  isPropertyConstraint,
 } from "./constraint.types.js";
+import { generateConflictExplanations } from "./conflict-explanation.service.js";
 
 /** Threshold below which relaxation advice is triggered */
 const SPARSE_RESULTS_THRESHOLD = 3;
@@ -76,8 +76,12 @@ async function runRelaxationAnalysis(
     insufficientThreshold: SPARSE_RESULTS_THRESHOLD,
   });
 
-  // Step 3: Format conflict sets for API response
-  const conflictSets = formatConflictSets(minimalSets);
+  // Step 3: Format conflict sets for API response with dual explanations
+  const conflictSets = await formatConflictSets(
+    session,
+    decomposed.constraints,
+    minimalSets
+  );
 
   // Step 4: Get unique constraints for relaxation suggestions
   const uniqueConstraints = [
@@ -99,33 +103,57 @@ async function runRelaxationAnalysis(
 
 /**
  * Format minimal conflict sets into API response format.
+ * Generates dual explanations (data-aware + LLM) for each conflict set.
+ *
+ * Note: Neo4j sessions are not thread-safe for concurrent queries,
+ * so we process conflict sets sequentially rather than with Promise.all.
  */
-function formatConflictSets(minimalSets: TestableConstraint[][]): ConflictSet[] {
-  return minimalSets.map((constraints) => ({
-    constraints: constraints.map((c): AppliedFilter => {
-      // Handle skill traversal constraints (have skillIds)
-      if (isSkillTraversalConstraint(c)) {
+async function formatConflictSets(
+  session: Session,
+  allConstraints: TestableConstraint[],
+  minimalSets: TestableConstraint[][]
+): Promise<ConflictSet[]> {
+  const results: ConflictSet[] = [];
+
+  for (const conflictSetConstraints of minimalSets) {
+    const { dataAwareExplanation, llmExplanation, stats } =
+      await generateConflictExplanations(
+        session,
+        allConstraints,
+        conflictSetConstraints
+      );
+
+    results.push({
+      constraints: conflictSetConstraints.map((c): AppliedFilter => {
+        if (isSkillTraversalConstraint(c)) {
+          return {
+            kind: AppliedFilterKind.Skill,
+            field: "requiredSkills",
+            operator: "HAS_ALL",
+            skills: c.skillIds.map((id: string) => ({
+              skillId: id,
+              skillName: id,
+            })),
+            displayValue: c.displayValue,
+            source: c.source,
+          };
+        }
+
         return {
-          kind: AppliedFilterKind.Skill,
-          field: 'requiredSkills',
-          operator: 'HAS_ALL',
-          skills: c.skillIds.map((id: string) => ({ skillId: id, skillName: id })),
-          displayValue: c.displayValue,
+          kind: AppliedFilterKind.Property,
+          field: c.field,
+          operator: c.operator,
+          value: stringifyConstraintValue(c.value),
           source: c.source,
         };
-      }
+      }),
+      dataAwareExplanation,
+      llmExplanation,
+      stats,
+    });
+  }
 
-      // Property constraints - c is now narrowed to PropertyConstraint
-      return {
-        kind: AppliedFilterKind.Property,
-        field: c.field,
-        operator: c.operator,
-        value: stringifyConstraintValue(c.value),
-        source: c.source,
-      };
-    }),
-    explanation: generateConflictExplanation(constraints),
-  }));
+  return results;
 }
 
 /**
@@ -153,14 +181,3 @@ async function runTighteningAnalysis(
   return { suggestions };
 }
 
-function generateConflictExplanation(constraints: TestableConstraint[]): string {
-  if (constraints.length === 1) {
-    return `The constraint "${constraints[0].displayValue}" alone is too restrictive.`;
-  }
-
-  const descriptions = constraints.map((c) => c.displayValue);
-  const lastDescription = descriptions.pop();
-  return `The combination of ${descriptions.join(
-    ", "
-  )} and ${lastDescription} is too restrictive.`;
-}

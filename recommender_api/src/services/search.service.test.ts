@@ -35,6 +35,18 @@ vi.mock('./domain-resolver.service.js', () => ({
   resolveTechnicalDomains: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('./constraint-advisor/conflict-explanation.service.js', () => ({
+  generateConflictExplanations: vi.fn().mockResolvedValue({
+    dataAwareExplanation: "Your search returns 0 engineers.",
+    llmExplanation: null,
+    stats: {
+      countMatchingAll: 0,
+      allConstraintStats: [],
+      conflictingConstraintStats: [],
+    },
+  }),
+}));
+
 import { resolveAllSkills } from './skill-resolution.service.js';
 import { resolveBusinessDomains, resolveTechnicalDomains } from './domain-resolver.service.js';
 
