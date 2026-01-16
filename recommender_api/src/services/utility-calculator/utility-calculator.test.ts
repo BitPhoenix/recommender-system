@@ -14,7 +14,7 @@ const createEngineer = (overrides: Partial<EngineerData> = {}): EngineerData => 
   salary: 150000,
   yearsExperience: 8,
   startTimeline: 'two_weeks',
-  timezone: 'America/New_York',
+  timezone: 'Eastern',
   avgConfidence: 0.85,
   matchedSkills: [],
   unmatchedRelatedSkills: [],
@@ -128,9 +128,9 @@ describe('calculateUtilityWithBreakdown', () => {
   });
 
   it('includes preferred timezone match', () => {
-    const engineer = createEngineer({ timezone: 'America/New_York' });
+    const engineer = createEngineer({ timezone: 'Eastern' });
     const context = createContext({
-      preferredTimezone: ['America/New_York', 'America/Chicago'],
+      preferredTimezone: ['Eastern', 'Central'],
     });
 
     const result = calculateUtilityWithBreakdown(engineer, context);

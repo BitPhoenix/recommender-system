@@ -17,7 +17,7 @@ const createQueryParams = (overrides: Partial<CypherQueryParams> = {}): CypherQu
   startTimeline: [],
   minYearsExperience: null,
   maxYearsExperience: null,
-  timezonePrefixes: [],
+  timezoneZones: [],
   maxBudget: null,
   stretchBudget: null,
   offset: 0,

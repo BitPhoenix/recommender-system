@@ -49,7 +49,7 @@ describe("getConstraintAdvice", () => {
     minYearsExperience: null,
     maxYearsExperience: null,
     startTimeline: ["immediate", "two_weeks"],
-    timezonePrefixes: [],
+    timezoneZones: [],
     maxBudget: null,
     stretchBudget: null,
     alignedSkillIds: [],

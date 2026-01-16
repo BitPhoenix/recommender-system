@@ -22,7 +22,7 @@ export function buildBasicEngineerFilters(
   return combineFilters([
     buildTimelineFilter(params.startTimeline),
     buildExperienceFilter(params.minYearsExperience, params.maxYearsExperience),
-    buildTimezoneFilter(params.timezonePrefixes),
+    buildTimezoneFilter(params.timezoneZones),
     buildBudgetFilter(budgetCeiling),
   ]);
 }
@@ -69,23 +69,17 @@ function buildExperienceFilter(
   return { conditions, queryParams };
 }
 
-function buildTimezoneFilter(timezonePrefixes: string[]): FilterParts {
-  if (timezonePrefixes.length === 0) {
+function buildTimezoneFilter(timezoneZones: string[]): FilterParts {
+  if (timezoneZones.length === 0) {
     return { conditions: [], queryParams: {} };
   }
 
-  const fragments = timezonePrefixes.map((prefix, i) =>
-    buildCypherFragment("timezone", "STARTS WITH", prefix, `tz${i}`)
-  );
-
-  const queryParams: Record<string, unknown> = {};
-  fragments.forEach((fragment) => {
-    queryParams[fragment.paramName] = fragment.paramValue;
-  });
-
+  // Timezone zones are stored directly (Eastern, Central, Mountain, Pacific)
+  // Use IN for exact matching
+  const fragment = buildCypherFragment("timezone", "IN", timezoneZones, "timezoneZones");
   return {
-    conditions: [`(${fragments.map((f) => f.clause).join(" OR ")})`],
-    queryParams,
+    conditions: [fragment.clause],
+    queryParams: { [fragment.paramName]: fragment.paramValue },
   };
 }
 

@@ -25,7 +25,7 @@ function createBaseExpanded(): ExpandedSearchCriteria {
     minYearsExperience: null,
     maxYearsExperience: null,
     startTimeline: ["immediate", "two_weeks", "one_month"],
-    timezonePrefixes: [],
+    timezoneZones: [],
     maxBudget: null,
     stretchBudget: null,
     alignedSkillIds: [],
@@ -74,20 +74,19 @@ describe("generateTighteningSuggestions", () => {
       /*
        * The new implementation:
        * 1. Calls getBaselineCount (simple property query when no filters)
-       * 2. Calls testAddedPropertyConstraint for each region (America/, Europe/, Asia/)
+       * 2. Calls testAddedPropertyConstraint for each US timezone zone
        */
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
         // getBaselineCount - returns total engineers
-        if (query.includes("count(e) AS resultCount") && !query.includes("STARTS WITH")) {
+        if (query.includes("count(e) AS resultCount") && !query.includes("timezone")) {
           return { records: [mockRecord({ resultCount: 40 })] };
         }
-        // testAddedPropertyConstraint for timezones
-        if (query.includes("STARTS WITH")) {
-          const prefix = params?.tighten_tz_americas ?? params?.tighten_tz_europe ?? params?.tighten_tz_apac;
-          if (prefix === "America/") return { records: [mockRecord({ resultCount: 15 })] };
-          if (prefix === "Europe/") return { records: [mockRecord({ resultCount: 10 })] };
-          if (prefix === "Asia/") return { records: [mockRecord({ resultCount: 8 })] };
-        }
+        // testAddedPropertyConstraint for timezone zones (uses = operator now)
+        const zone = params?.tighten_tz_eastern ?? params?.tighten_tz_central ?? params?.tighten_tz_mountain ?? params?.tighten_tz_pacific;
+        if (zone === "Eastern") return { records: [mockRecord({ resultCount: 15 })] };
+        if (zone === "Central") return { records: [mockRecord({ resultCount: 10 })] };
+        if (zone === "Mountain") return { records: [mockRecord({ resultCount: 5 })] };
+        if (zone === "Pacific") return { records: [mockRecord({ resultCount: 8 })] };
         return { records: [] };
       });
 
@@ -101,11 +100,11 @@ describe("generateTighteningSuggestions", () => {
       const tzSuggestions = suggestions.filter((s) => s.field === "requiredTimezone");
       expect(tzSuggestions.length).toBeGreaterThan(0);
 
-      const americasSuggestion = tzSuggestions.find(
-        (s) => (s.suggestedValue as string[])?.[0] === "America/*"
+      const easternSuggestion = tzSuggestions.find(
+        (s) => (s.suggestedValue as string[])?.[0] === "Eastern"
       );
-      expect(americasSuggestion).toBeDefined();
-      expect(americasSuggestion?.resultingMatches).toBe(15);
+      expect(easternSuggestion).toBeDefined();
+      expect(easternSuggestion?.resultingMatches).toBe(15);
     });
 
     it("generates experience level suggestions", async () => {
@@ -438,22 +437,21 @@ describe("generateTighteningSuggestions", () => {
     it("excludes timezone already filtered", async () => {
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
         // getBaselineCount
-        if (query.includes("count(e) AS resultCount") && !query.includes("STARTS WITH")) {
+        if (query.includes("count(e) AS resultCount") && !query.includes("timezone")) {
           return { records: [mockRecord({ resultCount: 40 })] };
         }
-        // testAddedPropertyConstraint for timezones
-        if (query.includes("STARTS WITH")) {
-          const prefix = params?.tighten_tz_europe ?? params?.tighten_tz_apac;
-          if (prefix === "Europe/") return { records: [mockRecord({ resultCount: 15 })] };
-          if (prefix === "Asia/") return { records: [mockRecord({ resultCount: 8 })] };
-        }
+        // testAddedPropertyConstraint for timezone zones (only non-Eastern ones get called)
+        const zone = params?.tighten_tz_central ?? params?.tighten_tz_mountain ?? params?.tighten_tz_pacific;
+        if (zone === "Central") return { records: [mockRecord({ resultCount: 15 })] };
+        if (zone === "Mountain") return { records: [mockRecord({ resultCount: 5 })] };
+        if (zone === "Pacific") return { records: [mockRecord({ resultCount: 8 })] };
         return { records: [] };
       });
 
-      // User already filters to Americas timezone
+      // User already filters to Eastern timezone
       const expandedWithTimezone = {
         ...baseExpanded,
-        timezonePrefixes: ["America/"],
+        timezoneZones: ["Eastern"],
       };
 
       const suggestions = await generateTighteningSuggestions(
@@ -465,20 +463,21 @@ describe("generateTighteningSuggestions", () => {
 
       const tzSuggestions = suggestions.filter((s) => s.field === "requiredTimezone");
 
-      // Should not suggest Americas (already filtered), but Europe should be suggested
-      expect(tzSuggestions.some(s => (s.suggestedValue as string[])[0] === "America/*")).toBe(false);
-      expect(tzSuggestions.some(s => (s.suggestedValue as string[])[0] === "Europe/*")).toBe(true);
+      // Should not suggest Eastern (already filtered), but Central should be suggested
+      expect(tzSuggestions.some(s => (s.suggestedValue as string[])[0] === "Eastern")).toBe(false);
+      expect(tzSuggestions.some(s => (s.suggestedValue as string[])[0] === "Central")).toBe(true);
     });
   });
 
   describe("filtering logic", () => {
     it("excludes suggestions that match 100% of results", async () => {
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
-        // getBaselineCount
-        if (!query.includes("STARTS WITH")) {
+        // getBaselineCount - no tighten_ params
+        const hasTightenParam = Object.keys(params ?? {}).some(k => k.startsWith('tighten_'));
+        if (!hasTightenParam) {
           return { records: [mockRecord({ resultCount: 30 })] };
         }
-        // All regions return the same count as baseline
+        // All timezone zones return the same count as baseline
         return { records: [mockRecord({ resultCount: 30 })] };
       });
 
@@ -529,15 +528,17 @@ describe("generateTighteningSuggestions", () => {
   describe("sorting and limits", () => {
     it("sorts suggestions by effectiveness (fewest resulting matches first)", async () => {
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
-        // getBaselineCount
-        if (!query.includes("STARTS WITH")) {
+        // getBaselineCount - no tighten_ params
+        const hasTightenParam = Object.keys(params ?? {}).some(k => k.startsWith('tighten_'));
+        if (!hasTightenParam) {
           return { records: [mockRecord({ resultCount: 30 })] };
         }
-        // Different counts for different regions
-        const prefix = params?.tighten_tz_americas ?? params?.tighten_tz_europe ?? params?.tighten_tz_apac;
-        if (prefix === "America/") return { records: [mockRecord({ resultCount: 20 })] };
-        if (prefix === "Europe/") return { records: [mockRecord({ resultCount: 5 })] };
-        if (prefix === "Asia/") return { records: [mockRecord({ resultCount: 12 })] };
+        // Different counts for different US timezone zones
+        const zone = params?.tighten_tz_eastern ?? params?.tighten_tz_central ?? params?.tighten_tz_mountain ?? params?.tighten_tz_pacific;
+        if (zone === "Eastern") return { records: [mockRecord({ resultCount: 20 })] };
+        if (zone === "Central") return { records: [mockRecord({ resultCount: 5 })] };
+        if (zone === "Mountain") return { records: [mockRecord({ resultCount: 3 })] };
+        if (zone === "Pacific") return { records: [mockRecord({ resultCount: 12 })] };
         return { records: [] };
       });
 
@@ -559,8 +560,9 @@ describe("generateTighteningSuggestions", () => {
 
     it("respects maxSuggestions limit (default 5)", async () => {
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
-        // getBaselineCount
-        if (!query.includes("STARTS WITH") && !query.includes("yearsExperience")) {
+        // getBaselineCount - no tighten_ params
+        const hasTightenParam = Object.keys(params ?? {}).some(k => k.startsWith('tighten_'));
+        if (!hasTightenParam && !query.includes("yearsExperience")) {
           return { records: [mockRecord({ resultCount: 50 })] };
         }
         // Many suggestions possible
@@ -579,8 +581,9 @@ describe("generateTighteningSuggestions", () => {
 
     it("allows custom maxSuggestions limit", async () => {
       session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
-        // getBaselineCount
-        if (!query.includes("STARTS WITH")) {
+        // getBaselineCount - no tighten_ params
+        const hasTightenParam = Object.keys(params ?? {}).some(k => k.startsWith('tighten_'));
+        if (!hasTightenParam) {
           return { records: [mockRecord({ resultCount: 40 })] };
         }
         return { records: [mockRecord({ resultCount: 10 })] };
@@ -625,9 +628,10 @@ describe("generateTighteningSuggestions", () => {
     });
 
     it("handles missing timezone values", async () => {
-      session.mockRun.mockImplementation(async (query: string) => {
+      session.mockRun.mockImplementation(async (query: string, params?: Record<string, unknown>) => {
         // getBaselineCount returns results but timezone tests return 0
-        if (!query.includes("STARTS WITH")) {
+        const hasTightenParam = Object.keys(params ?? {}).some(k => k.startsWith('tighten_'));
+        if (!hasTightenParam) {
           return { records: [mockRecord({ resultCount: 30 })] };
         }
         return { records: [mockRecord({ resultCount: 0 })] };
@@ -640,7 +644,7 @@ describe("generateTighteningSuggestions", () => {
         10
       );
 
-      // No timezone suggestions when all regions return 0
+      // No timezone suggestions when all zones return 0
       const tzSuggestions = suggestions.filter((s) => s.field === "requiredTimezone");
       expect(tzSuggestions).toHaveLength(0);
     });

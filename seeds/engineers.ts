@@ -21,7 +21,7 @@ export const engineers: Engineer[] = [
     salary: 210000,
     yearsExperience: 8,
     startTimeline: 'two_weeks',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(180),
   },
   {
@@ -32,7 +32,7 @@ export const engineers: Engineer[] = [
     salary: 155000,
     yearsExperience: 5,
     startTimeline: 'immediate',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(90),
   },
   {
@@ -43,7 +43,7 @@ export const engineers: Engineer[] = [
     salary: 205000,
     yearsExperience: 7,
     startTimeline: 'three_months',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(120),
   },
   {
@@ -54,7 +54,7 @@ export const engineers: Engineer[] = [
     salary: 295000,
     yearsExperience: 12,
     startTimeline: 'six_months',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(60),
   },
   {
@@ -65,7 +65,7 @@ export const engineers: Engineer[] = [
     salary: 140000,
     yearsExperience: 4,
     startTimeline: 'immediate',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(45),
   },
 
@@ -80,7 +80,7 @@ export const engineers: Engineer[] = [
     salary: 95000,
     yearsExperience: 2,
     startTimeline: 'immediate',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(30),
   },
   {
@@ -91,7 +91,7 @@ export const engineers: Engineer[] = [
     salary: 105000,
     yearsExperience: 3,
     startTimeline: 'two_weeks',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(45),
   },
   {
@@ -102,7 +102,7 @@ export const engineers: Engineer[] = [
     salary: 90000,
     yearsExperience: 2,
     startTimeline: 'immediate',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(60),
   },
   {
@@ -113,7 +113,7 @@ export const engineers: Engineer[] = [
     salary: 85000,
     yearsExperience: 3,
     startTimeline: 'one_month',
-    timezone: 'America/Denver',
+    timezone: 'Mountain',
     createdAt: daysAgo(55),
   },
   {
@@ -124,7 +124,7 @@ export const engineers: Engineer[] = [
     salary: 88000,
     yearsExperience: 1,
     startTimeline: 'immediate',
-    timezone: 'America/Seattle',
+    timezone: 'Pacific',
     createdAt: daysAgo(20),
   },
   {
@@ -135,7 +135,7 @@ export const engineers: Engineer[] = [
     salary: 98000,
     yearsExperience: 3,
     startTimeline: 'two_weeks',
-    timezone: 'America/Phoenix',
+    timezone: 'Mountain',
     createdAt: daysAgo(35),
   },
 
@@ -152,7 +152,7 @@ export const engineers: Engineer[] = [
     salary: 165000,
     yearsExperience: 5,
     startTimeline: 'two_weeks',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(45),
   },
   // HIGH-PERFORMING MID-LEVEL: Deep Go expertise from high-scale environment
@@ -164,7 +164,7 @@ export const engineers: Engineer[] = [
     salary: 160000,
     yearsExperience: 5,
     startTimeline: 'three_months',
-    timezone: 'America/Seattle',
+    timezone: 'Pacific',
     createdAt: daysAgo(80),
   },
   // STARTUP GENERALIST: Broad skills, 0→1 experience
@@ -176,7 +176,7 @@ export const engineers: Engineer[] = [
     salary: 155000,
     yearsExperience: 5,
     startTimeline: 'immediate',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(52),
   },
   // Standard mid-levels
@@ -188,7 +188,7 @@ export const engineers: Engineer[] = [
     salary: 145000,
     yearsExperience: 4,
     startTimeline: 'one_month',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(70),
   },
   {
@@ -199,7 +199,7 @@ export const engineers: Engineer[] = [
     salary: 140000,
     yearsExperience: 4,
     startTimeline: 'two_weeks',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(65),
   },
   {
@@ -210,7 +210,7 @@ export const engineers: Engineer[] = [
     salary: 150000,
     yearsExperience: 5,
     startTimeline: 'one_month',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(55),
   },
   {
@@ -221,7 +221,7 @@ export const engineers: Engineer[] = [
     salary: 125000,
     yearsExperience: 4,
     startTimeline: 'two_weeks',
-    timezone: 'America/Denver',
+    timezone: 'Mountain',
     createdAt: daysAgo(48),
   },
   {
@@ -232,7 +232,7 @@ export const engineers: Engineer[] = [
     salary: 145000,
     yearsExperience: 5,
     startTimeline: 'immediate',
-    timezone: 'America/Phoenix',
+    timezone: 'Mountain',
     createdAt: daysAgo(35),
   },
 
@@ -249,7 +249,7 @@ export const engineers: Engineer[] = [
     salary: 155000,
     yearsExperience: 7,
     startTimeline: 'immediate',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(95),
   },
   // COASTING SENIOR: Comfortable, stable, not growing
@@ -261,7 +261,7 @@ export const engineers: Engineer[] = [
     salary: 150000,
     yearsExperience: 8,
     startTimeline: 'immediate',
-    timezone: 'America/Phoenix',
+    timezone: 'Mountain',
     createdAt: daysAgo(80),
   },
   // BIG-TECH SPECIALIST: Deep expertise, narrow focus (renamed from Marcus Chen to avoid conflict)
@@ -273,7 +273,7 @@ export const engineers: Engineer[] = [
     salary: 210000,
     yearsExperience: 8,
     startTimeline: 'one_month',
-    timezone: 'America/Seattle',
+    timezone: 'Pacific',
     createdAt: daysAgo(40),
   },
   // BIG-TECH SPECIALIST: Kafka/Spark depth from high-scale data team
@@ -285,7 +285,7 @@ export const engineers: Engineer[] = [
     salary: 195000,
     yearsExperience: 8,
     startTimeline: 'one_month',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(85),
   },
   // STARTUP GENERALIST (Senior): Breadth, wore many hats
@@ -297,7 +297,7 @@ export const engineers: Engineer[] = [
     salary: 180000,
     yearsExperience: 7,
     startTimeline: 'two_weeks',
-    timezone: 'America/Denver',
+    timezone: 'Mountain',
     createdAt: daysAgo(38),
   },
   // Standard seniors
@@ -309,7 +309,7 @@ export const engineers: Engineer[] = [
     salary: 175000,
     yearsExperience: 7,
     startTimeline: 'two_weeks',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(90),
   },
   {
@@ -320,7 +320,7 @@ export const engineers: Engineer[] = [
     salary: 165000,
     yearsExperience: 6,
     startTimeline: 'immediate',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(60),
   },
   {
@@ -331,7 +331,7 @@ export const engineers: Engineer[] = [
     salary: 170000,
     yearsExperience: 8,
     startTimeline: 'immediate',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(55),
   },
   {
@@ -342,7 +342,7 @@ export const engineers: Engineer[] = [
     salary: 190000,
     yearsExperience: 7,
     startTimeline: 'two_weeks',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(70),
   },
   {
@@ -353,7 +353,7 @@ export const engineers: Engineer[] = [
     salary: 185000,
     yearsExperience: 8,
     startTimeline: 'one_month',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(65),
   },
 
@@ -370,7 +370,7 @@ export const engineers: Engineer[] = [
     salary: 220000,
     yearsExperience: 10,
     startTimeline: 'immediate',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(100),
   },
   {
@@ -381,7 +381,7 @@ export const engineers: Engineer[] = [
     salary: 210000,
     yearsExperience: 9,
     startTimeline: 'two_weeks',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(95),
   },
   {
@@ -392,7 +392,7 @@ export const engineers: Engineer[] = [
     salary: 235000,
     yearsExperience: 10,
     startTimeline: 'one_month',
-    timezone: 'America/Seattle',
+    timezone: 'Pacific',
     createdAt: daysAgo(88),
   },
   {
@@ -403,7 +403,7 @@ export const engineers: Engineer[] = [
     salary: 200000,
     yearsExperience: 9,
     startTimeline: 'immediate',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(82),
   },
   {
@@ -414,7 +414,7 @@ export const engineers: Engineer[] = [
     salary: 215000,
     yearsExperience: 11,
     startTimeline: 'three_months',
-    timezone: 'America/Denver',
+    timezone: 'Mountain',
     createdAt: daysAgo(110),
   },
   {
@@ -425,7 +425,7 @@ export const engineers: Engineer[] = [
     salary: 225000,
     yearsExperience: 10,
     startTimeline: 'two_weeks',
-    timezone: 'America/Phoenix',
+    timezone: 'Mountain',
     createdAt: daysAgo(92),
   },
   {
@@ -436,7 +436,7 @@ export const engineers: Engineer[] = [
     salary: 205000,
     yearsExperience: 9,
     startTimeline: 'one_month',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(78),
   },
   {
@@ -447,7 +447,7 @@ export const engineers: Engineer[] = [
     salary: 230000,
     yearsExperience: 11,
     startTimeline: 'immediate',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(105),
   },
 
@@ -463,7 +463,7 @@ export const engineers: Engineer[] = [
     salary: 285000,
     yearsExperience: 14,
     startTimeline: 'three_months',
-    timezone: 'America/Los_Angeles',
+    timezone: 'Pacific',
     createdAt: daysAgo(150),
   },
   {
@@ -474,7 +474,7 @@ export const engineers: Engineer[] = [
     salary: 320000,
     yearsExperience: 15,
     startTimeline: 'six_months',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     createdAt: daysAgo(180),
   },
   {
@@ -485,7 +485,7 @@ export const engineers: Engineer[] = [
     salary: 290000,
     yearsExperience: 12,
     startTimeline: 'three_months',
-    timezone: 'America/Chicago',
+    timezone: 'Central',
     createdAt: daysAgo(160),
   },
 ];

@@ -124,7 +124,7 @@ export const mockData = {
     salary: 150000,
     yearsExperience: 8,
     startTimeline: 'two_weeks',
-    timezone: 'America/New_York',
+    timezone: 'Eastern',
     avgConfidence: 0.85,
     totalCount: 1,
     matchedSkills: [],

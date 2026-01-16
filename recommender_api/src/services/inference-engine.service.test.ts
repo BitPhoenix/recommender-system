@@ -552,8 +552,8 @@ describe('edge cases - Tier 3', () => {
       stretchBudget: 220000,
       requiredMaxStartTime: 'one_month',
       preferredMaxStartTime: 'two_weeks',
-      requiredTimezone: ['America/*'],
-      preferredTimezone: ['America/New_York'],
+      requiredTimezone: ['Eastern'],
+      preferredTimezone: ['Eastern'],
       limit: 50,
       offset: 0,
     };
