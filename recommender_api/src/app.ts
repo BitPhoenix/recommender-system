@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import searchRoutes from './routes/search.routes.js';
+import similarityRoutes from './routes/similarity.routes.js';
 import driver from './neo4j.js';
 
 export function createApp() {
@@ -34,6 +35,7 @@ export function createApp() {
 
   // API routes
   app.use('/api/search', searchRoutes);
+  app.use('/api/engineers', similarityRoutes);
 
   return app;
 }

@@ -1,5 +1,7 @@
 # Learning Path: Knowledge-Based Recommender Systems for Talent Marketplace
 
+**Project Status Legend:** ✅ Complete | ⏳ Planned
+
 ## Domain Context
 
 Engineering managers search for full-time software engineers. Key search dimensions:
@@ -28,7 +30,9 @@ Understand why knowledge-based systems fit this domain:
 
 **Read:** 5.2 → 5.2.1 → 5.2.2 → 5.2.3 → 5.2.4 → 5.2.5
 
-### Project 1: Basic Constraint Search API
+### Project 1: Basic Constraint Search API ✅
+
+**Textbook Sections:** 5.2.1 (Returning Relevant Results), 5.2.2 (Interaction Approach), 5.2.3 (Ranking the Matched Items)
 
 Build `POST /api/search/filter` that translates manager requirements into Cypher queries.
 
@@ -71,7 +75,104 @@ Build `POST /api/search/filter` that translates manager requirements into Cypher
 
 ---
 
-### Project 2: Constraint Relaxation and Repair Proposals
+#### Project 1: Implementation Summary
+
+**Status**: Complete | **Duration**: Dec 30, 2025 - Jan 6, 2026 | **Branch**: `chapter_5_project_1`
+
+Built a **constraint-based recommender system** for matching software engineers to job requirements. The system allows hiring managers to specify required and preferred criteria, then returns ranked candidates with full transparency into how scores were computed.
+
+**What Was Built:**
+
+- **Hard filters** (required): `requiredSkills`, `requiredMaxSalary`, `requiredBusinessDomains`, `requiredSeniority`
+- **Soft rankings** (preferred): `preferredSkills`, `preferredTimezone`, `preferredSeniority`, `preferredSalaryRange`, etc.
+- **Skill hierarchy traversal**: "Frontend" expands to React, Vue, Angular, etc. via `:CHILD_OF` relationships
+- **Multi-attribute utility scoring** with 11 weighted components (skills 25%, confidence 14%, salary 7%, etc.)
+- **Score transparency**: Full breakdowns showing raw/weighted scores per component
+
+**Key Design Decisions:**
+- Required vs preferred separation reflects real hiring (non-negotiables vs nice-to-haves)
+- Graduated proficiency scoring: expert preferred but proficient found = 67% credit (not 0%)
+- Salary exponential decay: 10% over budget = 71% score, 20% over = 50%
+- Confidence for ranking only (14% weight), never filters
+
+**Architecture (post-refactoring):**
+- `constraint-expander.service.ts` - Skill/domain hierarchy expansion
+- `search-query.service.ts` - Cypher query building
+- `utility-calculator/` - Multi-attribute scoring with separate core/logistics modules
+
+---
+
+### Project 1.1: Testing Infrastructure ✅
+
+**Duration**: Jan 6, 2026 | **Branch**: `main`
+
+Established comprehensive testing infrastructure for the recommender API.
+
+**What Was Built:**
+
+- **Vitest setup** for ESM + TypeScript
+- **Unit tests** for:
+  - All pure scoring functions (~13 functions)
+  - Constraint expansion functions
+  - Zod validation schemas
+  - Utility calculator orchestration
+  - Inference engine components
+
+- **Newman/Postman E2E tests** with 62 test scenarios, 215+ assertions
+
+**Test Commands:**
+```bash
+npm test              # Unit/integration tests
+npm run test:coverage # Coverage report
+npm run test:e2e      # E2E tests (requires Tilt)
+```
+
+---
+
+### Project 1.5: Iterative Requirement Expansion (Inference Engine) ✅
+
+**Textbook Sections:** 5.2.1 (Returning Relevant Results)
+
+**Duration**: Dec 31, 2025 - Jan 8, 2026 | **Branch**: `main`
+
+Implements **iterative requirement expansion** (Section 5.2.1) using a rules-based inference engine. When a hiring manager specifies high-level needs like "scaling focus" or "senior level," the inference engine **automatically expands these requirements** by deriving implied skills and preferences.
+
+**What Was Built:**
+
+- **Forward-chaining inference** with json-rules-engine
+  - Rules iterate until fixpoint (no new values derived)
+  - Supports multi-hop skill chains (scaling → distributed → monitoring)
+
+- **Dual rule types** in separate config files:
+  - `filter-rules.config.ts`: Hard requirements (X-requires-Y)
+  - `boost-rules.config.ts`: Soft preferences (X-prefers-Y)
+
+- **Three override mechanisms**:
+  - Explicit: `overriddenRuleIds` in request
+  - Implicit field: User sets target field directly
+  - Implicit skill: User handles target skill(s)
+
+- **Derivation chain provenance**: 2D arrays tracking all causal paths for debugging
+
+**Example Chain:**
+```
+teamFocus=scaling
+    ↓ (scaling-requires-distributed)
+skill_distributed added
+    ↓ (distributed-requires-observability)
+skill_monitoring added
+```
+
+**Key Design Decisions:**
+- json-rules-engine over custom loop (JSON-serializable, extensible)
+- Separate `requiredProperties` vs `preferredProperties` containers
+- 2D derivation chains for multi-trigger rules
+
+---
+
+### Project 2: Constraint Relaxation and Repair Proposals ✅
+
+**Textbook Sections:** 5.2.4 (Handling Unacceptable Results or Empty Sets), 5.2.5 (Adding Constraints)
 
 Build `POST /api/search/diagnose` that handles empty or sparse result sets.
 
@@ -164,13 +265,75 @@ interface RelaxationOption {
 }
 ```
 
+**What Was Implemented:**
+
+- **Threshold-based decision logic**:
+  - < 3 results → Relaxation analysis (QUICKXPLAIN + suggestions)
+  - 3-24 results → No advice needed (goldilocks zone)
+  - >= 25 results → Tightening analysis (distribution-based suggestions)
+
+- **QUICKXPLAIN algorithm** for minimal conflict sets:
+  - O(k·log(n/k)) query complexity
+  - Hitting set approach to find up to 3 distinct MCS
+  - Each MCS is independently actionable
+
+- **Five relaxation strategies**: NumericStep (budget), EnumExpand (timeline), Remove (timezone), DerivedOverride (inference rules), SkillRelaxation (proficiency/preferred/remove)
+
+- **Five tightening dimensions**: Timezone, Seniority, Budget, Timeline, Skills (with strictness filtering)
+
+- **40-engineer seed data** expansion for realistic conflict scenarios
+
+**Type System Highlights:**
+- Three-level discriminated unions throughout (AppliedFilter, TestableConstraint, RelaxationSuggestion)
+- No `as` casts needed - TypeScript enforces correct field access
+- Separate API types (AppliedFilter) vs internal types (TestableConstraint)
+
+---
+
+### Project 2.5: Local LLM Integration for Conflict Explanations ✅
+
+**Textbook Sections:** 5.2.4 (Handling Unacceptable Results or Empty Sets)
+
+**Duration**: Jan 15-16, 2026 | **Branch**: `project_2.5`
+
+Integrated a **local LLM (Ollama)** to generate richer, domain-aware conflict explanations using a **dual-explanation approach**.
+
+**What Was Built:**
+
+- **Dual explanation fields** in conflict response:
+  - `dataAwareExplanation`: Fast (~50ms), factual template using actual DB statistics
+  - `llmExplanation`: RAG-enhanced LLM explanation with reasoning and alternatives
+
+- **Conflict statistics service**: Queries actual database counts/ranges per constraint type:
+  - Skill stats (exact + lower proficiency counts)
+  - Salary stats (matching count + DB range)
+  - Years experience stats (seniority bucket distribution)
+  - Timezone/timeline stats (distribution breakdown)
+
+- **Ollama integration** via `ollama` npm package:
+  - Connection caching to avoid repeated health checks
+  - Graceful degradation (template always works, LLM may return null)
+  - Configurable via `LLM_HOST`, `LLM_MODEL`, `LLM_ENABLED`, `LLM_TIMEOUT_MS`
+  - Runs on host machine (not K8s) to access Apple Silicon GPU
+
+**Why Both Explanations?**
+
+| Capability | Template | LLM |
+|------------|----------|-----|
+| Explain *what* conflicts | ✓ | ✓ |
+| Explain *why* it conflicts | Limited | ✓ |
+| Suggest alternatives | ❌ | ✓ |
+| Market/temporal awareness | ❌ | ✓ |
+
 ---
 
 ## Phase 3: Case-Based Recommenders (5.3)
 
 **Read:** 5.3 → 5.3.1 → 5.3.2 (all subsections) → 5.3.3
 
-### Project 3: Similarity Scoring
+### Project 3: Similarity Scoring ⏳
+
+**Textbook Sections:** 5.3.1 (Similarity Metrics), 5.3.1.1 (Incorporating Diversity in Similarity Computation)
 
 Build `GET /api/engineers/:id/similar` that computes similarity between engineers.
 
@@ -229,7 +392,9 @@ GET /api/engineers/eng_priya/similar?limit=5
 
 ---
 
-### Project 4: Combined Search (Filter → Rank)
+### Project 4: Combined Search (Filter → Rank) ⏳
+
+**Textbook Sections:** 5.2.1 (Returning Relevant Results), 5.2.3 (Ranking the Matched Items), 5.3.1 (Similarity Metrics)
 
 Build `POST /api/search` that combines constraint filtering with similarity ranking.
 
@@ -295,7 +460,9 @@ Build `POST /api/search` that combines constraint filtering with similarity rank
 
 ---
 
-### Project 5: Critiquing System
+### Project 5: Critiquing System ⏳
+
+**Textbook Sections:** 5.3.2 (Critiquing Methods), 5.3.2.1 (Simple Critiques), 5.3.2.2 (Compound Critiques), 5.3.2.3 (Dynamic Critiques)
 
 Build `POST /api/search/critique` for conversational refinement of search results.
 
@@ -358,7 +525,9 @@ Analyze current results and suggest useful critiques:
 
 ---
 
-### Project 6: Explanation Generation
+### Project 6: Explanation Generation ⏳
+
+**Textbook Sections:** 5.3.3 (Explanation in Critiques)
 
 Build `GET /api/engineers/:id/explain?searchId=:searchId` that explains why an engineer matches.
 
@@ -438,7 +607,9 @@ GET /api/engineers/eng_priya/explain?searchId=search_abc123
 
 **Read:** Section 5.4
 
-### Project 7: Manager Preference Learning
+### Project 7: Manager Preference Learning ⏳
+
+**Textbook Sections:** 5.4 (Persistent Personalization in Knowledge-Based Systems)
 
 Build preference tracking and personalized ranking.
 
@@ -518,15 +689,18 @@ interface SearchDefaults {
 
 ## Project Summary
 
-| # | Project | Sections | Focus |
-|---|---------|----------|-------|
-| 1 | Basic Constraint Search | 5.2.1–5.2.3 | Filter engineers using knowledge base rules |
-| 2 | Constraint Relaxation | 5.2.4–5.2.5 | Detect conflicts, suggest repairs |
-| 3 | Similarity Scoring | 5.3.1 | Compute weighted similarity between engineers |
-| 4 | Combined Search | 5.2.1, 5.2.3, 5.3.1 | Filter with constraints, rank by similarity |
-| 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Refine searches conversationally |
-| 6 | Explanation Generation | 5.3.3 | Explain why engineers match |
-| 7 | Preference Learning | 5.4 | Learn from manager behavior over time |
+| # | Project | Sections | Focus | Status |
+|---|---------|----------|-------|--------|
+| 1 | Basic Constraint Search | 5.2.1–5.2.3 | Filter engineers using knowledge base rules | ✅ Complete |
+| 1.1 | Testing Infrastructure | — | Vitest setup, unit tests, E2E tests | ✅ Complete |
+| 1.5 | Iterative Requirement Expansion | 5.2.1 | Forward-chaining inference engine | ✅ Complete |
+| 2 | Constraint Relaxation | 5.2.4–5.2.5 | Detect conflicts, suggest repairs | ✅ Complete |
+| 2.5 | Local LLM Integration | 5.2.4 | Dual-explanation conflict analysis | ✅ Complete |
+| 3 | Similarity Scoring | 5.3.1 | Compute weighted similarity between engineers | Planned |
+| 4 | Combined Search | 5.2.1, 5.2.3, 5.3.1 | Filter with constraints, rank by similarity | Planned |
+| 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Refine searches conversationally | Planned |
+| 6 | Explanation Generation | 5.3.3 | Explain why engineers match | Planned |
+| 7 | Preference Learning | 5.4 | Learn from manager behavior over time | Planned |
 
 ### Subsection Details
 
@@ -581,8 +755,8 @@ interface SearchDefaults {
 |--------|-------|-------|
 | Skills | 110+ | Technical, behavioral, domain with hierarchy |
 | Skill correlations | 60+ | Cross-type correlations included |
-| Engineers | 5 | Varied profiles (4-12 years experience) |
-| Engineer skills | 55 | With confidence scores |
+| Engineers | 40 | Varied profiles (0-20 years experience), expanded in Project 2 |
+| Engineer skills | 400+ | With proficiency levels and confidence scores |
 | Interview stories | 8 | STAR format with AI analyses |
 | Story demonstrations | 35 | Links stories → skills with strength |
 | Assessments | 4 | Backend, frontend, system design, platform |

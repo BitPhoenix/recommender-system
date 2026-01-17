@@ -41,6 +41,12 @@ import {
   utilityParams,
 } from './utility.config.js';
 
+// Similarity Function Configuration (Section 5.3.1)
+import {
+  similarityWeights,
+  similarityParams,
+} from './similarity.config.js';
+
 // Inference Rules (Section 5.2.1 - Iterative Expansion)
 import {
   inferenceRules,
@@ -81,6 +87,8 @@ export {
   defaults,
   utilityWeights,
   utilityParams,
+  similarityWeights,
+  similarityParams,
   inferenceRules,
   maxInferenceIterations,
 };

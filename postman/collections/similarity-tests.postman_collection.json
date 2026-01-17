@@ -1,0 +1,422 @@
+{
+  "info": {
+    "_postman_id": "similarity-api-tests",
+    "name": "Similarity API Tests",
+    "description": "Test scenarios for GET /api/engineers/:id/similar endpoint.\n\nImplements case-based similarity recommendations from Chapter 5.3.1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Basic Similarity Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_priya/similar",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_priya", "similar"],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns 5 engineers similar to Priya Sharma (senior backend engineer in fintech).\n\n## Expected Structure\n\n- `target`: Full EngineerForSimilarity object for eng_priya\n- `similar`: Array of SimilarityResult objects\n\n## Expected Results\n\n- Results sorted by similarityScore descending\n- Each result includes breakdown by dimension\n- Shared skills and correlated skills listed"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required top-level fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('target');",
+              "    pm.expect(response).to.have.property('similar');",
+              "    pm.expect(response.similar).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Target engineer has correct ID', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target.id).to.equal('eng_priya');",
+              "});",
+              "",
+              "pm.test('Target engineer has required fields', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target).to.have.property('id');",
+              "    pm.expect(target).to.have.property('name');",
+              "    pm.expect(target).to.have.property('headline');",
+              "    pm.expect(target).to.have.property('yearsExperience');",
+              "    pm.expect(target).to.have.property('timezone');",
+              "    pm.expect(target).to.have.property('skills');",
+              "    pm.expect(target).to.have.property('businessDomains');",
+              "    pm.expect(target).to.have.property('technicalDomains');",
+              "});",
+              "",
+              "pm.test('Similar results have required fields', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result).to.have.property('engineer');",
+              "        pm.expect(result).to.have.property('similarityScore');",
+              "        pm.expect(result).to.have.property('breakdown');",
+              "        pm.expect(result).to.have.property('sharedSkills');",
+              "        pm.expect(result).to.have.property('correlatedSkills');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Similarity scores are between 0 and 1', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result.similarityScore).to.be.at.least(0);",
+              "        pm.expect(result.similarityScore).to.be.at.most(1);",
+              "    });",
+              "});",
+              "",
+              "pm.test('Breakdown has all dimensions', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result.breakdown).to.have.property('skills');",
+              "        pm.expect(result.breakdown).to.have.property('yearsExperience');",
+              "        pm.expect(result.breakdown).to.have.property('domain');",
+              "        pm.expect(result.breakdown).to.have.property('timezone');",
+              "    });",
+              "});",
+              "",
+              "pm.test('First result has highest similarity score (diversity reorders others)', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    if (similar.length > 1) {",
+              "        const firstScore = similar[0].similarityScore;",
+              "        const maxScore = Math.max(...similar.map(r => r.similarityScore));",
+              "        pm.expect(firstScore).to.equal(maxScore);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Default limit returns 5 results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    pm.expect(similar.length).to.equal(5);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Custom Limit Parameter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_marcus/similar?limit=3",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_marcus", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "3"
+            }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns 3 engineers similar to Marcus Chen with limit=3 query parameter."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Target engineer is eng_marcus', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target.id).to.equal('eng_marcus');",
+              "});",
+              "",
+              "pm.test('Returns exactly 3 results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    pm.expect(similar.length).to.equal(3);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Non-existent Engineer Returns 404",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/nonexistent_id/similar",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "nonexistent_id", "similar"],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns 404 when target engineer does not exist."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('Response has error code', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('error');",
+              "    pm.expect(response.error).to.have.property('code');",
+              "    pm.expect(response.error.code).to.equal('ENGINEER_NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Invalid Limit (Too High)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_priya/similar?limit=100",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_priya", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns 400 when limit exceeds maximum (20)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation error', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.equal(false);",
+              "    pm.expect(response).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Invalid Limit (Zero)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_priya/similar?limit=0",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_priya", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "0"
+            }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns 400 when limit is zero (min is 1)."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation error', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.equal(false);",
+              "    pm.expect(response).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Maximum Limit",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_sofia/similar?limit=20",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_sofia", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "20"
+            }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns up to 20 results with max limit."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Target engineer is eng_sofia', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target.id).to.equal('eng_sofia');",
+              "});",
+              "",
+              "pm.test('Returns at most 20 results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    pm.expect(similar.length).to.be.at.most(20);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Similar to Staff Engineer",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_james/similar",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_james", "similar"],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns engineers similar to James Okonkwo (staff engineer, distributed systems).\n\nExpect engineers with high experience and similar technical domains to rank higher."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Target engineer is eng_james', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target.id).to.equal('eng_james');",
+              "    pm.expect(target.yearsExperience).to.be.at.least(10);",
+              "});",
+              "",
+              "pm.test('Target does not appear in similar results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    const targetIds = similar.map(r => r.engineer.id);",
+              "    pm.expect(targetIds).to.not.include('eng_james');",
+              "});",
+              "",
+              "pm.test('Similarity breakdown sums correctly', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    // Each dimension's raw score should be between 0 and 1",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result.breakdown.skills).to.be.at.least(0);",
+              "        pm.expect(result.breakdown.skills).to.be.at.most(1);",
+              "        pm.expect(result.breakdown.yearsExperience).to.be.at.least(0);",
+              "        pm.expect(result.breakdown.yearsExperience).to.be.at.most(1);",
+              "        pm.expect(result.breakdown.domain).to.be.at.least(0);",
+              "        pm.expect(result.breakdown.domain).to.be.at.most(1);",
+              "        pm.expect(result.breakdown.timezone).to.be.at.least(0);",
+              "        pm.expect(result.breakdown.timezone).to.be.at.most(1);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Shared Skills Populated",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/engineers/eng_emily/similar?limit=10",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "engineers", "eng_emily", "similar"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns engineers similar to Emily Nakamura (frontend engineer, React).\n\nExpects sharedSkills array to be populated with overlapping skills."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Target engineer is eng_emily', function () {",
+              "    const target = pm.response.json().target;",
+              "    pm.expect(target.id).to.equal('eng_emily');",
+              "});",
+              "",
+              "pm.test('sharedSkills is an array on all results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result.sharedSkills).to.be.an('array');",
+              "    });",
+              "});",
+              "",
+              "pm.test('correlatedSkills is an array on all results', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    similar.forEach(function(result) {",
+              "        pm.expect(result.correlatedSkills).to.be.an('array');",
+              "    });",
+              "});",
+              "",
+              "pm.test('At least one result has shared skills', function () {",
+              "    const similar = pm.response.json().similar;",
+              "    const hasSharedSkills = similar.some(r => r.sharedSkills.length > 0);",
+              "    pm.expect(hasSharedSkills).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -21,8 +21,8 @@ k8s_resource(
     'neo4j-db',
     labels=['recommender'],
     port_forwards=[
-        '7687:7687',  # Bolt protocol
-        '7474:7474',  # HTTP browser
+        '0.0.0.0:7687:7687',  # Bolt protocol (bind to all interfaces for local + remote access)
+        '0.0.0.0:7474:7474',  # HTTP browser
     ],
 )
 
@@ -77,7 +77,7 @@ k8s_yaml(helm(
 k8s_resource(
     'recommender-api',
     labels=['recommender'],
-    port_forwards=['4025:4025'],
+    port_forwards=['0.0.0.0:4025:4025'],  # Bind to all interfaces for local + remote access
     resource_deps=['neo4j-db', 'ollama'],
 )
 
