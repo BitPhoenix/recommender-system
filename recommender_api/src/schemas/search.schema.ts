@@ -36,9 +36,55 @@ export const US_TIMEZONE_ZONE_ORDER = [
 export const USTimezoneZoneSchema = z.enum(US_TIMEZONE_ZONE_ORDER);
 
 // ============================================
-// NESTED OBJECT SCHEMAS
+// SHARED BASE SCHEMAS
 // ============================================
 
+/**
+ * Pagination fields used by multiple endpoints.
+ */
+export const PaginationSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(10),
+  offset: z.number().int().min(0).default(0),
+});
+
+/**
+ * Budget constraint fields.
+ */
+export const BudgetFieldsSchema = z.object({
+  maxBudget: z.number().positive().optional(),
+  stretchBudget: z.number().positive().optional(),
+});
+
+/**
+ * Rule override field.
+ */
+export const OverriddenRuleIdsSchema = z.object({
+  overriddenRuleIds: z.array(z.string()).optional(),
+});
+
+/**
+ * Reusable budget refinement configurations.
+ * Apply these to any schema containing budget fields.
+ */
+export const budgetRefinements = {
+  stretchRequiresMax: {
+    refine: (data: { stretchBudget?: number; maxBudget?: number }) =>
+      !(data.stretchBudget !== undefined && data.maxBudget === undefined),
+    message: 'stretchBudget requires maxBudget to be set',
+    path: ['stretchBudget'],
+  },
+  stretchGteMax: {
+    refine: (data: { stretchBudget?: number; maxBudget?: number }) =>
+      !(data.stretchBudget !== undefined && data.maxBudget !== undefined) ||
+      data.stretchBudget! >= data.maxBudget!,
+    message: 'stretchBudget must be greater than or equal to maxBudget',
+    path: ['stretchBudget'],
+  },
+} as const;
+
+// ============================================
+// NESTED OBJECT SCHEMAS
+// ============================================
 
 /**
  * Skill requirement with per-skill proficiency thresholds.
@@ -111,26 +157,16 @@ export const SearchFilterRequestSchema = z.object({
   limit: z.number().int().min(1).max(100).optional(),
   offset: z.number().int().min(0).optional(),
 }).refine(
-  (data) => {
-    if (data.stretchBudget !== undefined && data.maxBudget === undefined) {
-      return false;  // stretchBudget requires maxBudget
-    }
-    return true;
-  },
+  budgetRefinements.stretchRequiresMax.refine,
   {
-    message: 'stretchBudget requires maxBudget to be set',
-    path: ['stretchBudget'],
+    message: budgetRefinements.stretchRequiresMax.message,
+    path: [...budgetRefinements.stretchRequiresMax.path],
   }
 ).refine(
-  (data) => {
-    if (data.stretchBudget !== undefined && data.maxBudget !== undefined) {
-      return data.stretchBudget >= data.maxBudget;
-    }
-    return true;
-  },
+  budgetRefinements.stretchGteMax.refine,
   {
-    message: 'stretchBudget must be greater than or equal to maxBudget',
-    path: ['stretchBudget'],
+    message: budgetRefinements.stretchGteMax.message,
+    path: [...budgetRefinements.stretchGteMax.path],
   }
 ).refine(
   (data) => {

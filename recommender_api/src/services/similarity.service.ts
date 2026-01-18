@@ -69,7 +69,7 @@ export async function findSimilarEngineers(
 /**
  * Loads a single engineer's data for similarity comparison.
  */
-async function loadEngineerData(
+export async function loadEngineerData(
   session: Session,
   engineerId: string
 ): Promise<EngineerForSimilarity | null> {
@@ -83,6 +83,8 @@ async function loadEngineerData(
            e.headline AS headline,
            e.yearsExperience AS yearsExperience,
            e.timezone AS timezone,
+           e.salary AS salary,
+           e.startTimeline AS startTimeline,
            COLLECT(DISTINCT CASE WHEN s IS NOT NULL THEN {
              skillId: s.id,
              skillName: s.name,
@@ -129,6 +131,8 @@ async function loadAllEngineersExcept(
            e.headline AS headline,
            e.yearsExperience AS yearsExperience,
            e.timezone AS timezone,
+           e.salary AS salary,
+           e.startTimeline AS startTimeline,
            COLLECT(DISTINCT CASE WHEN s IS NOT NULL THEN {
              skillId: s.id,
              skillName: s.name,
@@ -153,6 +157,53 @@ async function loadAllEngineersExcept(
 }
 
 /**
+ * Loads multiple engineers by ID for similarity comparison.
+ * Used after filtering to get full engineer data for scoring.
+ */
+export async function loadEngineersById(
+  session: Session,
+  engineerIds: string[]
+): Promise<EngineerForSimilarity[]> {
+  if (engineerIds.length === 0) {
+    return [];
+  }
+
+  const query = `
+    MATCH (e:Engineer)
+    WHERE e.id IN $engineerIds
+    OPTIONAL MATCH (e)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
+    OPTIONAL MATCH (e)-[bdExp:HAS_EXPERIENCE_IN]->(bd:BusinessDomain)
+    OPTIONAL MATCH (e)-[tdExp:HAS_EXPERIENCE_IN]->(td:TechnicalDomain)
+    RETURN e.id AS id,
+           e.name AS name,
+           e.headline AS headline,
+           e.yearsExperience AS yearsExperience,
+           e.timezone AS timezone,
+           e.salary AS salary,
+           e.startTimeline AS startTimeline,
+           COLLECT(DISTINCT CASE WHEN s IS NOT NULL THEN {
+             skillId: s.id,
+             skillName: s.name,
+             proficiencyLevel: us.proficiencyLevel,
+             confidenceScore: us.confidenceScore
+           } END) AS skills,
+           COLLECT(DISTINCT CASE WHEN bd IS NOT NULL THEN {
+             domainId: bd.id,
+             domainName: bd.name,
+             years: bdExp.years
+           } END) AS businessDomains,
+           COLLECT(DISTINCT CASE WHEN td IS NOT NULL THEN {
+             domainId: td.id,
+             domainName: td.name,
+             years: tdExp.years
+           } END) AS technicalDomains
+  `;
+
+  const result = await session.run(query, { engineerIds });
+  return result.records.map(record => parseEngineerRecord(record));
+}
+
+/**
  * Parses a Neo4j record into an EngineerForSimilarity object.
  */
 function parseEngineerRecord(record: import('neo4j-driver').Record): EngineerForSimilarity {
@@ -171,6 +222,13 @@ function parseEngineerRecord(record: import('neo4j-driver').Record): EngineerFor
     ? (yearsExperience as { toNumber: () => number }).toNumber()
     : Number(yearsExperience);
 
+  const salary = record.get('salary');
+  const salaryValue = salary !== null && salary !== undefined
+    ? (typeof salary === 'object' && 'toNumber' in salary
+        ? (salary as { toNumber: () => number }).toNumber()
+        : Number(salary))
+    : undefined;
+
   return {
     id: record.get('id') as string,
     name: record.get('name') as string,
@@ -180,5 +238,7 @@ function parseEngineerRecord(record: import('neo4j-driver').Record): EngineerFor
     skills,
     businessDomains,
     technicalDomains,
+    salary: salaryValue,
+    startTimeline: record.get('startTimeline') as string | undefined,
   };
 }

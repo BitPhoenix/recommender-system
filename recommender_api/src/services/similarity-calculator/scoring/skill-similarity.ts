@@ -13,6 +13,32 @@
  * Returns symmetric average of both directions plus shared/correlated skill info.
  */
 
+/*
+ * Why graph-aware similarity instead of Jaccard?
+ *
+ * Pure Jaccard similarity treats all skills as equally different:
+ *   - React vs Vue = React vs PostgreSQL (both count as "no overlap")
+ *
+ * Example comparison:
+ *   Target: {React, Node.js, TypeScript, PostgreSQL}
+ *   Candidate: {Vue, Python, Django, PostgreSQL}
+ *
+ *   Jaccard: intersection={PostgreSQL} / union=7 → 0.14
+ *   Graph-aware: React→Vue(0.5), Node.js→Python(0.5), TypeScript→Vue(0.5), PostgreSQL→PostgreSQL(1.0)
+ *               → average = 0.625
+ *
+ * The graph recognizes these engineers have similar *capabilities* even though
+ * they use different specific technologies.
+ *
+ * Why symmetric (averaging both directions)?
+ * This is analogous to F1 score averaging precision and recall:
+ *   - Target→Candidate: "How well are target's skills covered?"
+ *   - Candidate→Target: "How well are candidate's skills covered?"
+ * A specialist and generalist would have very different scores depending on
+ * which direction you measure. Symmetric average gives the balanced answer
+ * to "how similar are these engineers?"
+ */
+
 import type {
   EngineerSkill,
   SkillGraph,

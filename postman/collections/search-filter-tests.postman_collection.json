@@ -4465,6 +4465,642 @@
           "port": "4025"
         }
       }
+    },
+    {
+      "name": "63 - Filter-Similarity: Basic Request",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('referenceEngineer');",
+              "  pm.expect(json).to.have.property('matches');",
+              "  pm.expect(json).to.have.property('totalCount');",
+              "  pm.expect(json).to.have.property('appliedFilters');",
+              "  pm.expect(json).to.have.property('overriddenRuleIds');",
+              "  pm.expect(json).to.have.property('derivedConstraints');",
+              "  pm.expect(json).to.have.property('queryMetadata');",
+              "});",
+              "",
+              "pm.test('referenceEngineer has required fields', function() {",
+              "  const ref = pm.response.json().referenceEngineer;",
+              "  pm.expect(ref).to.have.property('id');",
+              "  pm.expect(ref).to.have.property('name');",
+              "  pm.expect(ref).to.have.property('headline');",
+              "  pm.expect(ref.id).to.equal('eng_marcus');",
+              "});",
+              "",
+              "pm.test('first match has highest similarity score (diversity may reorder others)', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  pm.expect(matches).to.be.an('array').that.is.not.empty;",
+              "  const firstScore = matches[0].similarityScore;",
+              "  matches.forEach(function(m) {",
+              "    pm.expect(firstScore).to.be.at.least(m.similarityScore);",
+              "  });",
+              "});",
+              "",
+              "pm.test('each match has similarity fields', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  matches.forEach(function(m) {",
+              "    pm.expect(m).to.have.property('similarityScore');",
+              "    pm.expect(m).to.have.property('scoreBreakdown');",
+              "    pm.expect(m).to.have.property('sharedSkills');",
+              "    pm.expect(m.scoreBreakdown).to.have.property('skills');",
+              "    pm.expect(m.scoreBreakdown).to.have.property('yearsExperience');",
+              "    pm.expect(m.scoreBreakdown).to.have.property('domain');",
+              "    pm.expect(m.scoreBreakdown).to.have.property('timezone');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "64 - Filter-Similarity: Missing referenceEngineerId",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function() {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error mentions referenceEngineerId', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('error');",
+              "  const errorStr = JSON.stringify(json.error);",
+              "  pm.expect(errorStr.toLowerCase()).to.include('referenceengineerid');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "65 - Filter-Similarity: Non-existent Reference Engineer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function() {",
+              "  pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('Error code is ENGINEER_NOT_FOUND', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.error.code).to.equal('ENGINEER_NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_nonexistent\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "66 - Filter-Similarity: With Skill Constraints",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('appliedFilters includes skill filter', function() {",
+              "  const filters = pm.response.json().appliedFilters;",
+              "  const skillFilter = filters.find(function(f) {",
+              "    return f.field === 'requiredSkills';",
+              "  });",
+              "  pm.expect(skillFilter).to.not.be.undefined;",
+              "});",
+              "",
+              "pm.test('first match has highest similarity score', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  if (matches.length > 0) {",
+              "    const firstScore = matches[0].similarityScore;",
+              "    matches.forEach(function(m) {",
+              "      pm.expect(firstScore).to.be.at.least(m.similarityScore);",
+              "    });",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"requiredSkills\": [{\"skill\": \"TypeScript\", \"minProficiency\": \"proficient\"}]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "67 - Filter-Similarity: With Seniority Constraint",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('appliedFilters includes yearsExperience filter', function() {",
+              "  const filters = pm.response.json().appliedFilters;",
+              "  const expFilter = filters.find(function(f) {",
+              "    return f.field === 'yearsExperience';",
+              "  });",
+              "  pm.expect(expFilter).to.not.be.undefined;",
+              "});",
+              "",
+              "pm.test('first match has highest similarity score', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  if (matches.length > 0) {",
+              "    const firstScore = matches[0].similarityScore;",
+              "    matches.forEach(function(m) {",
+              "      pm.expect(firstScore).to.be.at.least(m.similarityScore);",
+              "    });",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"requiredSeniorityLevel\": \"senior\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "68 - Filter-Similarity: With Timezone Constraint",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('appliedFilters includes timezone filter', function() {",
+              "  const filters = pm.response.json().appliedFilters;",
+              "  const tzFilter = filters.find(function(f) {",
+              "    return f.field === 'timezone';",
+              "  });",
+              "  pm.expect(tzFilter).to.not.be.undefined;",
+              "});",
+              "",
+              "pm.test('matches are in requested timezone', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  matches.forEach(function(m) {",
+              "    pm.expect(['Eastern', 'Central']).to.include(m.timezone);",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"requiredTimezone\": [\"Eastern\", \"Central\"]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "69 - Filter-Similarity: Pagination",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('respects limit parameter', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  pm.expect(matches.length).to.be.at.most(5);",
+              "});",
+              "",
+              "pm.test('totalCount reflects full result set', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.totalCount).to.be.at.least(json.matches.length);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"limit\": 5,\n  \"offset\": 0\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "70 - Filter-Similarity: Reference Excluded from Results",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('reference engineer not in matches', function() {",
+              "  const json = pm.response.json();",
+              "  const refId = json.referenceEngineer.id;",
+              "  const matchIds = json.matches.map(function(m) { return m.id; });",
+              "  pm.expect(matchIds).to.not.include(refId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "71 - Filter-Similarity: Inference Rules Applied",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('derivedConstraints populated when applicable', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.derivedConstraints).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"requiredSkills\": [{\"skill\": \"React\"}]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "72 - Filter-Similarity: Override Inference Rule",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('overriddenRuleIds echoed in response', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.overriddenRuleIds).to.include('frontend-skill-inference');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\",\n  \"requiredSkills\": [{\"skill\": \"React\"}],\n  \"overriddenRuleIds\": [\"frontend-skill-inference\"]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "73 - Filter-Similarity: Match Fields Include salary and startTimeline",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('matches have salary and startTimeline', function() {",
+              "  const matches = pm.response.json().matches;",
+              "  matches.forEach(function(m) {",
+              "    pm.expect(m).to.have.property('salary');",
+              "    pm.expect(m).to.have.property('startTimeline');",
+              "    pm.expect(m.salary).to.be.a('number');",
+              "    pm.expect(m.startTimeline).to.be.a('string');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"referenceEngineerId\": \"eng_marcus\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter-similarity",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter-similarity"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
     }
   ]
 }
