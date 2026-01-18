@@ -19,12 +19,19 @@ export function buildBasicEngineerFilters(
   // The ceiling is stretchBudget if set, otherwise maxBudget
   const budgetCeiling = params.stretchBudget ?? params.maxBudget;
 
-  return combineFilters([
+  const filters = [
     buildTimelineFilter(params.startTimeline),
     buildExperienceFilter(params.minYearsExperience, params.maxYearsExperience),
     buildTimezoneFilter(params.timezoneZones),
     buildBudgetFilter(budgetCeiling),
-  ]);
+  ];
+
+  // Add exclusion filter if specified (e.g., for filter-similarity endpoint)
+  if (params.excludeEngineerId) {
+    filters.push(buildExcludeEngineerFilter(params.excludeEngineerId));
+  }
+
+  return combineFilters(filters);
 }
 
 function combineFilters(filters: FilterParts[]): BasicEngineerFilters {
@@ -98,5 +105,16 @@ function buildBudgetFilter(
   return {
     conditions: [fragment.clause],
     queryParams: { [fragment.paramName]: fragment.paramValue },
+  };
+}
+
+/**
+ * Builds exclusion filter for a specific engineer.
+ * Used by filter-similarity to exclude the reference engineer from results.
+ */
+function buildExcludeEngineerFilter(engineerId: string): FilterParts {
+  return {
+    conditions: ['e.id <> $excludeEngineerId'],
+    queryParams: { excludeEngineerId: engineerId },
   };
 }

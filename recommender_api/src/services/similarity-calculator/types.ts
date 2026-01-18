@@ -16,6 +16,9 @@ export interface EngineerForSimilarity {
   skills: EngineerSkill[];
   businessDomains: DomainExperience[];
   technicalDomains: DomainExperience[];
+  // Optional fields for filter-similarity response (not used in scoring)
+  salary?: number;
+  startTimeline?: string;
 }
 
 export interface EngineerSkill {

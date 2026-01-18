@@ -10,3 +10,6 @@ client/.vite/
 
 # Test coverage
 recommender_api/coverage/
+
+# E2E test reports
+recommender_api/reports/

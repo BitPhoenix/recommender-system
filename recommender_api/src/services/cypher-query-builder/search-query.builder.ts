@@ -4,9 +4,40 @@
  */
 
 import { int } from "neo4j-driver";
-import type { CypherQueryParams, CypherQuery, SkillProficiencyGroups } from "./query-types.js";
+import type {
+  CypherQueryParams,
+  CypherQuery,
+  SkillProficiencyGroups,
+} from "./query-types.js";
+
 import { buildBasicEngineerFilters } from "./query-conditions.builder.js";
+
+/**
+ * Options for buildSearchQuery that control data collection behavior.
+ */
+export interface SearchQueryOptions {
+  /*
+   * When true, collects ALL skills for each engineer (no filter).
+   * When false/undefined, collects only skills matching $allSkillIds.
+   *
+   * USE CASES:
+   * - false (default): /filter endpoint - show skills that matched the query
+   * - true: /filter-similarity endpoint - need full skill profile for similarity scoring
+   *
+   * WHY THIS MATTERS:
+   * Similarity scoring compares engineers across ALL their skills to compute
+   * a meaningful similarity score. If we only returned filtered skills, we'd
+   * be comparing incomplete profiles (e.g., both have React, but one also has
+   * Python, TypeScript, Go which affects how similar they really are).
+   *
+   * The /filter endpoint, in contrast, shows users "here's how this engineer
+   * matched YOUR criteria" - so returning only filtered skills makes sense.
+   */
+  collectAllSkills?: boolean;
+}
+
 import {
+  type DomainFilterContext,
   getDomainFilterContext,
   addDomainQueryParams,
   buildRequiredBusinessDomainFilter,
@@ -19,7 +50,10 @@ import {
 // MAIN ENTRY POINT
 // ============================================================================
 
-export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
+export function buildSearchQuery(
+  params: CypherQueryParams,
+  options: SearchQueryOptions = {}
+): CypherQuery {
   /*
    * QUERY STRUCTURE: SHARED + CONDITIONAL
    *
@@ -35,6 +69,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
    * Shared: engineer conditions, domain context, pagination, return clause
    * Conditional: skill matching, qualification checks, skill-based ordering
    */
+  const { collectAllSkills = false } = options;
   const allSkillIds = getAllSkillIds(params);
   const hasSkillFilter = allSkillIds.length > 0;
 
@@ -47,7 +82,13 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
 
   addDomainQueryParams(queryParams, params, domainContext);
 
-  if (hasSkillFilter) {
+  if (hasSkillFilter || collectAllSkills) {
+    /*
+     * Add skill params when:
+     * 1. hasSkillFilter: query filters by skills, needs all skill params
+     * 2. collectAllSkills: skill collection clause references these for matchType/meetsProficiency,
+     *    even if no filter is applied. Provides empty arrays as defaults.
+     */
     addSkillQueryParams(queryParams, params, allSkillIds);
   }
 
@@ -60,7 +101,7 @@ export function buildSearchQuery(params: CypherQueryParams): CypherQuery {
   const requiredTechnicalDomainFilterClause = buildRequiredTechnicalDomainFilter(domainContext);
 
   const countAndPaginateClause = buildCountAndPaginateClause(hasSkillFilter);
-  const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter);
+  const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter, collectAllSkills);
 
   /*
    * Cypher's WITH clause acts like a pipeline - any variable not explicitly
@@ -385,8 +426,61 @@ SKIP $offset LIMIT $limit`;
  *    so we must re-MATCH and re-check proficiency here
  *
  * The repetition is the cost of single-query optimization with early pagination.
+ *
+ * @param hasSkillFilter - Whether the query has skill filter constraints
+ * @param collectAllSkills - When true, collects ALL skills (for similarity scoring).
+ *                           When false, collects only skills matching the filter (for /filter display).
  */
-function buildSkillCollectionClause(hasSkillFilter: boolean): string {
+function buildSkillCollectionClause(hasSkillFilter: boolean, collectAllSkills: boolean): string {
+  /*
+   * Two collection modes based on use case:
+   *
+   * 1. collectAllSkills=false (default, for /filter):
+   *    Collect only skills matching the filter criteria.
+   *    Shows users "here's how this engineer matched your query."
+   *
+   * 2. collectAllSkills=true (for /filter-similarity):
+   *    Collect ALL skills regardless of filter.
+   *    Needed for similarity scoring which compares full skill profiles.
+   *    Without this, we'd compare incomplete profiles and get misleading scores.
+   */
+
+  if (collectAllSkills) {
+    /*
+     * Collect ALL skills for full profile comparison (similarity scoring).
+     * Even though we filtered by specific skills, we need all skills to compute
+     * meaningful similarity - knowing React but also having Python, Go, etc.
+     * affects how similar two engineers really are.
+     */
+    return `
+// Collect ALL skills (collectAllSkills=true for similarity scoring)
+OPTIONAL MATCH (e)-[:HAS]->(us2:UserSkill)-[:FOR]->(s2:Skill)
+WHERE s2.isCategory = false
+
+WITH e, totalCount,
+     COLLECT(DISTINCT CASE WHEN s2 IS NOT NULL THEN {
+       skillId: s2.id,
+       skillName: s2.name,
+       proficiencyLevel: us2.proficiencyLevel,
+       confidenceScore: us2.confidenceScore,
+       yearsUsed: us2.yearsUsed,
+       matchType: CASE
+         WHEN s2.id IN $originalSkillIdentifiers OR s2.name IN $originalSkillIdentifiers THEN 'direct'
+         WHEN s2.id IN $allSkillIds THEN 'descendant'
+         ELSE 'none'
+       END,
+       meetsProficiency: CASE
+         WHEN s2.id IN $learningLevelSkillIds THEN true
+         WHEN s2.id IN $proficientLevelSkillIds AND us2.proficiencyLevel IN ['proficient', 'expert'] THEN true
+         WHEN s2.id IN $expertLevelSkillIds AND us2.proficiencyLevel = 'expert' THEN true
+         ELSE false
+       END
+     } END) AS allRelevantSkills,
+     SIZE([s IN COLLECT(DISTINCT s2.id) WHERE s IN $allSkillIds]) AS matchedSkillCount,
+     AVG(CASE WHEN s2.id IN $allSkillIds THEN us2.confidenceScore END) AS avgConfidence`;
+  }
+
+  // Original behavior: collect only filtered skills
   return hasSkillFilter
     ? `
 // Collect all skills with per-skill proficiency check (now only for paginated subset)

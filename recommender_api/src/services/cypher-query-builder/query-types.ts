@@ -28,6 +28,16 @@ export interface CypherQueryParams extends SkillProficiencyGroups {
    */
   originalSkillIdentifiers: string[] | null;
 
+  /*
+   * Optional: exclude a specific engineer from results.
+   *
+   * USE CASE: Filter-similarity endpoint needs to find candidates similar to a
+   * reference engineer. The reference should not appear in results.
+   *
+   * When provided, adds `e.id <> $excludeEngineerId` to WHERE clause.
+   */
+  excludeEngineerId?: string;
+
   // Basic engineer filters
   startTimeline: StartTimeline[];
   minYearsExperience: number | null;

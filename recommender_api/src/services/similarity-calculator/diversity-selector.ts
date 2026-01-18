@@ -74,6 +74,22 @@ export function selectDiverseResults(
  * the main similarity scorer. Skills are weighted more heavily (0.7) since
  * they're the primary capability differentiator.
  */
+/*
+ * Why 0.7/0.3 skill/domain weighting for diversity?
+ *
+ * This roughly matches the main similarity weights ratio:
+ *   - Main weights: skills=0.45, domain=0.22 → ratio ≈ 2:1
+ *   - Diversity: skills=0.7, domain=0.3 → ratio ≈ 2:1
+ *
+ * This ensures that if React↔Vue are "similar" for the main scoring,
+ * they're also "similar" for diversity purposes, meaning two React/Vue
+ * engineers are less diverse than a React + Python pairing.
+ *
+ * We exclude experience and timezone from diversity because:
+ *   - Experience: seniority diversity is less useful (you usually want
+ *     engineers at a similar level, not a mix of junior and staff)
+ *   - Timezone: geographic diversity has marginal value for most use cases
+ */
 function calculateAverageDiversity(
   skillGraph: SkillGraph,
   domainGraph: DomainGraph,

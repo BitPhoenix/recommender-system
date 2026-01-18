@@ -331,59 +331,60 @@ Integrated a **local LLM (Ollama)** to generate richer, domain-aware conflict ex
 
 **Read:** 5.3 → 5.3.1 → 5.3.2 (all subsections) → 5.3.3
 
-### Project 3: Similarity Scoring ⏳
+### Project 3: Similarity Scoring ✅
 
 **Textbook Sections:** 5.3.1 (Similarity Metrics), 5.3.1.1 (Incorporating Diversity in Similarity Computation)
 
+**Duration**: Jan 16-17, 2026 | **Branch**: `project_3`
+
 Build `GET /api/engineers/:id/similar` that computes similarity between engineers.
 
-**Features:**
+**What Was Built:**
 
-- Weighted attribute similarity
-- Asymmetric similarity functions (more experience = okay, less = penalized)
-- Skill correlation bonuses via `:CORRELATES_WITH`
-- Configurable weights per attribute
+- **Four-component weighted similarity** (Equation 5.2):
+  - Skills: 0.45 weight - Graph-aware best-match with CORRELATES_WITH edges
+  - Years Experience: 0.27 weight - Asymmetric (more_is_better with α=0.5)
+  - Domain: 0.22 weight - Hierarchy-aware matching for business + technical domains
+  - Timezone: 0.06 weight - Position-based distance on East→West ordering
 
-**Similarity Function Components:**
+- **Graph-aware skill similarity**:
+  - Exact match: 1.0
+  - CORRELATES_WITH edge: correlation strength (0.7+ threshold)
+  - Same category: 0.5
+  - Share parent: 0.3
+  - No relation: 0.0
 
-```typescript
-interface SimilarityWeights {
-  skills: number;           // 0.40
-  yearsExperience: number;  // 0.25
-  domain: number;           // 0.20
-  availability: number;     // 0.15
-}
+- **Bidirectional scoring**: Averages A→B and B→A for symmetric results
 
-interface SimilarityConfig {
-  weights: SimilarityWeights;
-  experienceTarget: number;  // e.g., 5 years
-  experienceAsymmetry: 'more_is_better' | 'less_is_better' | 'symmetric';
-  includeCorrelatedSkills: boolean;
-  correlationMinStrength: number;  // e.g., 0.7
-}
-```
+- **Bounded greedy diversity selection** (Section 5.3.1.1):
+  - Prevents homogeneous results when similar engineers cluster
+  - Quality = similarity × avgDiversity
+  - Pool size = 3 × limit for selection
 
-**Example Request:**
+**Key Design Decisions:**
 
-```
-GET /api/engineers/eng_priya/similar?limit=5
-```
+- **Timeline excluded from similarity**: Transient property (changes when projects end) - not a capability
+- **Salary excluded from similarity**: Budget constraint, not capability - ranking by salary would be unfair
+- **Experience asymmetry (α=0.5)**: Penalize undershoot fully, tolerate overshoot partially (Equation 5.5)
+- **Domain years as multiplier**: Years can reduce domain score by at most 50% (floor = 0.5)
 
 **Example Response:**
 
 ```typescript
 {
-  target: { id: 'eng_priya', name: 'Priya Sharma' },
+  target: { id: 'eng_priya', name: 'Priya Sharma', ... },
   similar: [
     {
-      engineer: { id: 'eng_james', name: 'James Okonkwo' },
+      engineer: { id: 'eng_james', name: 'James Okonkwo', ... },
       similarityScore: 0.82,
       breakdown: {
         skills: 0.85,
         yearsExperience: 0.75,
         domain: 0.90,
-        availability: 0.70
-      }
+        timezone: 0.70
+      },
+      sharedSkills: ['TypeScript', 'React'],
+      correlatedSkills: [{ targetSkill: 'Node.js', candidateSkill: 'Express', strength: 0.8 }]
     },
     ...
   ]
@@ -392,71 +393,116 @@ GET /api/engineers/eng_priya/similar?limit=5
 
 ---
 
-### Project 4: Combined Search (Filter → Rank) ⏳
+### Project 4: Combined Search (Filter → Similarity) ⏳
 
 **Textbook Sections:** 5.2.1 (Returning Relevant Results), 5.2.3 (Ranking the Matched Items), 5.3.1 (Similarity Metrics)
 
-Build `POST /api/search` that combines constraint filtering with similarity ranking.
+Build `POST /api/search/filter-similarity` that combines constraint filtering with case-based similarity ranking.
+
+#### Design Decision: Two Endpoints, Two Ranking Strategies
+
+The textbook (p.181-182) describes two ways to specify a target for case-based recommendations:
+1. **Existing item as reference**: "Find engineers like this one"
+2. **Desired attribute values**: "Find engineers with these skills, experience, etc."
+
+**Key insight**: Approach #2 is already implemented via the `preferred*` fields in `/filter`. Those fields describe the ideal candidate, and the utility function scores how well each engineer matches.
+
+**Our approach**: Add a new endpoint `/filter-similarity` for Approach #1. This serves a distinct use case: "I found a great engineer (Marcus) but he's unavailable. Find more like Marcus who also meet the job's hard requirements."
+
+#### The Three Endpoints Mental Model
+
+| What you have | What you want | Endpoint | Ranking |
+|---------------|---------------|----------|---------|
+| Job requirements + **described preferences** | Engineers ranked by job fit | `POST /filter` | Utility (11 components) |
+| Job requirements + **reference engineer** | Engineers similar to reference | `POST /filter-similarity` | Similarity (4 components) |
+| Just a **reference engineer** | Similar engineers (no constraints) | `GET /engineers/:id/similar` | Similarity (4 components) |
+
+#### Why Not a Single Endpoint with `rankingMode`?
+
+We considered adding a `rankingMode: 'utility' | 'similarity'` parameter to `/filter`. Rejected because:
+- Confusion about which fields apply in which mode (`preferred*` ignored in similarity mode?)
+- Complex conditional validation
+- Unclear API contract
+- Two endpoints with distinct purposes is cleaner
+
+#### Why Not an `idealProfile` Object?
+
+We considered letting users construct a hypothetical profile:
+```typescript
+idealProfile: { skills: ['TypeScript', 'React'], yearsExperience: 5, ... }
+```
+
+Rejected because:
+- Redundant with `preferred*` fields - both describe what you want
+- More complex request (construct an object vs pass an ID)
+- Doesn't match real workflow (recruiters find a good engineer, want more like them)
+
+#### Endpoint Design
+
+**Request:**
+```typescript
+POST /api/search/filter-similarity
+{
+  // Hard constraints - WHO qualifies (same as /filter)
+  requiredSkills?: SkillRequirement[];
+  requiredSeniorityLevel?: SeniorityLevel;
+  requiredMaxStartTime?: StartTimeline;
+  requiredTimezone?: USTimezoneZone[];
+  maxBudget?: number;
+  requiredBusinessDomains?: BusinessDomainRequirement[];
+  requiredTechnicalDomains?: TechnicalDomainRequirement[];
+
+  // Reference engineer - HOW to RANK qualified candidates
+  referenceEngineerId: string;  // Required
+
+  // Inference rule override (same as /filter)
+  overriddenRuleIds?: string[];
+
+  // Pagination
+  limit?: number;
+  offset?: number;
+}
+```
+
+**Response:**
+```typescript
+{
+  referenceEngineer: { id, name, headline },
+  matches: [
+    {
+      id, name, headline, salary, yearsExperience, startTimeline, timezone,
+      similarityScore: 0.82,
+      scoreBreakdown: { skills, yearsExperience, domain, timezone },
+      sharedSkills: ['React', 'TypeScript'],
+      correlatedSkills: [...]
+    },
+    ...
+  ],
+  totalCount: 15,
+  appliedFilters: [...],
+  derivedConstraints: [...],  // Inference rules applied
+  relaxation?: {...},          // If < 3 results
+  tightening?: {...},          // If >= 25 results
+  queryMetadata: { executionTimeMs, candidatesBeforeDiversity }
+}
+```
 
 **Features:**
 
-- Accept hard constraints (dealbreakers) and soft preferences (ideal profile)
-- Filter using constraints first
-- Rank remaining candidates by similarity to preferences
-- Return ranked results with match scores
+- Same hard constraint filtering as `/filter`
+- Inference rules via `expandSearchCriteria` (same as `/filter`)
+- Constraint advisor for relaxation/tightening (same as `/filter`)
+- Reference engineer excluded from results
+- Similarity ranking using 4-component scoring from Project 3
+- Diversity selection to prevent homogeneous results
 
-**Example Request:**
+#### Why Include Inference Rules and Constraint Advisor?
 
-```typescript
-{
-  // Hard constraints (filter)
-  constraints: {
-    requiredSkills: ['React'],
-    minExperience: 3,
-    availability: ['immediate', 'two_weeks'],
-    timezonePattern: 'America/*'
-  },
-
-  // Soft preferences (rank)
-  preferences: {
-    idealExperience: 5,
-    bonusSkills: ['TypeScript', 'Next.js', 'GraphQL'],
-    preferredDomain: 'SaaS',
-    evidenceWeights: {
-      assessment: 0.4,
-      stories: 0.35,
-      certifications: 0.25
-    }
-  }
-}
-```
-
-**Example Response:**
-
-```typescript
-{
-  totalMatches: 3,
-  results: [
-    {
-      engineer: { id: 'eng_marcus', name: 'Marcus Chen', ... },
-      matchScore: 0.92,
-      constraintsSatisfied: ['React', '5 years', 'immediate', 'America/Los_Angeles'],
-      preferenceBreakdown: {
-        experienceMatch: 1.0,   // exactly 5 years
-        bonusSkills: 0.67,      // has 2 of 3
-        domainMatch: 1.0,       // SaaS experience
-        evidenceQuality: 0.85
-      }
-    },
-    {
-      engineer: { id: 'eng_emily', name: 'Emily Nakamura', ... },
-      matchScore: 0.78,
-      ...
-    },
-    ...
-  ]
-}
-```
+Initially considered omitting these for simplicity. Included because:
+- Same sparse/many results problem applies (user specifies tight constraints)
+- Infrastructure already exists and is reusable
+- Consistency with `/filter` reduces cognitive load
+- No additional implementation complexity
 
 ---
 
@@ -696,8 +742,8 @@ interface SearchDefaults {
 | 1.5 | Iterative Requirement Expansion | 5.2.1 | Forward-chaining inference engine | ✅ Complete |
 | 2 | Constraint Relaxation | 5.2.4–5.2.5 | Detect conflicts, suggest repairs | ✅ Complete |
 | 2.5 | Local LLM Integration | 5.2.4 | Dual-explanation conflict analysis | ✅ Complete |
-| 3 | Similarity Scoring | 5.3.1 | Compute weighted similarity between engineers | Planned |
-| 4 | Combined Search | 5.2.1, 5.2.3, 5.3.1 | Filter with constraints, rank by similarity | Planned |
+| 3 | Similarity Scoring | 5.3.1 | Graph-aware engineer-to-engineer similarity | ✅ Complete |
+| 4 | Filter-Similarity Search | 5.2.1, 5.3.1 | Filter with constraints, rank by similarity to reference | Planned |
 | 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Refine searches conversationally | Planned |
 | 6 | Explanation Generation | 5.3.3 | Explain why engineers match | Planned |
 | 7 | Preference Learning | 5.4 | Learn from manager behavior over time | Planned |
@@ -714,13 +760,13 @@ interface SearchDefaults {
 - 5.2.5 Adding Constraints — Suggesting constraints when too many results, mining historical sessions for popular constraints
 
 **Project 3: Similarity Scoring** (5.3.1)
-- 5.3.1 Similarity Metrics — Weighted attribute similarity, symmetric vs asymmetric functions, categorical hierarchy similarity
-- 5.3.1.1 Incorporating Diversity in Similarity Computation — Bounded greedy selection, quality metrics combining similarity and diversity
+- 5.3.1 Similarity Metrics — Four-component weighted similarity (skills, experience, domain, timezone), graph-aware skill matching via CORRELATES_WITH, asymmetric experience scoring (Equation 5.5)
+- 5.3.1.1 Incorporating Diversity in Similarity Computation — Bounded greedy selection preventing homogeneous results, Quality = similarity × avgDiversity
 
-**Project 4: Combined Search** (5.2.1, 5.2.3, 5.3.1)
-- 5.2.1 Returning Relevant Results — Hard constraint filtering (first pass)
-- 5.2.3 Ranking the Matched Items — Utility-based ranking of filtered candidates
-- 5.3.1 Similarity Metrics — Preference-based similarity scoring (second pass)
+**Project 4: Filter-Similarity Search** (5.2.1, 5.3.1)
+- 5.2.1 Returning Relevant Results — Hard constraint filtering using existing search infrastructure
+- 5.3.1 Similarity Metrics — Rank filtered candidates by similarity to reference engineer (not by utility)
+- Design insight: `preferred*` fields in `/filter` ARE the "ideal profile" (Approach #2 from textbook p.181), so `/filter-similarity` adds Approach #1 (existing item as reference)
 
 **Project 5: Critiquing System** (5.3.2.1–5.3.2.3)
 - 5.3.2.1 Simple Critiques — Single attribute changes, directional critiques (more/less)
@@ -742,7 +788,7 @@ interface SearchDefaults {
 | 1 | 5.1, 5.2.1-5.2.3 | Project 1 (constraint search) |
 | 2 | 5.2.4, 5.2.5 | Project 2 (relaxation, repair proposals) |
 | 3 | 5.3.1 | Project 3 (similarity scoring) |
-| 4 | 5.3.1 continued | Project 4 (combined search) |
+| 4 | 5.3.1 continued | Project 4 (filter-similarity search) |
 | 5 | 5.3.2 | Project 5 (critiquing) |
 | 6 | 5.3.3 | Project 6 (explanations) |
 | 7 | 5.4 | Project 7 (preference learning) |

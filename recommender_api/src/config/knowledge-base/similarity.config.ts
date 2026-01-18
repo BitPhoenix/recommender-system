@@ -33,11 +33,20 @@ export interface SimilarityParams {
 /**
  * Similarity Weights (Research-derived)
  *
- * Timeline is intentionally excluded - it's a transient property
- * (current availability), not a capability attribute. Salary is
- * also excluded for fairness reasons.
+ * INTENTIONAL EXCLUSIONS:
  *
- * See: thoughts/shared/research/2026-01-16-project-3-similarity-scoring.md
+ * Timeline: Two engineers with identical skills/experience are equally
+ * "similar" regardless of current availability. Timeline is transient
+ * (changes when projects end) and reflects scheduling, not capability.
+ * If you need availability filtering, apply it as a post-filter on
+ * similarity results, not baked into the similarity score.
+ *
+ * Salary: Two engineers with identical skills and experience are equally
+ * "similar" regardless of their compensation expectations. Ranking by
+ * salary would be unfair—salary is a budget constraint, not a similarity
+ * dimension.
+ *
+ * See: thoughts/shared/1_chapter_5/3_project_3/research/2026-01-16-project-3-similarity-scoring.md
  */
 export const similarityWeights: SimilarityWeights = {
   skills: 0.45,           // Primary differentiator

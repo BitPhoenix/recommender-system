@@ -14,6 +14,24 @@
  * Years similarity is applied as a multiplier with a 0.5 floor.
  */
 
+/*
+ * Why these specific hierarchy values?
+ *
+ * Sibling domains (0.5): Fintech ↔ Banking both understand financial services,
+ *   regulatory concerns, and industry patterns. Stronger overlap than parent-child.
+ *
+ * Parent-child (0.4): Finance → Fintech has relevant but less specific overlap.
+ *   A Finance generalist understands financial concepts but may not know
+ *   fintech-specific things like digital wallets or crypto regulations.
+ *
+ * Encompasses (0.4): Full Stack → Backend means the full-stack engineer has
+ *   backend experience, but not as deep as a backend specialist.
+ *
+ * Why not pure Jaccard? Same problem as skills: Jaccard says Fintech ↔ Banking
+ * have zero overlap because they're different IDs, even though someone with
+ * Fintech experience likely understands financial services concepts.
+ */
+
 import type {
   DomainExperience,
   DomainGraph,
@@ -82,6 +100,24 @@ function computeDomainBestMatchAverage(
         const yearsDiff = Math.abs(source.years - target.years);
         const yearsSim = 1 - (yearsDiff / domainYearsMax);
         finalSim = baseSim * Math.max(domainYearsFloor, yearsSim);
+        /*
+         * Why multiplicative (baseSim × yearsSim) instead of additive?
+         *
+         * Years should only matter when domains are related (baseSim > 0).
+         * If domains are unrelated, 10 years in Gaming vs 10 years in Healthcare
+         * should still be zero, not rescued by matching years.
+         *
+         * Why 0.5 floor?
+         *
+         * Without floor: Fintech(1yr) vs Fintech(10yr) → 1.0 × 0.1 = 0.10
+         *   (years dominates! 9-year gap destroys the exact match)
+         *
+         * With floor: Fintech(1yr) vs Fintech(10yr) → 1.0 × 0.5 = 0.50
+         *   (domain match still matters)
+         *
+         * The floor ensures having *any* Fintech experience is more similar to
+         * a Fintech engineer than having *no* Fintech experience.
+         */
       }
 
       bestMatch = Math.max(bestMatch, finalSim);
