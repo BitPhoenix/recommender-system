@@ -393,9 +393,11 @@ Build `GET /api/engineers/:id/similar` that computes similarity between engineer
 
 ---
 
-### Project 4: Combined Search (Filter → Similarity) ⏳
+### Project 4: Combined Search (Filter → Similarity) ✅
 
 **Textbook Sections:** 5.2.1 (Returning Relevant Results), 5.2.3 (Ranking the Matched Items), 5.3.1 (Similarity Metrics)
+
+**Duration**: Jan 17-18, 2026 | **Branch**: `project_4`
 
 Build `POST /api/search/filter-similarity` that combines constraint filtering with case-based similarity ranking.
 
@@ -504,6 +506,58 @@ Initially considered omitting these for simplicity. Included because:
 - Consistency with `/filter` reduces cognitive load
 - No additional implementation complexity
 
+#### Implementation Summary
+
+**What Was Built:**
+
+- **New endpoint**: `POST /api/search/filter-similarity` - hybrid search combining constraints + similarity ranking
+- **Unified query builder**: Refactored `buildSearchQuery` with `collectAllSkills` option to eliminate code duplication
+- **Full request validation**: Zod schema with refinements (stretchBudget requires maxBudget, etc.)
+- **Response types**: `FilterSimilarityResponse`, `FilterSimilarityMatch`, `DerivedConstraintInfo`
+
+**Data Flow (13 steps in service):**
+
+1. Load reference engineer (fail fast if not found)
+2. Resolve skills → IDs grouped by proficiency
+3. Expand constraints via inference engine (seniority → years, inference rules)
+4. Resolve domain constraints (hierarchy expansion)
+5. Build unified query with `collectAllSkills=true` (returns full skill profiles)
+6. Get constraint advice (relaxation/tightening based on result count)
+7. Load skill graph + domain graph
+8. Parse query results → EngineerForSimilarity format
+9. Score candidates by similarity: Skills (45%) + Experience (27%) + Domain (22%) + Timezone (6%)
+10. Apply diversity selection (bounded greedy)
+11. Apply pagination
+12. Build derived constraints info
+13. Return response with full transparency
+
+**Key Design Decisions:**
+
+- **`referenceEngineerId` not `idealProfile`**: Real engineer reference matches actual workflow ("I found Marcus, find more like him")
+- **No `preferred*` fields**: Clear separation—`/filter` uses utility scoring from preferences, `/filter-similarity` uses similarity to reference
+- **Unified query builder**: `collectAllSkills` option eliminates duplication between endpoints
+- **Reference excluded from results**: Can't ask "find engineers like Marcus" and get Marcus back
+
+**Architecture:**
+
+```
+recommender_api/src/
+├── controllers/filter-similarity.controller.ts    # HTTP handler
+├── schemas/filter-similarity.schema.ts            # Request validation (Zod)
+├── types/filter-similarity.types.ts               # Response types
+├── services/
+│   ├── filter-similarity.service.ts               # Orchestration (13-step flow)
+│   └── cypher-query-builder/
+│       ├── search-query.builder.ts                # collectAllSkills option
+│       └── query-types.ts                         # excludeEngineerId param
+```
+
+**Testing:**
+
+- **31 unit tests**: Schema validation, service orchestration, error handling
+- **11 E2E scenarios**: Basic request, validation errors, constraints, pagination, inference rules
+- **244 total assertions** across the full test collection (73 requests)
+
 ---
 
 ### Project 5: Critiquing System ⏳
@@ -512,62 +566,86 @@ Initially considered omitting these for simplicity. Included because:
 
 Build `POST /api/search/critique` for conversational refinement of search results.
 
-#### Part A: Simple Critiques
+#### Request Schema
 
-Single attribute adjustments:
-
-```typescript
-{
-  baseSearch: { /* previous search */ },
-  critique: {
-    type: 'simple',
-    attribute: 'yearsExperience',
-    direction: 'more'  // or 'less', 'different'
-  }
-}
-```
-
-#### Part B: Compound Critiques
-
-Multiple attribute adjustments:
+Use a unified `adjustments[]` array—no need to distinguish simple vs compound:
+- 1 adjustment = simple critique (5.3.2.1)
+- Multiple adjustments = compound critique (5.3.2.2)
 
 ```typescript
 {
-  baseSearch: { /* previous search */ },
-  critique: {
-    type: 'compound',
-    adjustments: [
-      { attribute: 'yearsExperience', direction: 'more' },
-      { attribute: 'availability', direction: 'sooner' }
-    ]
-  }
-}
-```
-
-#### Part C: Dynamic Critique Suggestions
-
-Analyze current results and suggest useful critiques:
-
-```typescript
-// Response includes suggested critiques
-{
-  results: [...],
-  suggestedCritiques: [
-    {
-      critique: { attribute: 'domain', value: 'Fintech' },
-      description: 'Add Fintech experience',
-      resultingMatches: 2,
-      support: 0.4  // 40% of current results have this
-    },
-    {
-      critique: { attribute: 'yearsExperience', direction: 'less' },
-      description: 'Consider less experienced candidates',
-      resultingMatches: 5,
-      support: 0.6
-    }
+  baseSearch: { /* previous SearchFilterRequest */ },
+  adjustments: [
+    { attribute: 'yearsExperience', direction: 'more' },
+    { attribute: 'startTimeline', direction: 'sooner' }
   ]
 }
 ```
+
+#### Part A: Directional Critiques
+
+User specifies whether to increase or decrease an attribute:
+
+| Attribute | Directions | Effect |
+|-----------|------------|--------|
+| `yearsExperience` | `more` / `less` | Adjust seniority level |
+| `salary` | `more` / `less` | Adjust budget cap |
+| `startTimeline` | `sooner` / `later` | Adjust availability window |
+| `timezone` | `closer` / `farther` | Narrow or expand timezone |
+
+#### Part B: Replacement Critiques
+
+User specifies a concrete value:
+
+```typescript
+{ attribute: 'timezone', value: 'Pacific' }
+{ attribute: 'skills', action: 'add', skill: 'Python', proficiency: 'proficient' }
+```
+
+#### Part C: Dynamic Critique Suggestions (5.3.2.3)
+
+Analyze current results using **frequent pattern mining** to suggest useful critiques.
+
+**Algorithm (from textbook p.193):**
+
+1. **Mine patterns**: Find all attribute change patterns in current results
+2. **Filter by minimum support**: Only keep patterns above threshold (e.g., 20%)
+3. **Order by ascending support**: Show low-support patterns first
+
+**Why ascending order?** Low-support critiques are often **less obvious patterns** that eliminate more items from the candidate list. High-support patterns (obvious to the user) are less useful for narrowing.
+
+**Example**: With 20 current results:
+```typescript
+suggestedCritiques: [
+  // Low support first (less obvious, more useful for filtering)
+  {
+    adjustments: [{ attribute: 'domain', value: 'Fintech' }],
+    description: 'Add Fintech experience',
+    resultingMatches: 4,
+    support: 0.20  // Only 20% have this—non-obvious pattern
+  },
+  {
+    adjustments: [
+      { attribute: 'yearsExperience', direction: 'more' },
+      { attribute: 'timezone', value: 'Pacific' }
+    ],
+    description: 'More experienced AND Pacific timezone',
+    resultingMatches: 3,
+    support: 0.15  // Compound pattern
+  },
+  // Higher support last (more obvious)
+  {
+    adjustments: [{ attribute: 'skills', action: 'add', skill: 'Python' }],
+    description: 'Add Python requirement',
+    resultingMatches: 12,
+    support: 0.60  // 60% have Python—obvious pattern
+  }
+]
+```
+
+**Configuration:**
+- `minSupportThreshold`: Minimum support to include (default: 0.15)
+- `maxSuggestions`: Maximum suggestions to return (default: 5)
 
 ---
 
@@ -743,8 +821,8 @@ interface SearchDefaults {
 | 2 | Constraint Relaxation | 5.2.4–5.2.5 | Detect conflicts, suggest repairs | ✅ Complete |
 | 2.5 | Local LLM Integration | 5.2.4 | Dual-explanation conflict analysis | ✅ Complete |
 | 3 | Similarity Scoring | 5.3.1 | Graph-aware engineer-to-engineer similarity | ✅ Complete |
-| 4 | Filter-Similarity Search | 5.2.1, 5.3.1 | Filter with constraints, rank by similarity to reference | Planned |
-| 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Refine searches conversationally | Planned |
+| 4 | Filter-Similarity Search | 5.2.1, 5.3.1 | Filter with constraints, rank by similarity to reference | ✅ Complete |
+| 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Directional/replacement critiques, dynamic suggestions with support-based ordering | Planned |
 | 6 | Explanation Generation | 5.3.3 | Explain why engineers match | Planned |
 | 7 | Preference Learning | 5.4 | Learn from manager behavior over time | Planned |
 
@@ -769,9 +847,9 @@ interface SearchDefaults {
 - Design insight: `preferred*` fields in `/filter` ARE the "ideal profile" (Approach #2 from textbook p.181), so `/filter-similarity` adds Approach #1 (existing item as reference)
 
 **Project 5: Critiquing System** (5.3.2.1–5.3.2.3)
-- 5.3.2.1 Simple Critiques — Single attribute changes, directional critiques (more/less)
-- 5.3.2.2 Compound Critiques — Multiple attribute changes in one cycle, informal descriptions ("classier", "roomier")
-- 5.3.2.3 Dynamic Critiques — Data-mined critique suggestions, support-based ordering
+- 5.3.2.1 Simple Critiques — Single attribute changes via directional (more/less) or replacement (concrete value) critiques
+- 5.3.2.2 Compound Critiques — Multiple adjustments in one cycle; unified `adjustments[]` array (1 item = simple, 2+ items = compound)
+- 5.3.2.3 Dynamic Critiques — Frequent pattern mining on current results, minimum support threshold filtering, **ascending support ordering** (low-support patterns first because they're less obvious and eliminate more items)
 
 **Project 6: Explanation Generation** (5.3.3)
 - 5.3.3 Explanation in Critiques — Trade-off explanations, correlation statistics, fruitless session analysis

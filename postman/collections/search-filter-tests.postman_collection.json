@@ -5101,6 +5101,710 @@
           "port": "4025"
         }
       }
+    },
+    {
+      "name": "74 - Critique: Basic Seniority Adjustment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has critique fields', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('appliedCritiqueAdjustments');",
+              "  pm.expect(json).to.have.property('failedCritiqueAdjustments');",
+              "  pm.expect(json.queryMetadata).to.have.property('previousResultCount');",
+              "  pm.expect(json.queryMetadata).to.have.property('resultCountChange');",
+              "});",
+              "",
+              "pm.test('Seniority adjustment was applied', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredSeniorityLevel');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].previousValue).to.equal('mid');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.equal('senior');",
+              "});",
+              "",
+              "pm.test('Result count change is tracked', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.resultCountChange).to.be.a('number');",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.be.a('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSeniorityLevel\": \"mid\"\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "75 - Critique: Budget Set Operation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Budget set to specified value', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('maxBudget');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.equal(150000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"budget\",\n      \"operation\": \"set\",\n      \"value\": 150000\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "76 - Critique: Failed Adjustment (No Budget to Adjust)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Budget adjustment failed (no budget set)', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.failedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.failedCritiqueAdjustments[0].targetField).to.equal('maxBudget');",
+              "  pm.expect(response.failedCritiqueAdjustments[0].reason).to.include('No budget constraint');",
+              "});",
+              "",
+              "pm.test('No adjustments were applied', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"budget\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "77 - Critique: Compound Adjustment (Seniority + Budget)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Both adjustments were applied', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(2);",
+              "});",
+              "",
+              "pm.test('Seniority increased', function() {",
+              "  const seniority = pm.response.json().appliedCritiqueAdjustments.find(function(a) {",
+              "    return a.modifiedField === 'requiredSeniorityLevel';",
+              "  });",
+              "  pm.expect(seniority.newValue).to.equal('senior');",
+              "});",
+              "",
+              "pm.test('Budget increased by 20%', function() {",
+              "  const budget = pm.response.json().appliedCritiqueAdjustments.find(function(a) {",
+              "    return a.modifiedField === 'maxBudget';",
+              "  });",
+              "  pm.expect(budget.previousValue).to.equal(100000);",
+              "  pm.expect(budget.newValue).to.equal(120000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSeniorityLevel\": \"mid\",\n    \"maxBudget\": 100000\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    },\n    {\n      \"property\": \"budget\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "78 - Critique: Mixed Success/Failure",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Seniority adjustment succeeded', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredSeniorityLevel');",
+              "});",
+              "",
+              "pm.test('Budget adjustment failed', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.failedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.failedCritiqueAdjustments[0].targetField).to.equal('maxBudget');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSeniorityLevel\": \"mid\"\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    },\n    {\n      \"property\": \"budget\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "79 - Critique: Timeline Adjustment (Sooner)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Timeline made sooner', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredMaxStartTime');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].previousValue).to.equal('one_month');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.equal('two_weeks');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredMaxStartTime\": \"one_month\"\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"timeline\",\n      \"operation\": \"adjust\",\n      \"direction\": \"sooner\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "80 - Critique: Add Skill Requirement",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Skill added to requirements', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredSkills');",
+              "});",
+              "",
+              "pm.test('Result count tracked for skill addition', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.be.a('number');",
+              "  pm.expect(response.queryMetadata.resultCountChange).to.be.a('number');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"skills\",\n      \"operation\": \"add\",\n      \"value\": {\n        \"skill\": \"Python\",\n        \"proficiency\": \"proficient\"\n      }\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "81 - Critique: Dynamic Suggestions Returned",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has matches (for suggestions to be generated)', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('suggestedCritiques array is present when results exist', function() {",
+              "  const response = pm.response.json();",
+              "  if (response.matches.length > 0) {",
+              "    pm.expect(response).to.have.property('suggestedCritiques');",
+              "    pm.expect(response.suggestedCritiques).to.be.an('array');",
+              "  }",
+              "});",
+              "",
+              "pm.test('Each suggestion has required fields', function() {",
+              "  const response = pm.response.json();",
+              "  if (response.suggestedCritiques && response.suggestedCritiques.length > 0) {",
+              "    response.suggestedCritiques.forEach(function(suggestion) {",
+              "      pm.expect(suggestion).to.have.property('adjustments');",
+              "      pm.expect(suggestion).to.have.property('description');",
+              "      pm.expect(suggestion).to.have.property('resultingMatches');",
+              "      pm.expect(suggestion).to.have.property('support');",
+              "      pm.expect(suggestion).to.have.property('rationale');",
+              "      pm.expect(suggestion.adjustments).to.be.an('array');",
+              "      pm.expect(suggestion.support).to.be.a('number');",
+              "      pm.expect(suggestion.support).to.be.at.least(0);",
+              "      pm.expect(suggestion.support).to.be.at.most(1);",
+              "    });",
+              "  }",
+              "});",
+              "",
+              "pm.test('Suggestions ordered by ascending support', function() {",
+              "  const response = pm.response.json();",
+              "  if (response.suggestedCritiques && response.suggestedCritiques.length > 1) {",
+              "    for (var i = 1; i < response.suggestedCritiques.length; i++) {",
+              "      pm.expect(response.suggestedCritiques[i].support).to.be.at.least(",
+              "        response.suggestedCritiques[i-1].support",
+              "      );",
+              "    }",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"set\",\n      \"value\": \"mid\"\n    }\n  ],\n  \"limit\": 20\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "82 - Critique: Already at Maximum Warning",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Adjustment applied with warning', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].warning).to.include('maximum');",
+              "});",
+              "",
+              "pm.test('Value remains at maximum', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.equal('principal');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSeniorityLevel\": \"principal\"\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"adjust\",\n      \"direction\": \"more\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "83 - Critique: Validation Error (Invalid Direction)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 (validation error)', function() {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error response indicates validation failure', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('error');",
+              "  pm.expect(json.error.name).to.equal('ZodError');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"adjust\",\n      \"direction\": \"sooner\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "84 - Critique: Validation Error (Missing Adjustments)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400 (validation error)', function() {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error indicates adjustments required', function() {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json).to.have.property('error');",
+              "  pm.expect(json.error.name).to.equal('ZodError');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": []\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "85 - Critique: Timezone Set Operation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Timezone set correctly', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredTimezone');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.deep.equal(['Pacific']);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {},\n  \"adjustments\": [\n    {\n      \"property\": \"timezone\",\n      \"operation\": \"set\",\n      \"value\": [\"Pacific\"]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
     }
   ]
 }

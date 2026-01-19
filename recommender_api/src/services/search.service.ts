@@ -258,5 +258,7 @@ export async function executeSearch(
     // Include constraint advice results if present (Project 2)
     ...(constraintAdviceOutput.relaxation && { relaxation: constraintAdviceOutput.relaxation }),
     ...(constraintAdviceOutput.tightening && { tightening: constraintAdviceOutput.tightening }),
+    // Include expanded criteria for downstream processing (critique generation)
+    expandedCriteria: expanded,
   };
 }

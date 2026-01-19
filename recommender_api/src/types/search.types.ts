@@ -8,6 +8,7 @@
 
 // Import for local use (needed before re-export for interface definitions)
 import type { ProficiencyLevel as ProficiencyLevelType } from '../schemas/search.schema.js';
+import type { ExpandedSearchCriteria } from '../services/constraint-expander.service.js';
 
 // Re-export types from schemas
 export type {
@@ -260,37 +261,44 @@ export interface QueryMetadata {
   unresolvedSkills: string[];  // Skills requested but not found in database
 }
 
+/**
+ * Information about a derived constraint from inference rules.
+ * Used in SearchFilterResponse, FilterSimilarityResponse, and CritiqueResponse.
+ */
+export interface DerivedConstraintInfo {
+  rule: {
+    id: string;
+    name: string;
+  };
+  action: {
+    effect: 'filter' | 'boost';
+    targetField: string;
+    targetValue: unknown;
+    boostStrength?: number;
+  };
+  provenance: {
+    /** All causal paths (2D: array of chains) */
+    derivationChains: string[][];
+    explanation: string;
+  };
+  /**
+   * Override information - only present when user overrode this constraint.
+   * - FULL: Entire constraint overridden (explicit, implicit boost, or all skills user-handled)
+   * - PARTIAL: Some target skills user-handled, rule still applies for remaining skills
+   */
+  override?: {
+    overrideScope: 'FULL' | 'PARTIAL';
+    overriddenSkills: string[];
+  };
+}
+
 export interface SearchFilterResponse {
   matches: EngineerMatch[];
   totalCount: number;
   appliedFilters: AppliedFilter[];
   appliedPreferences: AppliedPreference[];
   overriddenRuleIds: string[]; // Echo back the overridden rules from request
-  derivedConstraints: Array<{
-    rule: {
-      id: string;
-      name: string;
-    };
-    action: {
-      effect: 'filter' | 'boost';
-      targetField: string;
-      targetValue: unknown;
-      boostStrength?: number;
-    };
-    provenance: {
-      derivationChains: string[][];  // All causal paths (2D: array of chains)
-      explanation: string;
-    };
-    /**
-     * Override information - only present when user overrode this constraint.
-     * - FULL: Entire constraint overridden (explicit, implicit boost, or all skills user-handled)
-     * - PARTIAL: Some target skills user-handled, rule still applies for remaining skills
-     */
-    override?: {
-      overrideScope: 'FULL' | 'PARTIAL';
-      overriddenSkills: string[];
-    };
-  }>;
+  derivedConstraints: DerivedConstraintInfo[];
   queryMetadata: QueryMetadata;
 
   // Constraint Advice (Project 2: Section 5.2.4-5.2.5)
@@ -298,6 +306,9 @@ export interface SearchFilterResponse {
   relaxation?: RelaxationResult;
   /** Tightening advice for many results (>= 25 matches) */
   tightening?: TighteningResult;
+
+  /** Internal: expanded criteria for downstream processing (critique generation) */
+  expandedCriteria?: ExpandedSearchCriteria;
 }
 
 // ============================================
