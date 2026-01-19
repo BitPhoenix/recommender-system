@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npx newman run ../postman/collections/search-filter-tests.postman_collection.json --globals ../postman/globals/workspace.postman_globals.json",
-    "test:e2e:html": "npx newman run ../postman/collections/search-filter-tests.postman_collection.json --globals ../postman/globals/workspace.postman_globals.json -r cli,htmlextra --reporter-htmlextra-export reports/e2e-report.html && echo '\n✓ Report saved to reports/e2e-report.html' && open reports/e2e-report.html",
+    "test:e2e:html": "npx newman run ../postman/collections/search-filter-tests.postman_collection.json --globals ../postman/globals/workspace.postman_globals.json -r cli,htmlextra --reporter-htmlextra-export reports/e2e-report.html && echo '\n✓ Report saved to recommender_api/reports/e2e-report.html' && open reports/e2e-report.html",
     "test:e2e:json": "npx newman run ../postman/collections/search-filter-tests.postman_collection.json --globals ../postman/globals/workspace.postman_globals.json -r json --reporter-json-export reports/e2e-results.json"
   },
   "dependencies": {

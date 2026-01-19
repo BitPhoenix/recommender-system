@@ -1,5 +1,38 @@
 # Code Style
 
+## Variable Naming: Prefer Descriptive Over Short
+
+Always prefer descriptive, self-documenting variable names over abbreviated or short names. Readability and understanding trump brevity.
+
+```typescript
+/* Good: descriptive names */
+const timezone = engineerMatch.timezone;
+const engineerCountByTimezone = new Map<string, number>();
+for (const engineerMatch of engineerMatches) {
+  const timezone = engineerMatch.timezone;
+  engineerCountByTimezone.set(timezone, (engineerCountByTimezone.get(timezone) ?? 0) + 1);
+}
+
+/* Bad: abbreviated names that sacrifice clarity */
+const zone = match.timezone;
+const timezoneCounts = new Map<string, number>();
+for (const m of matches) {
+  const z = m.timezone;
+  timezoneCounts.set(z, (timezoneCounts.get(z) ?? 0) + 1);
+}
+```
+
+Specific guidelines:
+- Use full words: `timezone` not `zone`, `engineer` not `eng`, `requirement` not `req`
+- Loop variables should reflect what they iterate over: `engineerMatch` not `m`, `skill` not `s`
+- Counts should indicate what subset is being counted: `engineerCountWithSkill` not `engineerCount`, `engineerCountInTimezone` not `count`
+- Aggregation maps should indicate the grouping: `engineerCountByTimezone` not `timezoneCounts`
+- Parameters should be specific: `engineerMatches` not `matches` (especially when "match" could be confused with other domain concepts)
+
+The only exceptions are:
+- Conventional short names in very small scopes (e.g., `i` for index in a simple loop)
+- Standard abbreviations that are universally understood (e.g., `id`, `url`, `api`)
+
 ## Function Ordering
 
 Place parent/caller functions **above** the functions they call. This makes code easier to read top-down:

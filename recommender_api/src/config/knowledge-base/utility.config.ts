@@ -194,3 +194,27 @@ export const seniorityMinYears = Object.fromEntries(
   Object.entries(seniorityMapping).map(([level, range]) => [level, range.minYears])
 ) as Record<SeniorityLevel, number>;
 
+// Import SENIORITY_LEVEL_ORDER after seniorityMinYears is defined to avoid circular dependency
+import { SENIORITY_LEVEL_ORDER } from '../../schemas/search.schema.js';
+
+/**
+ * Derive seniority level from years of experience.
+ *
+ * Inverse of seniorityMinYears: given years, returns the highest seniority level
+ * the engineer qualifies for.
+ *
+ * Example: 7 years → 'senior' (meets 6+ threshold, doesn't meet 10+ for staff)
+ */
+export function getSeniorityLevelFromYears(years: number): SeniorityLevel {
+  /*
+   * Walk seniority levels in reverse order (highest first).
+   * Return the first level where years >= minYears.
+   */
+  for (let index = SENIORITY_LEVEL_ORDER.length - 1; index >= 0; index--) {
+    const level = SENIORITY_LEVEL_ORDER[index];
+    if (years >= seniorityMinYears[level]) {
+      return level;
+    }
+  }
+  return SENIORITY_LEVEL_ORDER[0]; // junior (0+ years)
+}

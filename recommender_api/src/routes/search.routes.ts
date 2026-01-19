@@ -6,9 +6,11 @@
 import { Router } from 'express';
 import { filterSearch } from '../controllers/search.controller.js';
 import { filterSimilarity } from '../controllers/filter-similarity.controller.js';
+import { handleCritique } from '../controllers/critique.controller.js';
 import { validate } from '../middleware/zod-validate.middleware.js';
 import { SearchFilterRequestSchema } from '../schemas/search.schema.js';
 import { FilterSimilarityRequestSchema } from '../schemas/filter-similarity.schema.js';
+import { CritiqueRequestSchema } from '../schemas/critique.schema.js';
 
 const router = Router();
 
@@ -27,5 +29,13 @@ router.post('/filter', validate(SearchFilterRequestSchema), filterSearch);
  * Implements Chapter 5.2 + 5.3 (Hybrid: Constraint-Based + Case-Based)
  */
 router.post('/filter-similarity', validate(FilterSimilarityRequestSchema), filterSimilarity);
+
+/**
+ * POST /api/search/critique
+ * Apply critique adjustments to a base search and return refined results.
+ *
+ * Implements Chapter 5.3.2 (Critiquing Methods)
+ */
+router.post('/critique', validate(CritiqueRequestSchema), handleCritique);
 
 export default router;

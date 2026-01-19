@@ -5,6 +5,7 @@
 
 import type {
   AppliedFilter,
+  DerivedConstraintInfo,
   RelaxationResult,
   TighteningResult,
 } from './search.types.js';
@@ -12,6 +13,9 @@ import type {
   SimilarityBreakdown,
   CorrelatedSkillPair,
 } from '../services/similarity-calculator/types.js';
+
+// Re-export DerivedConstraintInfo for consumers of this module
+export type { DerivedConstraintInfo } from './search.types.js';
 
 export interface FilterSimilarityResponse {
   referenceEngineer: {
@@ -44,25 +48,4 @@ export interface FilterSimilarityMatch {
   scoreBreakdown: SimilarityBreakdown;
   sharedSkills: string[];
   correlatedSkills: CorrelatedSkillPair[];
-}
-
-export interface DerivedConstraintInfo {
-  rule: {
-    id: string;
-    name: string;
-  };
-  action: {
-    effect: 'filter' | 'boost';
-    targetField: string;
-    targetValue: unknown;
-    boostStrength?: number;
-  };
-  provenance: {
-    derivationChains: string[][];
-    explanation: string;
-  };
-  override?: {
-    overrideScope: 'FULL' | 'PARTIAL';
-    overriddenSkills: string[];
-  };
 }
