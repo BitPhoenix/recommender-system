@@ -11,7 +11,7 @@
 import type { Session } from 'neo4j-driver';
 import type { CritiqueRequest, CritiqueResponse, DynamicCritiqueSuggestion } from '../types/critique.types.js';
 import { applyAdjustmentsToSearchCriteria } from './critique-interpreter.service.js';
-import { executeSearch } from './search.service.js';
+import { executeSearch, getSearchResultCount } from './search.service.js';
 import { generateDynamicCritiques } from './critique-generator/dynamic-critique-generator.service.js';
 
 /**
@@ -31,12 +31,7 @@ export async function executeCritique(
   const startTime = Date.now();
 
   // Step 1: Get baseline count (execute base search without modifications)
-  const baselineResult = await executeSearch(session, {
-    ...request.baseSearch,
-    limit: 0,  // Just get count
-    offset: 0,
-  });
-  const previousResultCount = baselineResult.totalCount;
+  const previousResultCount = await getSearchResultCount(session, request.baseSearch);
 
   // Step 2: Interpret critique adjustments into search criteria changes
   const { modifiedSearchFilterRequest, appliedCritiqueAdjustments, failedCritiqueAdjustments } = applyAdjustmentsToSearchCriteria(

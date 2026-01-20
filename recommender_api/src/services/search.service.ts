@@ -18,6 +18,7 @@ import {
 } from "./domain-resolver.service.js";
 import {
   buildSearchQuery,
+  buildSearchCountQuery,
   type CypherQueryParams,
   type ResolvedTechnicalDomain,
   type ResolvedBusinessDomain,
@@ -261,4 +262,68 @@ export async function executeSearch(
     // Include expanded criteria for downstream processing (critique generation)
     expandedCriteria: expanded,
   };
+}
+
+/**
+ * Gets just the result count for a search request without fetching actual results.
+ * Used by the critique service to get baseline counts before applying adjustments.
+ *
+ * This is more efficient than executeSearch with limit:0 because it:
+ * - Runs a simpler count-only Cypher query
+ * - Skips utility scoring, constraint advice, and result formatting
+ */
+export async function getSearchResultCount(
+  session: Session,
+  request: SearchFilterRequest
+): Promise<number> {
+  const config = knowledgeBaseConfig;
+
+  // Resolve skills (needed for skill-filtered counts)
+  const { skillGroups } = await resolveAllSkills(
+    session,
+    request.requiredSkills,
+    request.preferredSkills,
+    config.defaults.defaultMinProficiency
+  );
+
+  // Expand search criteria (needed for derived constraints like seniority→years)
+  const expanded = await expandSearchCriteria(request, [], []);
+
+  // Resolve domains
+  const requiredBusinessDomains = await resolveBusinessDomains(
+    session,
+    request.requiredBusinessDomains
+  );
+  const requiredTechnicalDomains = await resolveTechnicalDomains(
+    session,
+    request.requiredTechnicalDomains
+  );
+
+  // Build query params (subset needed for count query)
+  const queryParams: CypherQueryParams = {
+    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
+    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
+    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
+    originalSkillIdentifiers: null,
+    startTimeline: expanded.startTimeline,
+    minYearsExperience: expanded.minYearsExperience,
+    maxYearsExperience: expanded.maxYearsExperience,
+    timezoneZones: expanded.timezoneZones,
+    maxBudget: expanded.maxBudget,
+    stretchBudget: expanded.stretchBudget,
+    offset: 0,
+    limit: 0, // Not used by count query but required by type
+    requiredBusinessDomains:
+      requiredBusinessDomains.length > 0 ? requiredBusinessDomains : undefined,
+    requiredTechnicalDomains:
+      requiredTechnicalDomains.length > 0 ? requiredTechnicalDomains : undefined,
+  };
+
+  // Build and execute count query
+  const countQuery = buildSearchCountQuery(queryParams);
+  const result = await session.run(countQuery.query, countQuery.params);
+
+  return result.records.length > 0
+    ? toNumber(result.records[0].get("totalCount"))
+    : 0;
 }
