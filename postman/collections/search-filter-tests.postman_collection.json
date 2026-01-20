@@ -5805,6 +5805,197 @@
           "port": "4025"
         }
       }
+    },
+    {
+      "name": "86 - Critique: Multi-Property Base (Skills + Seniority + Timeline) with Timezone Set",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Timezone adjustment applied to multi-property base', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredTimezone');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.deep.equal(['Pacific', 'Mountain']);",
+              "});",
+              "",
+              "pm.test('previousResultCount reflects multi-property base search count', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.be.above(0);",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.equal(6);",
+              "});",
+              "",
+              "pm.test('Result count changed from base search', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.resultCountChange).to.be.a('number');",
+              "  pm.expect(response.totalCount).to.not.equal(response.queryMetadata.previousResultCount);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSkills\": [{\"skill\": \"TypeScript\"}],\n    \"requiredSeniorityLevel\": \"mid\",\n    \"requiredMaxStartTime\": \"one_month\"\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"timezone\",\n      \"operation\": \"set\",\n      \"value\": [\"Pacific\", \"Mountain\"]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "87 - Critique: Multi-Property Base (Skills + Timeline + Budget) with Seniority Set",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Seniority adjustment applied to multi-property base', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(1);",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].modifiedField).to.equal('requiredSeniorityLevel');",
+              "  pm.expect(response.appliedCritiqueAdjustments[0].newValue).to.equal('senior');",
+              "});",
+              "",
+              "pm.test('previousResultCount reflects skill + timeline + budget base', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.be.above(0);",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.equal(11);",
+              "});",
+              "",
+              "pm.test('Adding seniority constraint reduces results', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.resultCountChange).to.be.below(0);",
+              "  pm.expect(response.totalCount).to.be.below(response.queryMetadata.previousResultCount);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSkills\": [{\"skill\": \"React\"}],\n    \"requiredMaxStartTime\": \"two_weeks\",\n    \"maxBudget\": 175000\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"set\",\n      \"value\": \"senior\"\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "88 - Critique: Multi-Property Base with Multiple Adjustments",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Both adjustments applied to multi-property base', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.appliedCritiqueAdjustments).to.have.length(2);",
+              "  const modifiedFields = response.appliedCritiqueAdjustments.map(a => a.modifiedField);",
+              "  pm.expect(modifiedFields).to.include('requiredSeniorityLevel');",
+              "  pm.expect(modifiedFields).to.include('requiredTimezone');",
+              "});",
+              "",
+              "pm.test('previousResultCount reflects Python + budget base', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.queryMetadata.previousResultCount).to.be.above(0);",
+              "});",
+              "",
+              "pm.test('Multiple constraints reduce results', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.totalCount).to.be.below(response.queryMetadata.previousResultCount);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"baseSearch\": {\n    \"requiredSkills\": [{\"skill\": \"Python\"}],\n    \"maxBudget\": 200000\n  },\n  \"adjustments\": [\n    {\n      \"property\": \"seniority\",\n      \"operation\": \"set\",\n      \"value\": \"senior\"\n    },\n    {\n      \"property\": \"timezone\",\n      \"operation\": \"set\",\n      \"value\": [\"Pacific\"]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/critique",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "critique"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
     }
   ]
 }

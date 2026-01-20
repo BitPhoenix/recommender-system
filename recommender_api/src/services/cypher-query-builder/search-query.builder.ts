@@ -47,7 +47,65 @@ import {
 } from "./query-domain-filter.builder.js";
 
 // ============================================================================
-// MAIN ENTRY POINT
+// SHARED FILTER BUILDING
+// ============================================================================
+
+interface FilterClausesResult {
+  hasSkillFilter: boolean;
+  queryParams: Record<string, unknown>;
+  domainContext: DomainFilterContext;
+  matchClause: string;
+  skillProficiencyFilterClause: string;
+  requiredBusinessDomainFilterClause: string;
+  requiredTechnicalDomainFilterClause: string;
+}
+
+/**
+ * Builds the common filter clauses used by both search and count queries.
+ * Extracts shared logic to avoid duplication between buildSearchQuery and buildSearchCountQuery.
+ */
+function buildFilterClauses(
+  params: CypherQueryParams,
+  options: { collectAllSkills?: boolean } = {}
+): FilterClausesResult {
+  const { collectAllSkills = false } = options;
+  const allSkillIds = getAllSkillIds(params);
+  const hasSkillFilter = allSkillIds.length > 0;
+
+  const { conditions, queryParams } = buildBasicEngineerFilters(params);
+  const domainContext = getDomainFilterContext(params);
+  const whereClause = conditions.join("\n  AND ");
+
+  addDomainQueryParams(queryParams, params, domainContext);
+
+  if (hasSkillFilter || collectAllSkills) {
+    /*
+     * Add skill params when:
+     * 1. hasSkillFilter: query filters by skills, needs all skill params
+     * 2. collectAllSkills: skill collection clause references these for matchType/meetsProficiency,
+     *    even if no filter is applied. Provides empty arrays as defaults.
+     */
+    addSkillQueryParams(queryParams, params, allSkillIds);
+  }
+
+  const matchClause = buildMatchClause(hasSkillFilter, whereClause);
+  const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(hasSkillFilter);
+  const requiredBusinessDomainFilterClause = buildRequiredBusinessDomainFilter(domainContext);
+  const requiredTechnicalDomainFilterClause = buildRequiredTechnicalDomainFilter(domainContext);
+
+  return {
+    hasSkillFilter,
+    queryParams,
+    domainContext,
+    matchClause,
+    skillProficiencyFilterClause,
+    requiredBusinessDomainFilterClause,
+    requiredTechnicalDomainFilterClause,
+  };
+}
+
+// ============================================================================
+// MAIN ENTRY POINTS
 // ============================================================================
 
 export function buildSearchQuery(
@@ -70,35 +128,20 @@ export function buildSearchQuery(
    * Conditional: skill matching, qualification checks, skill-based ordering
    */
   const { collectAllSkills = false } = options;
-  const allSkillIds = getAllSkillIds(params);
-  const hasSkillFilter = allSkillIds.length > 0;
 
-  const { conditions, queryParams } = buildBasicEngineerFilters(params);
-  const domainContext = getDomainFilterContext(params);
-  const whereClause = conditions.join("\n  AND ");
+  const {
+    hasSkillFilter,
+    queryParams,
+    domainContext,
+    matchClause,
+    skillProficiencyFilterClause,
+    requiredBusinessDomainFilterClause,
+    requiredTechnicalDomainFilterClause,
+  } = buildFilterClauses(params, { collectAllSkills });
 
+  // Add pagination params (only needed for full search, not count)
   queryParams.offset = int(params.offset);
   queryParams.limit = int(params.limit);
-
-  addDomainQueryParams(queryParams, params, domainContext);
-
-  if (hasSkillFilter || collectAllSkills) {
-    /*
-     * Add skill params when:
-     * 1. hasSkillFilter: query filters by skills, needs all skill params
-     * 2. collectAllSkills: skill collection clause references these for matchType/meetsProficiency,
-     *    even if no filter is applied. Provides empty arrays as defaults.
-     */
-    addSkillQueryParams(queryParams, params, allSkillIds);
-  }
-
-  // === BUILD QUERY CLAUSES ===
-  const matchClause = buildMatchClause(hasSkillFilter, whereClause);
-  const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(hasSkillFilter);
-
-  // Domain filter clauses (separate for business and technical domains)
-  const requiredBusinessDomainFilterClause = buildRequiredBusinessDomainFilter(domainContext);
-  const requiredTechnicalDomainFilterClause = buildRequiredTechnicalDomainFilter(domainContext);
 
   const countAndPaginateClause = buildCountAndPaginateClause(hasSkillFilter);
   const skillCollectionClause = buildSkillCollectionClause(hasSkillFilter, collectAllSkills);
@@ -137,6 +180,35 @@ ${skillCollectionClause}
 ${businessDomainCollection.clause}
 ${technicalDomainCollection.clause}
 ${returnClause}
+`;
+
+  return { query, params: queryParams };
+}
+
+/**
+ * Builds a count-only query for the same filters as buildSearchQuery.
+ * Used when only the total result count is needed (e.g., critique baseline count).
+ *
+ * Reuses the same filtering logic (skills, domains, basic properties) but
+ * returns only the count without pagination, skill collection, or domain collection.
+ */
+export function buildSearchCountQuery(params: CypherQueryParams): CypherQuery {
+  const {
+    hasSkillFilter,
+    queryParams,
+    matchClause,
+    skillProficiencyFilterClause,
+    requiredBusinessDomainFilterClause,
+    requiredTechnicalDomainFilterClause,
+  } = buildFilterClauses(params);
+
+  const query = `
+// ${hasSkillFilter ? "Skill-Filtered" : "Unfiltered"} Count Query
+${matchClause}
+${skillProficiencyFilterClause}
+${requiredBusinessDomainFilterClause}
+${requiredTechnicalDomainFilterClause}
+RETURN count(DISTINCT e) AS totalCount
 `;
 
   return { query, params: queryParams };
