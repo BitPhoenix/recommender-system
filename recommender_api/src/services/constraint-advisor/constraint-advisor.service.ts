@@ -6,7 +6,7 @@ import type {
 } from "../../types/search.types.js";
 import type { ExpandedSearchCriteria } from "../constraint-expander.service.js";
 import {
-  AppliedFilterKind,
+  AppliedFilterType,
   type AppliedFilter,
 } from "../../types/search.types.js";
 import { decomposeConstraints } from "./constraint-decomposer.service.js";
@@ -127,9 +127,9 @@ async function formatConflictSets(
       constraints: conflictSetConstraints.map((c): AppliedFilter => {
         if (isSkillTraversalConstraint(c)) {
           return {
-            kind: AppliedFilterKind.Skill,
+            type: AppliedFilterType.Skill,
             field: "requiredSkills",
-            operator: "HAS_ALL",
+            operator: "HAS_ANY",
             skills: c.skillIds.map((id: string) => ({
               skillId: id,
               skillName: id,
@@ -140,7 +140,7 @@ async function formatConflictSets(
         }
 
         return {
-          kind: AppliedFilterKind.Property,
+          type: AppliedFilterType.Property,
           field: c.field,
           operator: c.operator,
           value: stringifyConstraintValue(c.value),

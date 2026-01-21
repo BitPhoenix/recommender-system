@@ -653,77 +653,252 @@ suggestedCritiques: [
 
 **Textbook Sections:** 5.3.3 (Explanation in Critiques)
 
-Build `GET /api/engineers/:id/explain?searchId=:searchId` that explains why an engineer matches.
+Build `POST /api/engineers/:id/explain` that explains why an engineer matches search criteria.
 
-**Features:**
+#### Design Decision: POST with Search Context
 
-- Explain which constraints were satisfied and how
-- Show evidence supporting each skill claim
-- Highlight tradeoffs vs. the ideal profile
-- Link to actual evidence (stories, assessments, certifications)
+Two options were considered:
+- **Option A**: `GET ...?searchId=:searchId` — requires storing search context server-side
+- **Option B**: `POST` with search criteria in body — stateless, matches existing patterns
 
-**Example Request:**
+**Chosen**: Option B — avoids search state management, aligns with existing stateless POST patterns.
 
+#### Three Explanation Types
+
+Given existing infrastructure from Projects 2.5 and 5, focus on three distinct explanation types:
+
+**A. Constraint Satisfaction Explanation**
+Reuses: `AppliedFilters`, `DerivedConstraints`, `MatchedSkill` types
+```typescript
+interface ConstraintExplanation {
+  constraint: AppliedFilter;
+  satisfied: boolean;
+  explanation: string;           // Data-aware template
+  matchedValues: string[];       // What matched
+  matchType?: 'direct' | 'descendant' | 'correlated';
+}
 ```
-GET /api/engineers/eng_priya/explain?searchId=search_abc123
+
+**B. Score Component Explanation**
+Reuses: `ScoreBreakdown`, scoring functions from `utility-calculator/`
+```typescript
+interface ScoreExplanation {
+  component: string;             // "skillMatch", "preferredTimezoneMatch"
+  weight: number;                // From utility.config.ts
+  rawScore: number;
+  weightedScore: number;
+  explanation: string;           // "Expert-level Node.js (0.95 proficiency)"
+  contributingFactors: string[]; // ["Node.js (expert)", "TypeScript (proficient)"]
+}
 ```
 
-**Example Response:**
+**C. Evidence Explanation**
+NEW — leverages existing `EVIDENCED_BY` relationships:
+```typescript
+interface EvidenceExplanation {
+  skillId: string;
+  skillName: string;
+  evidenceItems: EvidenceItem[];
+}
+
+interface EvidenceItem {
+  type: 'story' | 'assessment' | 'certification';
+  id: string;
+  summary: string;               // STAR summary or assessment result
+  relevanceScore: number;
+  isPrimary: boolean;
+  details: StoryDetails | AssessmentDetails | CertificationDetails;
+}
+```
+
+#### Dual Explanation Pattern (From Project 2.5)
+
+Apply the proven dual-explanation approach:
+
+```typescript
+interface EngineerExplanation {
+  engineer: { id: string; name: string; headline: string };
+  matchScore: number;
+
+  // Fast, factual template-based explanation (~50ms)
+  dataAwareExplanation: {
+    constraintSummary: string;     // "Matches 5 of 6 requirements"
+    strengthSummary: string;       // "Strongest: Backend skills (expert Node.js)"
+    tradeoffSummary: string;       // "Note: 8 years experience (ideal was 5)"
+  };
+
+  // Rich LLM explanation (nullable if unavailable)
+  llmExplanation: string | null;  // "Priya is an excellent fit because..."
+
+  // Structured data for UI rendering
+  details: {
+    constraints: ConstraintExplanation[];
+    scores: ScoreExplanation[];
+    evidence: EvidenceExplanation[];
+    tradeoffs: TradeoffExplanation[];
+  };
+}
+```
+
+#### Tradeoff Detection
+
+For "highlight tradeoffs vs ideal profile":
+
+```typescript
+interface TradeoffExplanation {
+  attribute: string;           // "yearsExperience", "salary", "availability"
+  engineerValue: unknown;      // 8 (years)
+  idealValue: unknown;         // 5 (years)
+  direction: 'over' | 'under'; // 'over'
+  severity: 'minor' | 'moderate' | 'significant';
+  explanation: string;         // "3 more years than requested (slight overqualification)"
+}
+```
+
+Tradeoff detection logic:
+- **Experience**: Compare to `preferredSeniorityLevel` or explicit years
+- **Salary**: Compare to `maxBudget` and stretch budget
+- **Timeline**: Compare to `requiredMaxStartTime`
+- **Skills**: Missing preferred skills, excess skills beyond requirements
+
+#### Example Request
+
+```typescript
+POST /api/engineers/eng_priya/explain
+{
+  searchCriteria: {
+    requiredSkills: [{ skill: 'Backend', minProficiency: 'proficient' }],
+    preferredSeniorityLevel: 'senior',
+    preferredSkills: [{ skill: 'TypeScript' }],
+    maxBudget: 180000
+  },
+  referenceEngineerId?: string  // For similarity explanations (optional)
+}
+```
+
+#### Example Response
 
 ```typescript
 {
-  engineer: { id: 'eng_priya', name: 'Priya Sharma' },
+  engineer: { id: 'eng_priya', name: 'Priya Sharma', headline: 'Senior Backend Engineer' },
   matchScore: 0.88,
 
-  constraintExplanations: [
-    {
-      constraint: 'requiredSkills includes "Backend"',
-      satisfied: true,
-      explanation: 'Priya has Node.js (expert, 0.92 confidence) which is a child of Backend',
-      evidence: [
-        {
-          type: 'assessment',
-          id: 'attempt_priya_backend',
-          summary: 'Scored 89% on Backend Engineering Assessment',
-          relevance: 0.95
-        },
-        {
-          type: 'story',
-          id: 'story_priya_1',
-          summary: 'Led microservices migration handling 10M transactions/day',
-          relevance: 0.92
-        }
-      ]
-    },
-    {
-      constraint: 'minYearsExperience >= 5',
-      satisfied: true,
-      explanation: 'Priya has 8 years of experience'
-    }
-  ],
+  dataAwareExplanation: {
+    constraintSummary: 'Matches all 2 required constraints',
+    strengthSummary: 'Strongest: Backend skills with Node.js (expert, 0.92 confidence)',
+    tradeoffSummary: '8 years experience vs 6-10 ideal (within range)'
+  },
 
-  preferenceExplanations: [
-    {
-      preference: 'idealExperience = 5',
-      score: 0.85,
-      explanation: 'Priya has 8 years (3 more than ideal, slight penalty for overqualification)'
-    },
-    {
-      preference: 'bonusSkills includes "TypeScript"',
-      score: 1.0,
-      explanation: 'Priya has TypeScript at expert level (0.92 confidence)'
-    }
-  ],
+  llmExplanation: 'Priya is an excellent match for this senior backend role. Her 8 years of experience and expert-level Node.js skills directly address the core requirements. Her microservices migration experience (10M transactions/day) demonstrates production-scale expertise. The only minor consideration is timeline—she is available in 2 weeks rather than immediately.',
 
-  tradeoffs: [
-    {
-      attribute: 'availability',
-      issue: 'Available in 2 weeks, not immediately',
-      severity: 'minor'
-    }
-  ]
+  details: {
+    constraints: [
+      {
+        constraint: { type: 'skill', skillId: 'backend', ... },
+        satisfied: true,
+        explanation: 'Has Node.js (expert, 0.92 confidence) which is a descendant of Backend',
+        matchedValues: ['Node.js'],
+        matchType: 'descendant'
+      },
+      {
+        constraint: { type: 'property', field: 'yearsExperience', ... },
+        satisfied: true,
+        explanation: 'Has 8 years experience (senior requires 6-10)',
+        matchedValues: ['8']
+      }
+    ],
+
+    scores: [
+      {
+        component: 'skillMatch',
+        weight: 0.25,
+        rawScore: 0.92,
+        weightedScore: 0.23,
+        explanation: 'Expert-level match on required Backend skill',
+        contributingFactors: ['Node.js (expert, 0.92)', 'Express (proficient, 0.85)']
+      },
+      {
+        component: 'preferredSkillsMatch',
+        weight: 0.08,
+        rawScore: 1.0,
+        weightedScore: 0.08,
+        explanation: 'Has all preferred skills',
+        contributingFactors: ['TypeScript (expert, 0.91)']
+      }
+    ],
+
+    evidence: [
+      {
+        skillId: 'nodejs',
+        skillName: 'Node.js',
+        evidenceItems: [
+          {
+            type: 'assessment',
+            id: 'attempt_priya_backend',
+            summary: 'Scored 89% on Backend Engineering Assessment',
+            relevanceScore: 0.95,
+            isPrimary: true,
+            details: { score: 89, maxScore: 100, assessmentName: 'Backend Engineering' }
+          },
+          {
+            type: 'story',
+            id: 'story_priya_microservices',
+            summary: 'Led microservices migration handling 10M transactions/day',
+            relevanceScore: 0.92,
+            isPrimary: false,
+            details: { situation: '...', task: '...', action: '...', result: '...' }
+          }
+        ]
+      }
+    ],
+
+    tradeoffs: [
+      {
+        attribute: 'startTimeline',
+        engineerValue: 'two_weeks',
+        idealValue: 'immediate',
+        direction: 'over',
+        severity: 'minor',
+        explanation: 'Available in 2 weeks, not immediately'
+      }
+    ]
+  }
 }
 ```
+
+#### Architecture
+
+```
+src/services/
+└── explanation/
+    ├── explanation.service.ts           # Orchestrator
+    ├── constraint-explanation.service.ts # Constraint satisfaction
+    ├── score-explanation.service.ts     # Score component explanations
+    ├── evidence-explanation.service.ts  # Evidence retrieval & formatting
+    ├── tradeoff-explanation.service.ts  # Tradeoff detection
+    └── explanation.types.ts             # Types
+```
+
+#### Integration with Existing Infrastructure
+
+| Component | Existing Location | Reuse Strategy |
+|-----------|------------------|----------------|
+| LLM Service | `llm.service.ts` | Direct reuse |
+| Template Generation | `conflict-explanation.service.ts` | Pattern reuse |
+| RAG Context | `buildRAGContext()` | Pattern adaptation |
+| Score Calculation | `utility-calculator/` | Call for breakdown |
+| Skill Matching | `similarity-calculator/` | Call for skill details |
+| Evidence Model | Graph + `EVIDENCED_BY` | New queries |
+| Constraint Types | `search.types.ts` | Direct reuse |
+
+#### NOT in Scope (Already Handled)
+
+| Feature | Handled By | Location |
+|---------|-----------|----------|
+| Conflict explanations | Project 2.5 | `conflict-explanation.service.ts` |
+| Dynamic critiques | Project 5 | `critique-generator/` |
+| Score breakdowns | Core search | `utility-calculator/` |
+| Constraint tracking | Core search | `search.service.ts` |
 
 ---
 
@@ -823,7 +998,7 @@ interface SearchDefaults {
 | 3 | Similarity Scoring | 5.3.1 | Graph-aware engineer-to-engineer similarity | ✅ Complete |
 | 4 | Filter-Similarity Search | 5.2.1, 5.3.1 | Filter with constraints, rank by similarity to reference | ✅ Complete |
 | 5 | Critiquing System | 5.3.2.1–5.3.2.3 | Directional/replacement critiques, dynamic suggestions with support-based ordering | Planned |
-| 6 | Explanation Generation | 5.3.3 | Explain why engineers match | Planned |
+| 6 | Explanation Generation | 5.3.3 | Dual explanations (template + LLM), evidence linking, tradeoff detection | Planned |
 | 7 | Preference Learning | 5.4 | Learn from manager behavior over time | Planned |
 
 ### Subsection Details
@@ -852,7 +1027,8 @@ interface SearchDefaults {
 - 5.3.2.3 Dynamic Critiques — Frequent pattern mining on current results, minimum support threshold filtering, **ascending support ordering** (low-support patterns first because they're less obvious and eliminate more items)
 
 **Project 6: Explanation Generation** (5.3.3)
-- 5.3.3 Explanation in Critiques — Trade-off explanations, correlation statistics, fruitless session analysis
+- 5.3.3 Explanation in Critiques — Three explanation types (constraint satisfaction, score components, evidence), dual explanation pattern (template + LLM), tradeoff detection with severity levels, evidence traversal via `EVIDENCED_BY` relationships
+- Reuses infrastructure from Project 2.5 (LLM service, RAG context, template patterns) and existing score breakdowns from utility-calculator
 
 **Project 7: Preference Learning** (5.4)
 - 5.4 Persistent Personalization — Tracking user actions (view, save, apply), learning personalized utility/similarity weights, constraint suggestion personalization, dynamic critique personalization

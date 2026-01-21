@@ -5996,6 +5996,605 @@
           "port": "4025"
         }
       }
+    },
+    {
+      "name": "89 - Explain: Basic Explanation for eng_priya",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required top-level fields', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response).to.have.property('engineer');",
+              "  pm.expect(response).to.have.property('matchScore');",
+              "  pm.expect(response).to.have.property('summary');",
+              "  pm.expect(response).to.have.property('constraints');",
+              "  pm.expect(response).to.have.property('scores');",
+              "  pm.expect(response).to.have.property('evidence');",
+              "  pm.expect(response).to.have.property('tradeoffs');",
+              "});",
+              "",
+              "pm.test('Engineer info is correct', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.engineer.id).to.equal('eng_priya');",
+              "  pm.expect(response.engineer.name).to.be.a('string');",
+              "  pm.expect(response.engineer.headline).to.be.a('string');",
+              "});",
+              "",
+              "pm.test('Summary has all required fields', function() {",
+              "  const summary = pm.response.json().summary;",
+              "  pm.expect(summary).to.have.property('constraints');",
+              "  pm.expect(summary).to.have.property('tradeoffs');",
+              "  pm.expect(summary).to.have.property('narrative');",
+              "});",
+              "",
+              "pm.test('Constraints array is populated', function() {",
+              "  const constraints = pm.response.json().constraints;",
+              "  pm.expect(constraints).to.be.an('array');",
+              "  pm.expect(constraints.length).to.be.above(0);",
+              "  constraints.forEach(function(c) {",
+              "    pm.expect(c).to.have.property('constraint');",
+              "    pm.expect(c).to.have.property('satisfied');",
+              "    pm.expect(c).to.have.property('explanation');",
+              "    pm.expect(c).to.have.property('matchedValues');",
+              "  });",
+              "});",
+              "",
+              "pm.test('Scores array is populated', function() {",
+              "  const scores = pm.response.json().scores;",
+              "  pm.expect(scores).to.be.an('array');",
+              "  pm.expect(scores.length).to.be.above(0);",
+              "  scores.forEach(function(s) {",
+              "    pm.expect(s).to.have.property('component');",
+              "    pm.expect(s).to.have.property('weight');",
+              "    pm.expect(s).to.have.property('rawScore');",
+              "    pm.expect(s).to.have.property('weightedScore');",
+              "    pm.expect(s).to.have.property('explanation');",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"requiredSkills\": [{\"skill\": \"TypeScript\"}]\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "90 - Explain: With Inference Rules (teamFocus)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response includes score explanations', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.scores).to.be.an('array');",
+              "  pm.expect(response.scores.length).to.be.above(0);",
+              "});",
+              "",
+              "pm.test('Match score is valid', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.matchScore).to.be.a('number');",
+              "  pm.expect(response.matchScore).to.be.at.least(0);",
+              "  pm.expect(response.matchScore).to.be.at.most(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"requiredSkills\": [{\"skill\": \"Node.js\"}],\n    \"teamFocus\": \"scaling\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_christine/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_christine",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "91 - Explain: Non-Matching Engineer (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function() {",
+              "  pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('Error message indicates no match', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response).to.have.property('error');",
+              "  pm.expect(response.error).to.include('does not match');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"requiredSkills\": [{\"skill\": \"Kubernetes\", \"minProficiency\": \"expert\"}],\n    \"requiredTimezone\": [\"Pacific\"]\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_james/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_james",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "92 - Explain: Invalid Request Body (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function() {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error response has validation details', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"invalidField\": \"this should fail\"\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "93 - Explain: Empty Criteria (Browse Mode)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response structure is valid with minimal criteria', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response).to.have.property('engineer');",
+              "  pm.expect(response).to.have.property('matchScore');",
+              "  pm.expect(response).to.have.property('summary');",
+              "  pm.expect(response.engineer.id).to.equal('eng_priya');",
+              "});",
+              "",
+              "pm.test('Tradeoffs array exists (may be empty)', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.tradeoffs).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {}\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "94 - Explain: With Tradeoffs Detected",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Tradeoffs are detected for preferences not fully met', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.tradeoffs).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Summary tradeoffs field is populated', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.summary.tradeoffs).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"requiredSkills\": [{\"skill\": \"TypeScript\"}],\n    \"maxBudget\": 250000,\n    \"preferredMaxStartTime\": \"immediate\",\n    \"preferredTimezone\": [\"Pacific\"]\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "95 - Explain: Evidence Structure Validation",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Evidence array contains skill evidence', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.evidence).to.be.an('array');",
+              "  pm.expect(response.evidence.length).to.be.above(0);",
+              "  const apiDesignEvidence = response.evidence.find(e => e.skillId === 'skill_api_design');",
+              "  pm.expect(apiDesignEvidence).to.exist;",
+              "  pm.expect(apiDesignEvidence.skillName).to.equal('API Design');",
+              "});",
+              "",
+              "pm.test('Story evidence has STAR format fields', function() {",
+              "  const response = pm.response.json();",
+              "  const apiDesignEvidence = response.evidence.find(e => e.skillId === 'skill_api_design');",
+              "  const storyItem = apiDesignEvidence.evidenceItems.find(item => item.type === 'story');",
+              "  pm.expect(storyItem).to.exist;",
+              "  pm.expect(storyItem.id).to.be.a('string');",
+              "  pm.expect(storyItem.summary).to.be.a('string');",
+              "  pm.expect(storyItem.relevanceScore).to.be.a('number');",
+              "  pm.expect(storyItem.isPrimary).to.be.a('boolean');",
+              "  // STAR format details",
+              "  pm.expect(storyItem.details).to.have.property('situation');",
+              "  pm.expect(storyItem.details).to.have.property('task');",
+              "  pm.expect(storyItem.details).to.have.property('action');",
+              "  pm.expect(storyItem.details).to.have.property('result');",
+              "});",
+              "",
+              "pm.test('Story evidence has analysis scores', function() {",
+              "  const response = pm.response.json();",
+              "  const apiDesignEvidence = response.evidence.find(e => e.skillId === 'skill_api_design');",
+              "  const storyItem = apiDesignEvidence.evidenceItems.find(item => item.type === 'story');",
+              "  pm.expect(storyItem.details.analysis).to.exist;",
+              "  pm.expect(storyItem.details.analysis).to.have.property('clarityScore');",
+              "  pm.expect(storyItem.details.analysis).to.have.property('impactScore');",
+              "  pm.expect(storyItem.details.analysis).to.have.property('ownershipScore');",
+              "  pm.expect(storyItem.details.analysis).to.have.property('overallScore');",
+              "});",
+              "",
+              "pm.test('Performance evidence has assessment fields', function() {",
+              "  const response = pm.response.json();",
+              "  const apiDesignEvidence = response.evidence.find(e => e.skillId === 'skill_api_design');",
+              "  const perfItem = apiDesignEvidence.evidenceItems.find(item => item.type === 'performance');",
+              "  pm.expect(perfItem).to.exist;",
+              "  pm.expect(perfItem.details).to.have.property('assessmentName');",
+              "  pm.expect(perfItem.details).to.have.property('questionSummary');",
+              "  pm.expect(perfItem.details).to.have.property('score');",
+              "  pm.expect(perfItem.details).to.have.property('maxScore');",
+              "  pm.expect(perfItem.details).to.have.property('technicalDepth');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"requiredSkills\": [{\"skill\": \"API Design\"}]\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "96 - Explain: Experience Tradeoff (Under Preferred Seniority)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Experience tradeoff is detected', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.tradeoffs).to.be.an('array');",
+              "  const expTradeoff = response.tradeoffs.find(t => t.attribute === 'yearsExperience');",
+              "  pm.expect(expTradeoff).to.exist;",
+              "  pm.expect(expTradeoff.requested).to.include('staff');",
+              "  pm.expect(expTradeoff.actual).to.equal(8);",
+              "  pm.expect(expTradeoff.explanation).to.include('8 years');",
+              "});",
+              "",
+              "pm.test('Summary mentions experience tradeoff', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.summary.tradeoffs).to.include('yearsExperience');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"preferredSeniorityLevel\": \"staff\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_priya/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_priya",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
+    },
+    {
+      "name": "97 - Explain: Stretch Budget Tradeoff",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Salary tradeoff shows stretch zone', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.tradeoffs).to.be.an('array');",
+              "  const salaryTradeoff = response.tradeoffs.find(t => t.attribute === 'salary');",
+              "  pm.expect(salaryTradeoff).to.exist;",
+              "  pm.expect(salaryTradeoff.requested).to.equal(150000);",
+              "  pm.expect(salaryTradeoff.actual).to.equal(170000);",
+              "  pm.expect(salaryTradeoff.explanation).to.include('over budget');",
+              "  pm.expect(salaryTradeoff.explanation).to.include('stretch');",
+              "});",
+              "",
+              "pm.test('Summary mentions salary tradeoff', function() {",
+              "  const response = pm.response.json();",
+              "  pm.expect(response.summary.tradeoffs).to.include('salary');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"searchCriteria\": {\n    \"maxBudget\": 150000,\n    \"stretchBudget\": 180000\n  }\n}"
+        },
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/filter/eng_ravi/explain",
+          "host": [
+            "mac-studio",
+            "tailb9e408",
+            "ts",
+            "net"
+          ],
+          "path": [
+            "api",
+            "search",
+            "filter",
+            "eng_ravi",
+            "explain"
+          ],
+          "protocol": "http",
+          "port": "4025"
+        }
+      }
     }
   ]
 }

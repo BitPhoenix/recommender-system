@@ -223,6 +223,76 @@ describe('calculateUtilityWithBreakdown', () => {
 
     expect(result.scoreBreakdown.total).toBe(result.utilityScore);
   });
+
+  it('includes raw scores for explanation generation', () => {
+    const engineer = createEngineer({
+      yearsExperience: 7,
+      avgConfidence: 0.85,
+      matchedSkills: [
+        {
+          skillId: 's1',
+          skillName: 'TypeScript',
+          proficiencyLevel: 'expert',
+          confidenceScore: 0.85,
+          yearsUsed: 5,
+          matchType: 'direct',
+        },
+      ],
+    });
+    const context = createContext({
+      requiredSkillIds: ['s1'],
+      skillIdToPreferredProficiency: new Map([['s1', 'expert']]),
+    });
+
+    const result = calculateUtilityWithBreakdown(engineer, context);
+
+    // Raw scores should be present and in 0-1 range
+    expect(result.scoreBreakdown.rawScores).toBeDefined();
+    expect(result.scoreBreakdown.rawScores?.experience).toBeGreaterThan(0);
+    expect(result.scoreBreakdown.rawScores?.experience).toBeLessThanOrEqual(1);
+    expect(result.scoreBreakdown.rawScores?.confidence).toBeGreaterThan(0);
+    expect(result.scoreBreakdown.rawScores?.confidence).toBeLessThanOrEqual(1);
+    expect(result.scoreBreakdown.rawScores?.skillMatch).toBeGreaterThan(0);
+    expect(result.scoreBreakdown.rawScores?.skillMatch).toBeLessThanOrEqual(1);
+  });
+
+  it('raw experience score can be reversed to get correct years', () => {
+    const engineer = createEngineer({ yearsExperience: 7 });
+    const context = createContext();
+
+    const result = calculateUtilityWithBreakdown(engineer, context);
+
+    // Reverse the logarithmic formula: rawScore = log(1 + years) / log(1 + 20)
+    const rawScore = result.scoreBreakdown.rawScores?.experience ?? 0;
+    const reversedYears = Math.round(Math.exp(rawScore * Math.log(21)) - 1);
+
+    expect(reversedYears).toBe(7);
+  });
+
+  it('only includes non-zero raw scores in breakdown', () => {
+    // Engineer with 0 years experience - experience raw score should be 0 and omitted
+    // log(1 + 0) / log(21) = 0
+    const engineer = createEngineer({
+      yearsExperience: 0,
+      avgConfidence: 0.5, // Minimum confidence gives 0 raw score (normalized from 0.5-1.0 range)
+      matchedSkills: [],
+    });
+    const context = createContext({
+      requiredSkillIds: [],
+    });
+
+    const result = calculateUtilityWithBreakdown(engineer, context);
+
+    // With 0 experience and 0.5 confidence (min),
+    // experience and confidence raw scores should be 0 and omitted
+    if (result.scoreBreakdown.rawScores) {
+      // Experience of 0 years gives log(1)/log(21) = 0
+      expect(result.scoreBreakdown.rawScores.experience).toBeUndefined();
+      // Confidence of 0.5 gives (0.5 - 0.5) / 0.5 = 0
+      expect(result.scoreBreakdown.rawScores.confidence).toBeUndefined();
+      // Note: skillMatch may have a default score even without required skills
+    }
+  });
 });
 
 describe('calculateUtilityScore', () => {

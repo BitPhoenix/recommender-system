@@ -11,6 +11,7 @@ import type {
 import {
   resolveSkillRequirements,
   type ResolvedSkillWithProficiency,
+  type ResolvedSkillRequirement,
 } from "./skill-resolver.service.js";
 import type { SkillProficiencyGroups } from "./cypher-query-builder/index.js";
 
@@ -18,6 +19,10 @@ import type { SkillProficiencyGroups } from "./cypher-query-builder/index.js";
 export interface SkillResolutionResult {
   /** From required skills (for query building) */
   skillGroups: SkillProficiencyGroups;
+  /** Resolved skill requirements - each user request becomes an independent filter */
+  resolvedRequiredSkillRequirements: ResolvedSkillRequirement[];
+  /** Resolved preferred skill requirements - for ranking */
+  resolvedPreferredSkillRequirements: ResolvedSkillRequirement[];
   /** All required skill IDs (for coverage calculation in utility scoring) */
   requiredSkillIds: string[];
   expandedSkillNames: string[];
@@ -80,6 +85,8 @@ export async function resolveAllSkills(
     proficientLevelSkillIds: [],
     expertLevelSkillIds: [],
   };
+  let resolvedRequiredSkillRequirements: ResolvedSkillRequirement[] = [];
+  let resolvedPreferredSkillRequirements: ResolvedSkillRequirement[] = [];
   let resolvedRequiredSkills: ResolvedSkillWithProficiency[] = [];
   let expandedSkillNames: string[] = [];
   let unresolvedSkills: string[] = [];
@@ -95,6 +102,7 @@ export async function resolveAllSkills(
       defaultProficiency
     );
     resolvedRequiredSkills = result.resolvedSkills;
+    resolvedRequiredSkillRequirements = result.skillRequirements;
     skillGroups = groupSkillsByProficiency(resolvedRequiredSkills);
     expandedSkillNames = result.expandedSkillNames;
     unresolvedSkills = result.unresolvedIdentifiers;
@@ -120,6 +128,7 @@ export async function resolveAllSkills(
       defaultProficiency
     );
     resolvedPreferredSkills = result.resolvedSkills;
+    resolvedPreferredSkillRequirements = result.skillRequirements;
     preferredSkillIds = resolvedPreferredSkills.map((s) => s.skillId);
 
     // Add preferred proficiencies (don't override existing from required)
@@ -140,6 +149,8 @@ export async function resolveAllSkills(
 
   return {
     skillGroups,
+    resolvedRequiredSkillRequirements,
+    resolvedPreferredSkillRequirements,
     requiredSkillIds,
     expandedSkillNames,
     unresolvedSkills,

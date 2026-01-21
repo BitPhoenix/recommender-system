@@ -909,6 +909,8 @@ export const userSkills: UserSkill[] = [
   { id: 'es_christine_graphql', engineerId: 'eng_christine', skillId: 'skill_graphql', proficiencyLevel: 'proficient', yearsUsed: 4, confidenceScore: 0.85, lastValidated: daysAgo(5) },
   { id: 'es_christine_attention_detail', engineerId: 'eng_christine', skillId: 'skill_attention_detail', proficiencyLevel: 'expert', yearsUsed: 9, confidenceScore: 0.92, lastValidated: daysAgo(5) },
   { id: 'es_christine_documentation', engineerId: 'eng_christine', skillId: 'skill_documentation', proficiencyLevel: 'expert', yearsUsed: 7, confidenceScore: 0.88, lastValidated: daysAgo(5) },
+  { id: 'es_christine_distributed', engineerId: 'eng_christine', skillId: 'skill_distributed', proficiencyLevel: 'expert', yearsUsed: 6, confidenceScore: 0.88, lastValidated: daysAgo(5) },
+  { id: 'es_christine_monitoring', engineerId: 'eng_christine', skillId: 'skill_monitoring', proficiencyLevel: 'proficient', yearsUsed: 5, confidenceScore: 0.85, lastValidated: daysAgo(5) },
 
   // Hassan - Staff Security Engineer (AppSec & Cloud Security)
   { id: 'es_hassan_aws', engineerId: 'eng_hassan', skillId: 'skill_aws', proficiencyLevel: 'expert', yearsUsed: 10, confidenceScore: 0.94, lastValidated: daysAgo(4) },

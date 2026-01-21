@@ -7,6 +7,7 @@ export type {
   CypherQueryParams,
   CypherQuery,
   SkillProficiencyGroups,
+  SkillFilterRequirement,
   ResolvedBusinessDomain,
   ResolvedTechnicalDomain,
 } from "./query-types.js";

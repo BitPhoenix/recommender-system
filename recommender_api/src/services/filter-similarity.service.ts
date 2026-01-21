@@ -16,6 +16,7 @@ import type {
   DerivedConstraintInfo,
 } from '../types/filter-similarity.types.js';
 import type { SearchFilterRequest } from '../types/search.types.js';
+import { SkillFilterType } from '../types/search.types.js';
 
 import { resolveAllSkills } from './skill-resolution.service.js';
 import { expandSearchCriteria } from './constraint-expander.service.js';
@@ -96,9 +97,10 @@ export async function executeFilterSimilarity(
    * fields drive utility scoring.
    */
   const expanded = await expandSearchCriteria(
+    session,
     partialRequest as SearchFilterRequest,
-    skillResolution?.resolvedRequiredSkills ?? [],
-    []
+    skillResolution?.resolvedRequiredSkillRequirements ?? [],
+    [] // No preferred skill requirements for filter-similarity
   );
 
   // 4. Resolve domain constraints
@@ -118,6 +120,15 @@ export async function executeFilterSimilarity(
    * needs ALL skills for each engineer to compute meaningful similarity scores.
    * See SearchQueryOptions.collectAllSkills for detailed explanation.
    */
+  const resolvedRequiredSkillRequirements = skillResolution?.resolvedRequiredSkillRequirements ?? [];
+  const skillFilterRequirements = resolvedRequiredSkillRequirements.map(requirement => ({
+    expandedSkillIds: requirement.expandedSkillIds,
+    originalSkillId: requirement.originalSkillId,
+    minProficiency: requirement.minProficiency,
+    preferredMinProficiency: requirement.preferredMinProficiency,
+    type: SkillFilterType.User,
+  }));
+
   const queryParams: CypherQueryParams = {
     // Exclude reference engineer from results
     excludeEngineerId: request.referenceEngineerId,
@@ -126,6 +137,7 @@ export async function executeFilterSimilarity(
     learningLevelSkillIds: skillResolution?.skillGroups.learningLevelSkillIds ?? [],
     proficientLevelSkillIds: skillResolution?.skillGroups.proficientLevelSkillIds ?? [],
     expertLevelSkillIds: skillResolution?.skillGroups.expertLevelSkillIds ?? [],
+    skillFilterRequirements: skillFilterRequirements.length > 0 ? skillFilterRequirements : undefined,
     originalSkillIdentifiers: request.requiredSkills?.map(s => s.skill) ?? null,
 
     // Property filters

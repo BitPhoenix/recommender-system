@@ -69,7 +69,13 @@ export interface MockSession {
 
 // Create a configurable mock session
 export function createMockSession(matchers: QueryMatcher[] = []): MockSession & Session {
-  const runMock = vi.fn().mockImplementation((query: string) => {
+  const runMock = vi.fn().mockImplementation((query: string, params?: Record<string, unknown>) => {
+    // Handle skill hierarchy expansion queries (used by constraint-expander)
+    if (query.includes('descendantIds') && params?.skillId) {
+      const skillId = params.skillId as string;
+      return Promise.resolve(createMockQueryResult([{ descendantIds: [skillId] }]));
+    }
+
     // Find matching pattern
     for (const matcher of matchers) {
       const matches = typeof matcher.pattern === 'string'

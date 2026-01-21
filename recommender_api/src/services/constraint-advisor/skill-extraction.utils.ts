@@ -5,18 +5,16 @@ import {
   isUserSkillConstraint,
   isDerivedSkillConstraint,
 } from "./constraint.types.js";
-import type { ResolvedSkillWithProficiency } from "../skill-resolver.service.js";
-import type { ProficiencyLevel } from "../../types/search.types.js";
+import type { SkillFilterRequirement } from "../cypher-query-builder/query-types.js";
+import { SkillFilterType, type ProficiencyLevel } from "../../types/search.types.js";
 
 /**
  * Result of extracting skills from decomposed constraints.
- * Separates user skills (with proficiency requirements) from derived skills (existence-only).
+ * Returns unified skill filter requirements for both user and derived skills.
  */
 export interface ExtractedSkillConstraints {
-  /** User skills with proficiency requirements (checked via CASE pattern) */
-  userRequiredSkills: ResolvedSkillWithProficiency[];
-  /** Derived skills from inference rules (existence-only, no proficiency) */
-  derivedSkillIds: string[];
+  /** Unified skill filter requirements (both user and derived) */
+  skillFilterRequirements: SkillFilterRequirement[];
 }
 
 /**
@@ -25,9 +23,7 @@ export interface ExtractedSkillConstraints {
  * SINGLE SOURCE OF TRUTH for skill extraction from DecomposedConstraints.
  * Used by relaxation-tester, tightening-tester, and tightening-generator.
  *
- * Returns two categories with different query semantics:
- * - userRequiredSkills: Have proficiency requirements, checked via CASE pattern
- * - derivedSkillIds: Existence-only, checked via ALL(...WHERE EXISTS {...}) pattern
+ * Returns unified SkillFilterRequirement[] matching the main search query pattern.
  */
 export function extractSkillConstraints(
   decomposed: DecomposedConstraints
@@ -42,27 +38,38 @@ export function extractSkillConstraints(
 export function extractSkillConstraintsFromArray(
   constraints: TestableConstraint[]
 ): ExtractedSkillConstraints {
-  const userRequiredSkills: ResolvedSkillWithProficiency[] = [];
-  const derivedSkillIds: string[] = [];
+  const skillFilterRequirements: SkillFilterRequirement[] = [];
 
   for (const constraint of constraints) {
     if (constraint.constraintType !== ConstraintType.SkillTraversal) continue;
 
     if (constraint.field === 'requiredSkills' && isUserSkillConstraint(constraint)) {
       const skillReq = constraint.value;
-      userRequiredSkills.push({
-        skillId: skillReq.skill,
-        skillName: skillReq.skill,
+      skillFilterRequirements.push({
+        expandedSkillIds: [skillReq.skill],
+        originalSkillId: skillReq.skill,
         minProficiency: (skillReq.minProficiency ?? 'learning') as ProficiencyLevel,
         preferredMinProficiency: null,
+        type: SkillFilterType.User,
       });
     } else if (constraint.field === 'derivedSkills' && isDerivedSkillConstraint(constraint)) {
-      derivedSkillIds.push(...constraint.value);
+      /*
+       * Derived skills already have expanded IDs from constraint-expander.
+       * Create a single requirement with all derived skill IDs. The derivedSkillIds
+       * are the hierarchy-expanded IDs, so we use the first as originalSkillId.
+       */
+      const uniqueSkillIds = [...new Set(constraint.value)];
+      if (uniqueSkillIds.length > 0) {
+        skillFilterRequirements.push({
+          expandedSkillIds: uniqueSkillIds,
+          originalSkillId: uniqueSkillIds[0],
+          minProficiency: 'learning', // Existence-only
+          preferredMinProficiency: null,
+          type: SkillFilterType.Derived,
+        });
+      }
     }
   }
 
-  return {
-    userRequiredSkills,
-    derivedSkillIds: [...new Set(derivedSkillIds)],
-  };
+  return { skillFilterRequirements };
 }

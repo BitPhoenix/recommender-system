@@ -1,16 +1,43 @@
 import { describe, it, expect } from 'vitest';
+import type { Session } from 'neo4j-driver';
 import { expandSearchCriteria } from './constraint-expander.service.js';
 import type { SearchFilterRequest } from '../types/search.types.js';
-import { isPropertyPreference, AppliedFilterKind, AppliedPreferenceKind, isDerivedSkillFilter } from '../types/search.types.js';
-import type { ResolvedSkillWithProficiency } from './skill-resolver.service.js';
+import { isPropertyPreference, AppliedFilterType, AppliedPreferenceType, isDerivedSkillFilter } from '../types/search.types.js';
+import type { ResolvedSkillRequirement } from './skill-resolver.service.js';
+
+/*
+ * Mock session for hierarchy expansion queries.
+ * Returns the original skill ID as-is (no expansion) since most tests
+ * don't verify hierarchy expansion behavior.
+ */
+function createMockSession(): Session {
+  return {
+    run: async (_query: string, params: Record<string, unknown>) => {
+      const skillId = params?.skillId as string;
+      return {
+        records: [
+          {
+            get: (field: string) => {
+              if (field === 'descendantIds') {
+                // Return the skill itself (no expansion for simplicity)
+                return [skillId];
+              }
+              return null;
+            },
+          },
+        ],
+      };
+    },
+  } as unknown as Session;
+}
 
 /*
  * Helper to call expandSearchCriteria with configurable resolved skills.
  * Most tests don't need resolved skills - only skill-related tests do.
  */
 interface ExpandOptions {
-  resolvedRequiredSkills?: ResolvedSkillWithProficiency[];
-  resolvedPreferredSkills?: ResolvedSkillWithProficiency[];
+  resolvedRequiredSkillRequirements?: ResolvedSkillRequirement[];
+  resolvedPreferredSkillRequirements?: ResolvedSkillRequirement[];
 }
 
 async function expand(
@@ -18,9 +45,10 @@ async function expand(
   options: ExpandOptions = {}
 ) {
   return expandSearchCriteria(
+    createMockSession(),
     request,
-    options.resolvedRequiredSkills ?? [],
-    options.resolvedPreferredSkills ?? []
+    options.resolvedRequiredSkillRequirements ?? [],
+    options.resolvedPreferredSkillRequirements ?? []
   );
 }
 
@@ -467,17 +495,10 @@ describe('expandSearchCriteria', () => {
          * the scaling-requires-distributed rule's target.
          * Since user already requires all target skills, the rule is FULLY overridden.
          */
-        const resolvedRequired: ResolvedSkillWithProficiency[] = [
-          { skillId: 'skill_distributed', skillName: 'Distributed Systems', minProficiency: 'proficient', preferredMinProficiency: null },
-        ];
-
-        const result = await expand(
-          {
-            teamFocus: 'scaling',
-            requiredSkills: [{ skill: 'skill_distributed', minProficiency: 'proficient' }],
-          },
-          { resolvedRequiredSkills: resolvedRequired }
-        );
+        const result = await expand({
+          teamFocus: 'scaling',
+          requiredSkills: [{ skill: 'skill_distributed', minProficiency: 'proficient' }],
+        });
 
         const scalingRule = result.derivedConstraints.find(
           (c) => c.rule.id === 'scaling-requires-distributed'
@@ -503,11 +524,11 @@ describe('expandSearchCriteria', () => {
 
         // Verify it's an AppliedDerivedSkillFilter with proper structure
         const skillFilter = inferenceFilters.find(
-          (f) => f.kind === AppliedFilterKind.Skill && isDerivedSkillFilter(f)
+          (f) => f.type === AppliedFilterType.Skill && isDerivedSkillFilter(f)
         );
         expect(skillFilter).toBeDefined();
-        expect(skillFilter?.kind).toBe(AppliedFilterKind.Skill);
-        if (skillFilter?.kind === AppliedFilterKind.Skill && isDerivedSkillFilter(skillFilter)) {
+        expect(skillFilter?.type).toBe(AppliedFilterType.Skill);
+        if (skillFilter?.type === AppliedFilterType.Skill && isDerivedSkillFilter(skillFilter)) {
           expect(skillFilter.field).toBe('derivedSkills');
           expect(skillFilter.ruleId).toBeDefined();
           expect(skillFilter.skills).toBeInstanceOf(Array);
@@ -528,7 +549,7 @@ describe('expandSearchCriteria', () => {
         // Verify NO AppliedSkillFilter was created for the boost in filters
         const boostAsFilter = result.appliedFilters.find(
           (f) => f.source === 'inference' &&
-          f.kind === AppliedFilterKind.Skill &&
+          f.type === AppliedFilterType.Skill &&
           f.field === 'derivedSkills'
         );
         expect(boostAsFilter).toBeUndefined();
@@ -556,19 +577,19 @@ describe('expandSearchCriteria', () => {
 
         // Find the scaling-requires-distributed filter
         const scalingFilter = result.appliedFilters.find(
-          (f) => f.kind === AppliedFilterKind.Skill &&
+          (f) => f.type === AppliedFilterType.Skill &&
                  isDerivedSkillFilter(f) &&
                  f.ruleId === 'scaling-requires-distributed'
         );
 
         expect(scalingFilter).toBeDefined();
-        expect(scalingFilter?.kind).toBe(AppliedFilterKind.Skill);
+        expect(scalingFilter?.type).toBe(AppliedFilterType.Skill);
 
-        if (scalingFilter?.kind === AppliedFilterKind.Skill && isDerivedSkillFilter(scalingFilter)) {
+        if (scalingFilter?.type === AppliedFilterType.Skill && isDerivedSkillFilter(scalingFilter)) {
           expect(scalingFilter.field).toBe('derivedSkills');
           expect(scalingFilter.ruleId).toBe('scaling-requires-distributed');
           expect(scalingFilter.source).toBe('inference');
-          expect(scalingFilter.operator).toBe('HAS_ALL');
+          expect(scalingFilter.operator).toBe('HAS_ANY');
           expect(scalingFilter.skills).toBeInstanceOf(Array);
           expect(scalingFilter.skills.some(s => s.skillId === 'skill_distributed')).toBe(true);
         }
@@ -579,13 +600,13 @@ describe('expandSearchCriteria', () => {
 
         // Chain rule: distributed-requires-observability should also fire
         const chainFilter = result.appliedFilters.find(
-          (f) => f.kind === AppliedFilterKind.Skill &&
+          (f) => f.type === AppliedFilterType.Skill &&
                  isDerivedSkillFilter(f) &&
                  f.ruleId === 'distributed-requires-observability'
         );
 
         expect(chainFilter).toBeDefined();
-        if (chainFilter?.kind === AppliedFilterKind.Skill && isDerivedSkillFilter(chainFilter)) {
+        if (chainFilter?.type === AppliedFilterType.Skill && isDerivedSkillFilter(chainFilter)) {
           expect(chainFilter.field).toBe('derivedSkills');
           expect(chainFilter.source).toBe('inference');
         }
@@ -595,50 +616,145 @@ describe('expandSearchCriteria', () => {
 
   describe('user skill constraints with resolved skills', () => {
     it('creates AppliedSkillFilter with resolved skill data', async () => {
-      const resolvedRequired: ResolvedSkillWithProficiency[] = [
-        { skillId: 'skill_typescript', skillName: 'TypeScript', minProficiency: 'proficient', preferredMinProficiency: null },
+      /*
+       * Each skill requirement becomes a separate HAS_ANY filter.
+       * The requirement contains the original skill + any descendants.
+       */
+      const resolvedRequiredSkillRequirements: ResolvedSkillRequirement[] = [
+        {
+          originalIdentifier: 'typescript',
+          originalSkillId: 'skill_typescript',
+          originalSkillName: 'TypeScript',
+          expandedSkillIds: ['skill_typescript'],
+          skillIdToName: new Map([['skill_typescript', 'TypeScript']]),
+          minProficiency: 'proficient',
+          preferredMinProficiency: null,
+        },
       ];
 
       const result = await expand(
         { requiredSkills: [{ skill: 'typescript', minProficiency: 'proficient' }] },
-        { resolvedRequiredSkills: resolvedRequired }
+        { resolvedRequiredSkillRequirements }
       );
 
       const skillFilter = result.appliedFilters.find(
-        (f) => f.kind === AppliedFilterKind.Skill && f.field === 'requiredSkills'
+        (f) => f.type === AppliedFilterType.Skill && f.field === 'requiredSkills'
       );
       expect(skillFilter).toBeDefined();
-      expect(skillFilter?.kind).toBe(AppliedFilterKind.Skill);
-      if (skillFilter?.kind === AppliedFilterKind.Skill && 'skills' in skillFilter) {
+      expect(skillFilter?.type).toBe(AppliedFilterType.Skill);
+      if (skillFilter?.type === AppliedFilterType.Skill && 'skills' in skillFilter) {
         expect(skillFilter.skills).toHaveLength(1);
         expect(skillFilter.skills[0].skillId).toBe('skill_typescript');
         expect(skillFilter.skills[0].minProficiency).toBe('proficient');
+        // Verify HAS_ANY operator for descendant matching
+        expect(skillFilter.operator).toBe('HAS_ANY');
       }
     });
 
     it('creates AppliedSkillPreference with resolved preferred skills', async () => {
-      const resolvedPreferred: ResolvedSkillWithProficiency[] = [
-        { skillId: 'skill_react', skillName: 'React', minProficiency: 'learning', preferredMinProficiency: 'proficient' },
+      const resolvedPreferredSkillRequirements: ResolvedSkillRequirement[] = [
+        {
+          originalIdentifier: 'react',
+          originalSkillId: 'skill_react',
+          originalSkillName: 'React',
+          expandedSkillIds: ['skill_react'],
+          skillIdToName: new Map([['skill_react', 'React']]),
+          minProficiency: 'learning',
+          preferredMinProficiency: 'proficient',
+        },
       ];
 
       const result = await expand(
         { preferredSkills: [{ skill: 'react', preferredMinProficiency: 'proficient' }] },
-        { resolvedPreferredSkills: resolvedPreferred }
+        { resolvedPreferredSkillRequirements }
       );
 
       const skillPref = result.appliedPreferences.find(
-        (p) => p.kind === AppliedPreferenceKind.Skill && p.field === 'preferredSkills'
+        (p) => p.type === AppliedPreferenceType.Skill && p.field === 'preferredSkills'
       );
       expect(skillPref).toBeDefined();
-      if (skillPref?.kind === AppliedPreferenceKind.Skill && 'skills' in skillPref) {
+      if (skillPref?.type === AppliedPreferenceType.Skill && 'skills' in skillPref) {
         expect(skillPref.skills).toHaveLength(1);
         expect(skillPref.skills[0].skillId).toBe('skill_react');
       }
     });
 
+    it('creates separate preferences for each preferred skill requirement', async () => {
+      /*
+       * Multiple preferred skill requirements become multiple preferences.
+       * Each preference has its own displayValue (the original identifier).
+       * This matches the pattern for required skills.
+       */
+      const resolvedPreferredSkillRequirements: ResolvedSkillRequirement[] = [
+        {
+          originalIdentifier: 'Python',
+          originalSkillId: 'skill_python',
+          originalSkillName: 'Python',
+          expandedSkillIds: ['skill_python', 'skill_django', 'skill_flask'],
+          skillIdToName: new Map([
+            ['skill_python', 'Python'],
+            ['skill_django', 'Django'],
+            ['skill_flask', 'Flask'],
+          ]),
+          minProficiency: 'learning',
+          preferredMinProficiency: 'proficient',
+        },
+        {
+          originalIdentifier: 'Java',
+          originalSkillId: 'skill_java',
+          originalSkillName: 'Java',
+          expandedSkillIds: ['skill_java', 'skill_spring'],
+          skillIdToName: new Map([
+            ['skill_java', 'Java'],
+            ['skill_spring', 'Spring'],
+          ]),
+          minProficiency: 'learning',
+          preferredMinProficiency: 'expert',
+        },
+      ];
+
+      const result = await expand(
+        {
+          preferredSkills: [
+            { skill: 'Python', preferredMinProficiency: 'proficient' },
+            { skill: 'Java', preferredMinProficiency: 'expert' },
+          ],
+        },
+        { resolvedPreferredSkillRequirements }
+      );
+
+      // Should have two separate preferences
+      const skillPreferences = result.appliedPreferences.filter(
+        (p) => p.type === AppliedPreferenceType.Skill && p.field === 'preferredSkills'
+      );
+      expect(skillPreferences).toHaveLength(2);
+
+      // First preference: Python group
+      const pythonPref = skillPreferences[0];
+      if (pythonPref.type === AppliedPreferenceType.Skill && 'skills' in pythonPref) {
+        expect(pythonPref.skills).toHaveLength(3);
+        expect(pythonPref.displayValue).toBe('Python');
+      }
+
+      // Second preference: Java group
+      const javaPref = skillPreferences[1];
+      if (javaPref.type === AppliedPreferenceType.Skill && 'skills' in javaPref) {
+        expect(javaPref.skills).toHaveLength(2);
+        expect(javaPref.displayValue).toBe('Java');
+      }
+    });
+
     it('includes both user and derived skill filters when both present', async () => {
-      const resolvedRequired: ResolvedSkillWithProficiency[] = [
-        { skillId: 'skill_typescript', skillName: 'TypeScript', minProficiency: 'proficient', preferredMinProficiency: null },
+      const resolvedRequiredSkillRequirements: ResolvedSkillRequirement[] = [
+        {
+          originalIdentifier: 'typescript',
+          originalSkillId: 'skill_typescript',
+          originalSkillName: 'TypeScript',
+          expandedSkillIds: ['skill_typescript'],
+          skillIdToName: new Map([['skill_typescript', 'TypeScript']]),
+          minProficiency: 'proficient',
+          preferredMinProficiency: null,
+        },
       ];
 
       const result = await expand(
@@ -646,20 +762,84 @@ describe('expandSearchCriteria', () => {
           requiredSkills: [{ skill: 'typescript', minProficiency: 'proficient' }],
           teamFocus: 'scaling', // Triggers derived skills
         },
-        { resolvedRequiredSkills: resolvedRequired }
+        { resolvedRequiredSkillRequirements }
       );
 
       // Should have user skill filter
       const userSkillFilter = result.appliedFilters.find(
-        (f) => f.kind === AppliedFilterKind.Skill && f.field === 'requiredSkills'
+        (f) => f.type === AppliedFilterType.Skill && f.field === 'requiredSkills'
       );
       expect(userSkillFilter).toBeDefined();
 
       // Should also have derived skill filter from inference
       const derivedSkillFilter = result.appliedFilters.find(
-        (f) => f.kind === AppliedFilterKind.Skill && f.field === 'derivedSkills'
+        (f) => f.type === AppliedFilterType.Skill && f.field === 'derivedSkills'
       );
       expect(derivedSkillFilter).toBeDefined();
+    });
+
+    it('creates separate filters for each skill requirement with HAS_ANY', async () => {
+      /*
+       * Multiple skill requirements become multiple independent filters.
+       * Each filter uses HAS_ANY within its requirement's set, and requirements are ANDed.
+       */
+      const resolvedRequiredSkillRequirements: ResolvedSkillRequirement[] = [
+        {
+          originalIdentifier: 'Node.js',
+          originalSkillId: 'skill_node',
+          originalSkillName: 'Node.js',
+          expandedSkillIds: ['skill_node', 'skill_express', 'skill_nestjs'], // Node + descendants
+          skillIdToName: new Map([
+            ['skill_node', 'Node.js'],
+            ['skill_express', 'Express'],
+            ['skill_nestjs', 'NestJS'],
+          ]),
+          minProficiency: 'proficient',
+          preferredMinProficiency: null,
+        },
+        {
+          originalIdentifier: 'TypeScript',
+          originalSkillId: 'skill_typescript',
+          originalSkillName: 'TypeScript',
+          expandedSkillIds: ['skill_typescript'],
+          skillIdToName: new Map([['skill_typescript', 'TypeScript']]),
+          minProficiency: 'learning',
+          preferredMinProficiency: null,
+        },
+      ];
+
+      const result = await expand(
+        {
+          requiredSkills: [
+            { skill: 'Node.js', minProficiency: 'proficient' },
+            { skill: 'TypeScript', minProficiency: 'learning' },
+          ],
+        },
+        { resolvedRequiredSkillRequirements }
+      );
+
+      // Should have two separate skill filters
+      const skillFilters = result.appliedFilters.filter(
+        (f) => f.type === AppliedFilterType.Skill && f.field === 'requiredSkills'
+      );
+      expect(skillFilters).toHaveLength(2);
+
+      // First filter: Node.js group with 3 match candidates
+      const nodeFilter = skillFilters[0];
+      if (nodeFilter.type === AppliedFilterType.Skill && 'skills' in nodeFilter) {
+        expect(nodeFilter.operator).toBe('HAS_ANY');
+        expect(nodeFilter.skills).toHaveLength(3);
+        expect(nodeFilter.displayValue).toBe('Node.js');
+        expect(nodeFilter.originalSkillId).toBe('skill_node');
+      }
+
+      // Second filter: TypeScript group
+      const tsFilter = skillFilters[1];
+      if (tsFilter.type === AppliedFilterType.Skill && 'skills' in tsFilter) {
+        expect(tsFilter.operator).toBe('HAS_ANY');
+        expect(tsFilter.skills).toHaveLength(1);
+        expect(tsFilter.displayValue).toBe('TypeScript');
+      }
     });
   });
 });

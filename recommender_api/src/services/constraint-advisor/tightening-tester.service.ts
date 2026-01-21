@@ -5,10 +5,8 @@ import {
   type PropertyConstraint,
 } from "./constraint.types.js";
 import { buildPropertyConditions } from "./constraint-decomposer.service.js";
-import { groupSkillsByProficiency } from "../skill-resolution.service.js";
-import { buildSkillFilterCountQuery } from "../cypher-query-builder/index.js";
-import type { ResolvedSkillWithProficiency } from "../skill-resolver.service.js";
-import type { ProficiencyLevel } from "../../types/search.types.js";
+import { buildSkillFilterCountQuery, type SkillFilterRequirement } from "../cypher-query-builder/index.js";
+import { SkillFilterType, type ProficiencyLevel } from "../../types/search.types.js";
 import { extractSkillConstraints } from "./skill-extraction.utils.js";
 import { toNumber } from "../engineer-record-parser.js";
 
@@ -36,10 +34,8 @@ export interface PropertyConditionSpec {
 interface CountQueryContext {
   /** Pre-built property conditions (WHERE clauses and params) */
   propertyConditions: { whereClauses: string[]; params: Record<string, unknown> };
-  /** User-specified skills with proficiency requirements */
-  userRequiredSkills: ResolvedSkillWithProficiency[];
-  /** Derived skill IDs (existence-only check) */
-  derivedSkillIds: string[];
+  /** Unified skill filter requirements (both user and derived) */
+  skillFilterRequirements: SkillFilterRequirement[];
   /** Base MATCH clause for property-only fallback */
   baseMatchClause: string;
 }
@@ -92,12 +88,11 @@ export async function testTightenedPropertyValue(
   const propertyConditions = buildPropertyConditions(modifiedDecomposed, propertyConstraintIds);
 
   // Extract skills from original decomposed (skills aren't modified)
-  const { userRequiredSkills, derivedSkillIds } = extractSkillConstraints(decomposedConstraints);
+  const { skillFilterRequirements } = extractSkillConstraints(decomposedConstraints);
 
   return runCountQuery(session, {
     propertyConditions,
-    userRequiredSkills,
-    derivedSkillIds,
+    skillFilterRequirements,
     baseMatchClause: decomposedConstraints.baseMatchClause,
   });
 }
@@ -130,12 +125,11 @@ export async function testAddedPropertyConstraint(
   params[newParamName] = condition.value;
 
   // Extract skills from decomposed
-  const { userRequiredSkills, derivedSkillIds } = extractSkillConstraints(decomposedConstraints);
+  const { skillFilterRequirements } = extractSkillConstraints(decomposedConstraints);
 
   return runCountQuery(session, {
     propertyConditions: { whereClauses, params },
-    userRequiredSkills,
-    derivedSkillIds,
+    skillFilterRequirements,
     baseMatchClause: decomposedConstraints.baseMatchClause,
   });
 }
@@ -151,16 +145,17 @@ export async function testAddedSkillConstraint(
   newSkillMinProficiency: ProficiencyLevel
 ): Promise<number> {
   // Get existing skills from constraints
-  const { userRequiredSkills, derivedSkillIds } = extractSkillConstraints(decomposedConstraints);
+  const { skillFilterRequirements } = extractSkillConstraints(decomposedConstraints);
 
-  // Add the new skill
-  const allSkills: ResolvedSkillWithProficiency[] = [
-    ...userRequiredSkills,
+  // Add the new skill as a user requirement
+  const allRequirements: SkillFilterRequirement[] = [
+    ...skillFilterRequirements,
     {
-      skillId: newSkillId,
-      skillName: newSkillId, // Name not needed for query
+      expandedSkillIds: [newSkillId],
+      originalSkillId: newSkillId,
       minProficiency: newSkillMinProficiency,
       preferredMinProficiency: null,
+      type: SkillFilterType.User,
     },
   ];
 
@@ -174,8 +169,7 @@ export async function testAddedSkillConstraint(
 
   return runCountQuery(session, {
     propertyConditions,
-    userRequiredSkills: allSkills,
-    derivedSkillIds,
+    skillFilterRequirements: allRequirements,
     baseMatchClause: decomposedConstraints.baseMatchClause,
   });
 }
@@ -188,7 +182,7 @@ export async function getBaselineCount(
   session: Session,
   decomposedConstraints: DecomposedConstraints
 ): Promise<number> {
-  const { userRequiredSkills, derivedSkillIds } = extractSkillConstraints(decomposedConstraints);
+  const { skillFilterRequirements } = extractSkillConstraints(decomposedConstraints);
 
   const propertyConstraintIds = new Set(
     decomposedConstraints.constraints
@@ -199,8 +193,7 @@ export async function getBaselineCount(
 
   return runCountQuery(session, {
     propertyConditions,
-    userRequiredSkills,
-    derivedSkillIds,
+    skillFilterRequirements,
     baseMatchClause: decomposedConstraints.baseMatchClause,
   });
 }
@@ -240,15 +233,13 @@ async function runCountQuery(
   session: Session,
   context: CountQueryContext
 ): Promise<number> {
-  const { propertyConditions, userRequiredSkills, derivedSkillIds, baseMatchClause } = context;
-  const hasSkills = userRequiredSkills.length > 0 || derivedSkillIds.length > 0;
+  const { propertyConditions, skillFilterRequirements, baseMatchClause } = context;
+  const hasSkills = skillFilterRequirements.length > 0;
 
   if (hasSkills) {
-    const skillGroups = groupSkillsByProficiency(userRequiredSkills);
     const { query, params } = buildSkillFilterCountQuery(
-      skillGroups,
-      propertyConditions,
-      derivedSkillIds
+      skillFilterRequirements,
+      propertyConditions
     );
     const result = await session.run(query, params);
     return toNumber(result.records[0]?.get("resultCount"));

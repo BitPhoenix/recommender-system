@@ -10,7 +10,7 @@ import {
   SkillConstraintOrigin,
 } from "./constraint.types.js";
 import {
-  AppliedFilterKind,
+  AppliedFilterType,
   type AppliedFilter,
   type AppliedSkillFilter,
 } from "../../types/search.types.js";
@@ -19,14 +19,14 @@ describe("decomposeConstraints", () => {
   it("maps applied filters to property constraints with Cypher fragments", () => {
     const appliedFilters: AppliedFilter[] = [
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "startTimeline",
         operator: "IN",
         value: '["immediate", "two_weeks"]',
         source: "user",
       },
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "salary",
         operator: "<=",
         value: "150000",
@@ -54,7 +54,7 @@ describe("decomposeConstraints", () => {
   it("preserves filter properties in testable constraints", () => {
     const appliedFilters: AppliedFilter[] = [
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "salary",
         operator: "<=",
         value: "150000",
@@ -78,7 +78,7 @@ describe("decomposeConstraints", () => {
   it("splits BETWEEN into two separate constraints", () => {
     const appliedFilters: AppliedFilter[] = [
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "yearsExperience",
         operator: "BETWEEN",
         value: "6 AND 10",
@@ -111,7 +111,7 @@ describe("decomposeConstraints", () => {
   it("handles >= operator for experience without upper bound", () => {
     const appliedFilters: AppliedFilter[] = [
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "yearsExperience",
         operator: ">=",
         value: ">= 9",
@@ -133,7 +133,7 @@ describe("decomposeConstraints", () => {
   it("creates a single constraint for timezone zones (IN operator)", () => {
     const appliedFilters: AppliedFilter[] = [
       {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "timezone",
         operator: "IN",
         value: '["Eastern", "Central"]',
@@ -160,9 +160,9 @@ describe("decomposeConstraints", () => {
      * with a ruleId field, instead of a separate derivedConstraints parameter.
      */
     const derivedSkillFilter: AppliedSkillFilter = {
-      kind: AppliedFilterKind.Skill,
+      type: AppliedFilterType.Skill,
       field: 'derivedSkills',
-      operator: 'HAS_ALL',
+      operator: 'HAS_ANY',
       skills: [{ skillId: 'skill_distributed', skillName: 'skill_distributed' }],
       displayValue: 'Derived: Scaling requires distributed',
       source: 'inference',
@@ -194,9 +194,9 @@ describe("decomposeConstraints", () => {
   describe("user skill constraints via AppliedSkillFilter", () => {
     it("creates SkillTraversal constraints from AppliedSkillFilter", () => {
       const skillFilter: AppliedSkillFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: 'requiredSkills',
-        operator: 'HAS_ALL',
+        operator: 'HAS_ANY',
         skills: [
           { skillId: 'skill_typescript', skillName: 'TypeScript', minProficiency: 'proficient' },
           { skillId: 'skill_react', skillName: 'React' },
@@ -229,17 +229,17 @@ describe("decomposeConstraints", () => {
 
     it("combines user AppliedSkillFilter with derived AppliedSkillFilter", () => {
       const userSkillFilter: AppliedSkillFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: 'requiredSkills',
-        operator: 'HAS_ALL',
+        operator: 'HAS_ANY',
         skills: [{ skillId: 'skill_typescript', skillName: 'TypeScript' }],
         displayValue: 'TypeScript',
         source: 'user',
       };
       const derivedSkillFilter: AppliedSkillFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: 'derivedSkills',
-        operator: 'HAS_ALL',
+        operator: 'HAS_ANY',
         skills: [{ skillId: 'skill_distributed', skillName: 'skill_distributed' }],
         displayValue: 'Derived: Test Rule',
         source: 'inference',

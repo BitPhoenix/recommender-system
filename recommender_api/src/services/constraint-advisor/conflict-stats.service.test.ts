@@ -61,7 +61,7 @@ function createSkillConstraint(
     constraintType: ConstraintType.SkillTraversal,
     skillIds: ["skill_typescript"],
     field: "skills",
-    operator: "HAS_ALL",
+    operator: "HAS_ANY",
     displayValue: "expert TypeScript",
     origin: SkillConstraintOrigin.User,
     source: "user",

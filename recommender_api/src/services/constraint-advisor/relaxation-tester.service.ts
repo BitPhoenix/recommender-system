@@ -6,11 +6,9 @@ import {
   type PropertyConstraint,
   type UserSkillConstraint,
 } from "./constraint.types.js";
-import type { ProficiencyLevel } from "../../types/search.types.js";
+import { SkillFilterType, type ProficiencyLevel } from "../../types/search.types.js";
 import { buildQueryWithConstraints, buildPropertyConditions } from "./constraint-decomposer.service.js";
-import { groupSkillsByProficiency } from "../skill-resolution.service.js";
 import { buildSkillFilterCountQuery } from "../cypher-query-builder/index.js";
-import type { ResolvedSkillWithProficiency } from "../skill-resolver.service.js";
 import { extractSkillConstraintsFromArray } from "./skill-extraction.utils.js";
 import { toNumber } from "../engineer-record-parser.js";
 
@@ -59,11 +57,8 @@ export async function testRelaxedValue(
 /**
  * Test result count with a modified skill proficiency requirement.
  *
- * Uses the same proficiency logic as the main search query by:
- * 1. Converting constraints to skill format with modified proficiency
- * 2. Calling groupSkillsByProficiency (reuse)
- * 3. Calling buildPropertyConditions (reuse)
- * 4. Calling buildSkillFilterCountQuery (shared proficiency pattern)
+ * Uses unified skillFilterRequirements pattern to modify the proficiency
+ * for the target skill and run a count query with all constraints.
  */
 export async function testSkillRelaxation(
   session: Session,
@@ -73,21 +68,22 @@ export async function testSkillRelaxation(
 ): Promise<number> {
   const newProficiency: ProficiencyLevel = modifiedSkill.minProficiency ?? 'learning';
 
-  // Extract all skill IDs in a single pass
-  const { userRequiredSkills, derivedSkillIds } = extractSkillConstraintsFromArray(decomposedConstraints.constraints);
+  // Extract unified skill filter requirements
+  const { skillFilterRequirements } = extractSkillConstraintsFromArray(decomposedConstraints.constraints);
 
-  // Apply modified proficiency for the constraint we're testing
-  const skills = modifySkillProficiency(userRequiredSkills, constraint.value.skill, newProficiency);
+  // Modify the proficiency for the target skill
+  const modifiedRequirements = skillFilterRequirements.map(requirement => {
+    if (requirement.type === SkillFilterType.User && requirement.originalSkillId === constraint.value.skill) {
+      return { ...requirement, minProficiency: newProficiency };
+    }
+    return requirement;
+  });
 
-  if (skills.length === 0) {
+  if (modifiedRequirements.length === 0) {
     return 0;
   }
 
-  // Group by proficiency using EXISTING function (no duplication)
-  const skillGroups = groupSkillsByProficiency(skills);
-
-  // Build property conditions using EXISTING function (no duplication)
-  // Get all property constraint IDs (exclude skill constraints)
+  // Build property conditions
   const propertyConstraintIds = new Set(
     decomposedConstraints.constraints
       .filter(c => c.constraintType === ConstraintType.Property)
@@ -98,8 +94,8 @@ export async function testSkillRelaxation(
     propertyConstraintIds
   );
 
-  // Build count query using SHARED proficiency pattern (no duplication)
-  const { query, params } = buildSkillFilterCountQuery(skillGroups, propertyConditions, derivedSkillIds);
+  // Build count query using unified requirements
+  const { query, params } = buildSkillFilterCountQuery(modifiedRequirements, propertyConditions);
 
   // Execute and return count
   const result = await session.run(query, params);
@@ -122,23 +118,3 @@ export async function testSkillRemoval(
   return toNumber(result.records[0]?.get("resultCount"));
 }
 
-// ============================================================================
-// INTERNAL HELPERS
-// ============================================================================
-
-/*
- * Returns a new skills array with the target skill's proficiency modified.
- * Used for "what-if" testing: what results would we get if we relaxed this skill's
- * proficiency requirement?
- */
-function modifySkillProficiency(
-  skills: ResolvedSkillWithProficiency[],
-  targetSkillId: string,
-  newProficiency: ProficiencyLevel
-): ResolvedSkillWithProficiency[] {
-  return skills.map(skill =>
-    skill.skillId === targetSkillId
-      ? { ...skill, minProficiency: newProficiency }
-      : skill
-  );
-}

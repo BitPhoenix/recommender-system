@@ -31,6 +31,11 @@ export function buildBasicEngineerFilters(
     filters.push(buildExcludeEngineerFilter(params.excludeEngineerId));
   }
 
+  // Add inclusion filter if specified (e.g., for explain endpoint)
+  if (params.engineerId) {
+    filters.push(buildIncludeEngineerFilter(params.engineerId));
+  }
+
   return combineFilters(filters);
 }
 
@@ -116,5 +121,16 @@ function buildExcludeEngineerFilter(engineerId: string): FilterParts {
   return {
     conditions: ['e.id <> $excludeEngineerId'],
     queryParams: { excludeEngineerId: engineerId },
+  };
+}
+
+/**
+ * Builds inclusion filter for a specific engineer.
+ * Used by explain endpoint to run search pipeline for a single engineer.
+ */
+function buildIncludeEngineerFilter(engineerId: string): FilterParts {
+  return {
+    conditions: ['e.id = $engineerId'],
+    queryParams: { engineerId },
   };
 }

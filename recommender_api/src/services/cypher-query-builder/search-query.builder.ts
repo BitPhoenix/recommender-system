@@ -7,8 +7,9 @@ import { int } from "neo4j-driver";
 import type {
   CypherQueryParams,
   CypherQuery,
-  SkillProficiencyGroups,
+  SkillFilterRequirement,
 } from "./query-types.js";
+import { SkillFilterType } from "../../types/search.types.js";
 
 import { buildBasicEngineerFilters } from "./query-conditions.builder.js";
 
@@ -70,7 +71,13 @@ function buildFilterClauses(
 ): FilterClausesResult {
   const { collectAllSkills = false } = options;
   const allSkillIds = getAllSkillIds(params);
-  const hasSkillFilter = allSkillIds.length > 0;
+  /*
+   * hasSkillFilter is true if there are user skills (in proficiency buckets)
+   * OR derived skills (in skillFilterRequirements with type='derived').
+   * Both need the skill-matching MATCH clause and filtering logic.
+   */
+  const hasDerivedSkillFilter = (params.skillFilterRequirements ?? []).some(r => r.type === SkillFilterType.Derived);
+  const hasSkillFilter = allSkillIds.length > 0 || hasDerivedSkillFilter;
 
   const { conditions, queryParams } = buildBasicEngineerFilters(params);
   const domainContext = getDomainFilterContext(params);
@@ -89,7 +96,10 @@ function buildFilterClauses(
   }
 
   const matchClause = buildMatchClause(hasSkillFilter, whereClause);
-  const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(hasSkillFilter);
+  const skillProficiencyFilterClause = buildSkillProficiencyFilterClause(
+    hasSkillFilter,
+    params.skillFilterRequirements
+  );
   const requiredBusinessDomainFilterClause = buildRequiredBusinessDomainFilter(domainContext);
   const requiredTechnicalDomainFilterClause = buildRequiredTechnicalDomainFilter(domainContext);
 
@@ -219,10 +229,20 @@ RETURN count(DISTINCT e) AS totalCount
 // ============================================================================
 
 function getAllSkillIds(params: CypherQueryParams): string[] {
+  /*
+   * Collect all skill IDs needed for filtering:
+   * 1. Proficiency bucket skills (user-requested with specific proficiency requirements)
+   * 2. Derived skill IDs (from inference rules, existence-only check)
+   */
+  const derivedSkillIds = (params.skillFilterRequirements ?? [])
+    .filter(r => r.type === SkillFilterType.Derived)
+    .flatMap(r => r.expandedSkillIds);
+
   return [
     ...params.learningLevelSkillIds,
     ...params.proficientLevelSkillIds,
     ...params.expertLevelSkillIds,
+    ...derivedSkillIds,
   ];
 }
 
@@ -247,127 +267,170 @@ END)`;
 }
 
 /**
+ * Converts unified SkillFilterRequirement[] to proficiency buckets.
+ * Used for query building that still needs the bucket structure.
+ */
+function groupSkillsByProficiencyFromRequirements(
+  skillFilterRequirements: SkillFilterRequirement[]
+): { learningLevelSkillIds: string[]; proficientLevelSkillIds: string[]; expertLevelSkillIds: string[] } {
+  const learningLevelSkillIds: string[] = [];
+  const proficientLevelSkillIds: string[] = [];
+  const expertLevelSkillIds: string[] = [];
+
+  for (const requirement of skillFilterRequirements) {
+    if (requirement.type === SkillFilterType.Derived) continue; // Skip derived, handled separately
+
+    const skillIds = requirement.expandedSkillIds;
+    switch (requirement.minProficiency) {
+      case 'expert':
+        expertLevelSkillIds.push(...skillIds);
+        break;
+      case 'proficient':
+        proficientLevelSkillIds.push(...skillIds);
+        break;
+      default:
+        learningLevelSkillIds.push(...skillIds);
+    }
+  }
+
+  return { learningLevelSkillIds, proficientLevelSkillIds, expertLevelSkillIds };
+}
+
+/**
+ * Result of building the common skill filter base.
+ * Contains all the pieces needed to construct skill-filtered queries.
+ */
+interface SkillFilterBase {
+  params: Record<string, unknown>;
+  allUserSkillIds: string[];
+  allSkillIds: string[];
+  propertyWhereClause: string;
+  derivedSkillExistenceClause: string;
+}
+
+/**
+ * Builds the common base for skill-filtered queries.
+ * Extracts shared logic used by both count and distribution queries.
+ *
+ * @param skillFilterRequirements - Unified skill filter requirements (user and derived)
+ * @param propertyConditions - WHERE clause conditions (from buildPropertyConditions)
+ * @param extraParams - Additional params to include (e.g., distributionLimit)
+ */
+function buildSkillFilterBase(
+  skillFilterRequirements: SkillFilterRequirement[],
+  propertyConditions: { whereClauses: string[]; params: Record<string, unknown> },
+  extraParams: Record<string, unknown> = {}
+): SkillFilterBase {
+  // Separate user and derived requirements
+  const userRequirements = skillFilterRequirements.filter(r => r.type === SkillFilterType.User);
+  const derivedRequirements = skillFilterRequirements.filter(r => r.type === SkillFilterType.Derived);
+
+  // Build proficiency buckets from user requirements
+  const skillProficiencyBuckets = groupSkillsByProficiencyFromRequirements(userRequirements);
+
+  const allUserSkillIds = [
+    ...skillProficiencyBuckets.learningLevelSkillIds,
+    ...skillProficiencyBuckets.proficientLevelSkillIds,
+    ...skillProficiencyBuckets.expertLevelSkillIds,
+  ];
+  const derivedSkillIds = derivedRequirements.flatMap(r => r.expandedSkillIds);
+  const allSkillIds = [...allUserSkillIds, ...derivedSkillIds];
+
+  const params: Record<string, unknown> = {
+    ...propertyConditions.params,
+    ...extraParams,
+    allSkillIds,
+    learningLevelSkillIds: skillProficiencyBuckets.learningLevelSkillIds,
+    proficientLevelSkillIds: skillProficiencyBuckets.proficientLevelSkillIds,
+    expertLevelSkillIds: skillProficiencyBuckets.expertLevelSkillIds,
+    derivedSkillIds,
+  };
+
+  const propertyWhereClause = propertyConditions.whereClauses.length > 0
+    ? propertyConditions.whereClauses.join('\n  AND ')
+    : 'true';
+
+  const derivedSkillExistenceClause = derivedSkillIds.length > 0
+    ? `
+  AND ALL(derivedId IN $derivedSkillIds WHERE EXISTS {
+    MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill {id: derivedId})
+  })`
+    : '';
+
+  return {
+    params,
+    allUserSkillIds,
+    allSkillIds,
+    propertyWhereClause,
+    derivedSkillExistenceClause,
+  };
+}
+
+/**
  * Builds a count-only query for skill-filtered searches.
  * Used by skill relaxation testing to check how many engineers would match
  * with modified proficiency requirements.
  *
- * Reuses the same proficiency logic as the main search query.
- *
- * @param skillGroups - Proficiency buckets (from groupSkillsByProficiency)
+ * @param skillFilterRequirements - Unified skill filter requirements (user and derived)
  * @param propertyConditions - WHERE clause conditions (from buildPropertyConditions)
  */
 export function buildSkillFilterCountQuery(
-  skillGroups: SkillProficiencyGroups,
-  propertyConditions: { whereClauses: string[]; params: Record<string, unknown> },
-  derivedSkillIds: string[]
+  skillFilterRequirements: SkillFilterRequirement[],
+  propertyConditions: { whereClauses: string[]; params: Record<string, unknown> }
 ): CypherQuery {
-  const allSkillIds = [
-    ...skillGroups.learningLevelSkillIds,
-    ...skillGroups.proficientLevelSkillIds,
-    ...skillGroups.expertLevelSkillIds,
-  ];
+  const base = buildSkillFilterBase(skillFilterRequirements, propertyConditions);
 
   // If no skills, return a query that will return 0
-  if (allSkillIds.length === 0) {
+  if (base.allSkillIds.length === 0) {
     return {
       query: `RETURN 0 AS resultCount`,
       params: {},
     };
   }
 
-  const params: Record<string, unknown> = {
-    ...propertyConditions.params,
-    allSkillIds,
-    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
-    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
-    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
-    derivedSkillIds,
-  };
-
-  const propertyWhereClause = propertyConditions.whereClauses.length > 0
-    ? propertyConditions.whereClauses.join('\n  AND ')
-    : 'true';
-
-  /*
-   * Build count query using the shared proficiency pattern.
-   * Requires ALL user skills to be matched (>= SIZE($allSkillIds)).
-   * Also requires ALL derived skills to exist (existence-only, no proficiency check).
-   */
-  const derivedSkillExistenceClause = derivedSkillIds.length > 0
-    ? `
-  AND ALL(derivedId IN $derivedSkillIds WHERE EXISTS {
-    MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill {id: derivedId})
-  })`
-    : '';
-
   const query = `
 MATCH (e:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
 WHERE s.id IN $allSkillIds
-  AND ${propertyWhereClause}
+  AND ${base.propertyWhereClause}
 WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
-WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= SIZE($allSkillIds)${derivedSkillExistenceClause}
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= ${base.allUserSkillIds.length}${base.derivedSkillExistenceClause}
 RETURN count(DISTINCT e) AS resultCount
 `;
 
-  return { query, params };
+  return { query, params: base.params };
 }
 
 /**
  * Builds a query to find the most common skills among engineers matching constraints.
  * Used by tightening suggestions to identify skills that could narrow results.
  *
- * Reuses the same proficiency logic as the main search query.
- *
- * @param skillGroups - Proficiency buckets (from groupSkillsByProficiency)
+ * @param skillFilterRequirements - Unified skill filter requirements (user and derived)
  * @param propertyConditions - WHERE clause conditions (from buildPropertyConditions)
- * @param derivedSkillIds - Derived skill IDs that must exist (existence-only check)
  * @param limit - Maximum number of skills to return (default 10)
  */
 export function buildSkillDistributionQuery(
-  skillGroups: SkillProficiencyGroups,
+  skillFilterRequirements: SkillFilterRequirement[],
   propertyConditions: { whereClauses: string[]; params: Record<string, unknown> },
-  derivedSkillIds: string[],
   limit: number = 10
 ): CypherQuery {
-  const allSkillIds = [
-    ...skillGroups.learningLevelSkillIds,
-    ...skillGroups.proficientLevelSkillIds,
-    ...skillGroups.expertLevelSkillIds,
-  ];
-
-  const params: Record<string, unknown> = {
-    ...propertyConditions.params,
-    allSkillIds,
-    learningLevelSkillIds: skillGroups.learningLevelSkillIds,
-    proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
-    expertLevelSkillIds: skillGroups.expertLevelSkillIds,
-    derivedSkillIds,
-    distributionLimit: limit,
-  };
-
-  const propertyWhereClause = propertyConditions.whereClauses.length > 0
-    ? propertyConditions.whereClauses.join('\n  AND ')
-    : 'true';
-
-  const derivedSkillExistenceClause = derivedSkillIds.length > 0
-    ? `
-  AND ALL(derivedId IN $derivedSkillIds WHERE EXISTS {
-    MATCH (e)-[:HAS]->(:UserSkill)-[:FOR]->(:Skill {id: derivedId})
-  })`
-    : '';
+  const base = buildSkillFilterBase(
+    skillFilterRequirements,
+    propertyConditions,
+    { distributionLimit: limit }
+  );
 
   /*
    * Two query structures based on whether we have skill constraints:
    * 1. With skills: Filter engineers by skill match, then find their other skills
    * 2. Without skills: Find all engineers matching properties, then get their skills
    */
-  if (allSkillIds.length > 0) {
+  if (base.allSkillIds.length > 0) {
     const query = `
 MATCH (e:Engineer)-[:HAS]->(us:UserSkill)-[:FOR]->(s:Skill)
 WHERE s.id IN $allSkillIds
-  AND ${propertyWhereClause}
+  AND ${base.propertyWhereClause}
 WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
-WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= SIZE($allSkillIds)${derivedSkillExistenceClause}
+WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) >= ${base.allUserSkillIds.length}${base.derivedSkillExistenceClause}
 WITH e
 MATCH (e)-[:HAS]->(us2:UserSkill)-[:FOR]->(s2:Skill)
 WITH s2.name AS skillName, s2.id AS skillId, count(DISTINCT e) AS engineerCount
@@ -375,7 +438,7 @@ ORDER BY engineerCount DESC
 LIMIT $distributionLimit
 RETURN skillName, skillId, engineerCount
 `;
-    return { query, params };
+    return { query, params: base.params };
   }
 
   // No skill constraints - simple distribution query
@@ -393,7 +456,7 @@ LIMIT $distributionLimit
 RETURN skillName, skillId, engineerCount
 `;
 
-  return { query, params };
+  return { query, params: base.params };
 }
 
 function addSkillQueryParams(
@@ -408,6 +471,18 @@ function addSkillQueryParams(
   // originalSkillIdentifiers: the user's original skill input (names or IDs)
   // Used to classify matches as 'direct' (exact match) vs 'descendant' (hierarchy expansion)
   queryParams.originalSkillIdentifiers = params.originalSkillIdentifiers || [];
+
+  /*
+   * Add per-requirement skill parameters for HAS_ANY filtering.
+   * Each requirement gets its own parameter: skillGroup0, skillGroup1, etc.
+   * This enables per-requirement EXISTS subqueries in the Cypher.
+   */
+  if (params.skillFilterRequirements) {
+    for (let i = 0; i < params.skillFilterRequirements.length; i++) {
+      queryParams[`skillGroup${i}`] = params.skillFilterRequirements[i].expandedSkillIds;
+    }
+    queryParams.skillGroupCount = params.skillFilterRequirements.length;
+  }
 }
 
 function buildMatchClause(hasSkillFilter: boolean, whereClause: string): string {
@@ -426,16 +501,55 @@ WHERE ${whereClause}`;
  * - learningLevelSkillIds: any proficiency level qualifies
  * - proficientLevelSkillIds: 'proficient' or 'expert' qualifies
  * - expertLevelSkillIds: only 'expert' qualifies
+ *
+ * Each skill filter requirement is filtered independently with HAS_ANY semantics.
+ * Engineer must have at least one qualifying skill from EACH requirement.
+ * This enables proper descendant matching: requesting "Node.js" matches engineers
+ * who have Express (a descendant), while requesting ["Node.js", "TypeScript"]
+ * requires at least one Node.js-family skill AND TypeScript.
+ *
+ * Derived skill requirements (type='derived') use existence-only checks:
+ * they only verify the engineer has ANY skill from the requirement, regardless of proficiency.
+ * This is because inference rules don't specify proficiency requirements.
+ *
+ * @param hasSkillFilter - Whether any skill filtering is active
+ * @param skillFilterRequirements - The skill filter requirements (user and derived)
  */
-function buildSkillProficiencyFilterClause(hasSkillFilter: boolean): string {
-  if (!hasSkillFilter) return "";
+function buildSkillProficiencyFilterClause(
+  hasSkillFilter: boolean,
+  skillFilterRequirements?: SkillFilterRequirement[]
+): string {
+  if (!hasSkillFilter || !skillFilterRequirements || skillFilterRequirements.length === 0) {
+    return "";
+  }
+
+  const requirementConditions: string[] = [];
+  for (let i = 0; i < skillFilterRequirements.length; i++) {
+    const requirement = skillFilterRequirements[i];
+
+    if (requirement.type === SkillFilterType.Derived) {
+      /*
+       * Derived skills: existence-only check (any proficiency qualifies).
+       * Uses allEngineerSkillIds which contains ALL skills the engineer has,
+       * regardless of proficiency level.
+       */
+      requirementConditions.push(`SIZE([x IN allEngineerSkillIds WHERE x IN $skillGroup${i}]) > 0`);
+    } else {
+      /*
+       * User skills: proficiency-qualified check.
+       * Uses qualifyingSkillIds which only contains skills meeting the
+       * proficiency requirements (learning/proficient/expert buckets).
+       */
+      requirementConditions.push(`SIZE([x IN qualifyingSkillIds WHERE x IN $skillGroup${i}]) > 0`);
+    }
+  }
 
   return `
-// Check which engineers have at least one skill meeting per-skill proficiency constraints
-// Note: confidence score is used for ranking only, not exclusion
-WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds
-// SIZE([...WHERE x IS NOT NULL]) filters out NULLs from CASE misses (skill didn't meet proficiency)
-WHERE SIZE([x IN qualifyingSkillIds WHERE x IS NOT NULL]) > 0`;
+// Check which skills meet proficiency requirements, then filter by skill requirements
+WITH e, ${buildProficiencyQualificationClause()} AS qualifyingSkillIds,
+     COLLECT(DISTINCT s.id) AS allEngineerSkillIds
+// HAS_ANY per requirement: engineer must have at least one qualifying skill from EACH requirement
+WHERE ${requirementConditions.join('\n  AND ')}`;
 }
 
 /**
