@@ -1173,6 +1173,10 @@ export const engineerCertifications: { engineerId: string; certificationId: stri
 
 export const skillEvidence: SkillEvidence[] = [
   // Priya's evidence
+  { userSkillId: 'es_priya_typescript', evidenceId: 'perf_priya_q1', evidenceType: 'performance', relevanceScore: 0.92, isPrimary: true },
+  { userSkillId: 'es_priya_typescript', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.88, isPrimary: false },
+  { userSkillId: 'es_priya_nodejs', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.90, isPrimary: true },
+  { userSkillId: 'es_priya_nodejs', evidenceId: 'perf_priya_q1', evidenceType: 'performance', relevanceScore: 0.88, isPrimary: false },
   { userSkillId: 'es_priya_api_design', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.95, isPrimary: true },
   { userSkillId: 'es_priya_api_design', evidenceId: 'perf_priya_q1', evidenceType: 'performance', relevanceScore: 0.90, isPrimary: false },
   { userSkillId: 'es_priya_microservices', evidenceId: 'story_priya_1', evidenceType: 'story', relevanceScore: 0.92, isPrimary: true },

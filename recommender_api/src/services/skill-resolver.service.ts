@@ -33,7 +33,43 @@ export interface ResolvedSkillWithProficiency {
   preferredMinProficiency: ProficiencyLevel | null;
 }
 
+/**
+ * A resolved skill requirement represents one user-requested skill
+ * and all the skills that satisfy it.
+ *
+ * When a user requests "Node.js", we need:
+ * - The original skill they asked for (Node.js)
+ * - All skills that satisfy this requirement (Node.js + Express + NestJS)
+ *
+ * An engineer matches this requirement if they have ANY skill from expandedSkillIds
+ * at the required proficiency level. This enables "descendant matching" where
+ * having Express satisfies a request for Node.js.
+ *
+ * Note: Even leaf skills (with no descendants) become a requirement with a single
+ * expanded skill. This simplifies downstream code - every requirement uses
+ * HAS_ANY semantics, whether the set has 1 member or 10.
+ */
+export interface ResolvedSkillRequirement {
+  /** The original skill identifier from the user's request */
+  originalIdentifier: string;
+  /** The resolved skill ID (if found) - null for unresolved identifiers */
+  originalSkillId: string | null;
+  /** The resolved skill name (if found) - null for unresolved identifiers */
+  originalSkillName: string | null;
+  /** All skill IDs that satisfy this requirement (original + descendants) */
+  expandedSkillIds: string[];
+  /** Map from skill ID to human-readable skill name for all expanded skills */
+  skillIdToName: Map<string, string>;
+  /** Proficiency requirement */
+  minProficiency: ProficiencyLevel;
+  /** Optional preferred proficiency for ranking boost */
+  preferredMinProficiency: ProficiencyLevel | null;
+}
+
 export interface SkillRequirementResolutionResult {
+  /** One requirement per user-requested skill - each is an independent filter */
+  skillRequirements: ResolvedSkillRequirement[];
+  /** Flat list of all skills (for backwards compatibility during transition) */
   resolvedSkills: ResolvedSkillWithProficiency[];
   expandedSkillNames: string[];
   originalIdentifiers: string[];     // Original skill identifiers from the request
@@ -78,6 +114,7 @@ export async function resolveSkillRequirements(
 ): Promise<SkillRequirementResolutionResult> {
   if (!requirements || requirements.length === 0) {
     return {
+      skillRequirements: [],
       resolvedSkills: [],
       expandedSkillNames: [],
       originalIdentifiers: [],
@@ -162,7 +199,7 @@ RETURN DISTINCT identifier
   }
 
   // ---------------------------------------------------------------------------
-  // Process query results, applying proficiency inheritance
+  // Process query results, building both flat skill list and skill groups
   // ---------------------------------------------------------------------------
   // Each leaf skill inherits the proficiency from the identifier that led to it.
   // If a skill appears under multiple identifiers, we keep the stricter requirement.
@@ -171,15 +208,28 @@ RETURN DISTINCT identifier
   //   User requests: ["JavaScript:learning", "Node.js:expert"]
   //   Node.js is found via both paths (CHILD_OF JavaScript, and directly)
   //   Result: Node.js gets "expert" (stricter than "learning")
+  //
+  // Additionally, we build skill groups where each user-requested skill becomes
+  // an independent filter group. The engineer must have at least one skill from
+  // each group (HAS_ANY semantics within group, AND between groups).
   // ---------------------------------------------------------------------------
   const resolvedSkillMap = new Map<string, ResolvedSkillWithProficiency>();
 
+  /*
+   * Build skill requirements: one per original identifier.
+   * Each requirement tracks:
+   * - The original skill requested (for matchType='direct')
+   * - All skills that satisfy this requirement (for HAS_ANY filtering)
+   */
+  const skillRequirementMap = new Map<string, ResolvedSkillRequirement>();
+
   for (const record of leafResult.records) {
-    const identifier = (record.get('identifier') as string).toLowerCase();
+    const identifier = record.get('identifier') as string;
+    const identifierLower = identifier.toLowerCase();
     const skillId = record.get('skillId') as string;
     const skillName = record.get('skillName') as string;
 
-    const proficiency = proficiencyMap.get(identifier) ?? {
+    const proficiency = proficiencyMap.get(identifierLower) ?? {
       min: defaultMinProficiency,
       preferred: null,
     };
@@ -213,10 +263,45 @@ RETURN DISTINCT identifier
         preferredMinProficiency: proficiency.preferred,
       });
     }
+
+    /*
+     * Build skill requirement for this identifier.
+     * The original skill is identified by direct match: skill ID or name matches the identifier.
+     */
+    const isOriginalSkill = skillId === identifier || skillName.toLowerCase() === identifierLower;
+
+    if (!skillRequirementMap.has(identifierLower)) {
+      // First skill for this identifier
+      const skillIdToName = new Map<string, string>();
+      skillIdToName.set(skillId, skillName);
+      skillRequirementMap.set(identifierLower, {
+        originalIdentifier: identifier,
+        originalSkillId: isOriginalSkill ? skillId : null,
+        originalSkillName: isOriginalSkill ? skillName : null,
+        expandedSkillIds: [skillId],
+        skillIdToName,
+        minProficiency: proficiency.min,
+        preferredMinProficiency: proficiency.preferred,
+      });
+    } else {
+      const requirement = skillRequirementMap.get(identifierLower)!;
+      // Add to match candidates if not already present
+      if (!requirement.expandedSkillIds.includes(skillId)) {
+        requirement.expandedSkillIds.push(skillId);
+      }
+      // Always add to name map
+      requirement.skillIdToName.set(skillId, skillName);
+      // Check if this is the original skill (might find it later in results)
+      if (isOriginalSkill && !requirement.originalSkillId) {
+        requirement.originalSkillId = skillId;
+        requirement.originalSkillName = skillName;
+      }
+    }
   }
 
   const resolvedSkills = Array.from(resolvedSkillMap.values());
   const expandedSkillNames = resolvedSkills.map((s) => s.skillName);
+  const skillRequirements = Array.from(skillRequirementMap.values());
 
   // ---------------------------------------------------------------------------
   // Identify unresolved identifiers for user feedback
@@ -232,6 +317,7 @@ RETURN DISTINCT identifier
   );
 
   return {
+    skillRequirements,
     resolvedSkills,
     expandedSkillNames,
     originalIdentifiers,

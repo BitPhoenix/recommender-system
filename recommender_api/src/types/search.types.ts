@@ -30,9 +30,9 @@ export { START_TIMELINE_ORDER, PROFICIENCY_LEVEL_ORDER, SENIORITY_LEVEL_ORDER } 
 // ============================================
 
 /**
- * Kind discriminator for applied filter types.
+ * Type discriminator for applied filter types.
  */
-export enum AppliedFilterKind {
+export enum AppliedFilterType {
   /** Standard property constraint (salary, timezone, etc.) */
   Property = 'property',
   /** Skill constraint with resolved skill data */
@@ -40,13 +40,24 @@ export enum AppliedFilterKind {
 }
 
 /**
- * Kind discriminator for applied preference types.
+ * Type discriminator for applied preference types.
  */
-export enum AppliedPreferenceKind {
+export enum AppliedPreferenceType {
   /** Standard property preference (preferredTimezone, etc.) */
   Property = 'property',
   /** Skill preference with resolved skill data */
   Skill = 'skill',
+}
+
+/**
+ * Type discriminator for skill filter groups.
+ * Determines how the skill constraint is evaluated:
+ * - User: proficiency-qualified check (must meet minProficiency)
+ * - Derived: existence-only check (any proficiency level qualifies)
+ */
+export enum SkillFilterType {
+  User = 'user',
+  Derived = 'derived',
 }
 
 /**
@@ -107,6 +118,17 @@ export interface CoreScores {
   skillMatch: number;
   confidence: number;
   experience: number;
+}
+
+/*
+ * Raw core scores (0-1 normalized) for explanation generation.
+ * These are the unweighted scores that can be reversed to get original values.
+ * Used by score-explanation.service.ts to calculate human-readable explanations.
+ */
+export interface RawCoreScores {
+  skillMatch: number;      // 0-1 normalized skill proficiency match
+  confidence: number;      // 0-1 normalized confidence score
+  experience: number;      // 0-1 normalized experience (log scale)
 }
 
 // Individual match types with score + match data
@@ -173,6 +195,7 @@ export interface PreferenceMatches {
 
 export interface ScoreBreakdown {
   scores: Partial<CoreScores>;
+  rawScores?: Partial<RawCoreScores>;  // Raw 0-1 scores for explanation generation
   preferenceMatches: PreferenceMatches;
   total: number;  // Sum of all weighted scores (equals utilityScore)
 }
@@ -195,10 +218,10 @@ export interface EngineerMatch {
 
 /**
  * AppliedFilter - hard constraints that filter candidates (WHERE clauses).
- * Discriminated union: use `filter.kind` to narrow the type.
+ * Discriminated union: use `filter.type` to narrow the type.
  */
 export interface AppliedPropertyFilter {
-  kind: AppliedFilterKind.Property;
+  type: AppliedFilterType.Property;
   field: string;
   operator: string;
   value: string;
@@ -208,25 +231,35 @@ export interface AppliedPropertyFilter {
 /**
  * AppliedSkillFilter - discriminated union for skill-based filters.
  * Use `filter.field` to narrow: 'requiredSkills' = user, 'derivedSkills' = derived.
+ *
+ * Skill filter semantics use HAS_ANY: Engineer must have at least ONE skill
+ * from the filter's expanded skill set. Multiple filters are ANDed together.
+ *
+ * After hierarchy expansion, a request for "Node.js" becomes a filter containing
+ * [node, express, nestjs], and having any one satisfies the requirement.
  */
 export interface AppliedUserSkillFilter {
-  kind: AppliedFilterKind.Skill;
+  type: AppliedFilterType.Skill;
   field: 'requiredSkills';
-  operator: 'HAS_ALL';
+  operator: 'HAS_ANY';
   skills: ResolvedSkillConstraint[];
   displayValue: string;
   source: ConstraintSource;
+  /** The original skill ID that was requested (for matchType classification in queries) */
+  originalSkillId?: string | null;
 }
 
 export interface AppliedDerivedSkillFilter {
-  kind: AppliedFilterKind.Skill;
+  type: AppliedFilterType.Skill;
   field: 'derivedSkills';
-  operator: 'HAS_ALL';
+  operator: 'HAS_ANY';
   skills: ResolvedSkillConstraint[];
   displayValue: string;
   source: ConstraintSource;
   /** Identifies the inference rule that added this constraint. */
   ruleId: string;
+  /** The original skill ID from the inference rule (for hierarchy expansion tracking) */
+  originalSkillId?: string | null;
 }
 
 export type AppliedSkillFilter = AppliedUserSkillFilter | AppliedDerivedSkillFilter;
@@ -235,17 +268,17 @@ export type AppliedFilter = AppliedPropertyFilter | AppliedSkillFilter;
 
 /**
  * AppliedPreference - soft boosts for ranking (utility scoring).
- * Discriminated union: use `preference.kind` to narrow the type.
+ * Discriminated union: use `preference.type` to narrow the type.
  */
 export interface AppliedPropertyPreference {
-  kind: AppliedPreferenceKind.Property;
+  type: AppliedPreferenceType.Property;
   field: string;
   value: string;
   source: ConstraintSource;
 }
 
 export interface AppliedSkillPreference {
-  kind: AppliedPreferenceKind.Skill;
+  type: AppliedPreferenceType.Skill;
   field: 'preferredSkills';
   skills: ResolvedSkillConstraint[];
   displayValue: string;
@@ -582,11 +615,11 @@ export interface SearchErrorResponse {
 // ============================================
 
 export function isSkillFilter(filter: AppliedFilter): filter is AppliedSkillFilter {
-  return filter.kind === AppliedFilterKind.Skill;
+  return filter.type === AppliedFilterType.Skill;
 }
 
 export function isPropertyFilter(filter: AppliedFilter): filter is AppliedPropertyFilter {
-  return filter.kind === AppliedFilterKind.Property;
+  return filter.type === AppliedFilterType.Property;
 }
 
 export function isUserSkillFilter(filter: AppliedSkillFilter): filter is AppliedUserSkillFilter {
@@ -598,9 +631,9 @@ export function isDerivedSkillFilter(filter: AppliedSkillFilter): filter is Appl
 }
 
 export function isSkillPreference(pref: AppliedPreference): pref is AppliedSkillPreference {
-  return pref.kind === AppliedPreferenceKind.Skill;
+  return pref.type === AppliedPreferenceType.Skill;
 }
 
 export function isPropertyPreference(pref: AppliedPreference): pref is AppliedPropertyPreference {
-  return pref.kind === AppliedPreferenceKind.Property;
+  return pref.type === AppliedPreferenceType.Property;
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { getConstraintAdvice } from "./constraint-advisor.service.js";
 import type { ExpandedSearchCriteria } from "../constraint-expander.service.js";
 import {
-  AppliedFilterKind,
+  AppliedFilterType,
   RelaxationSuggestionType,
   type DerivedConstraintOverride,
   type AppliedFilter,
@@ -122,7 +122,7 @@ describe("getConstraintAdvice", () => {
         totalCount: 0,
         expandedSearchCriteria: baseExpanded,
         appliedFilters: [
-          { kind: AppliedFilterKind.Property, field: "salary", operator: "<=", value: "80000", source: "user" },
+          { type: AppliedFilterType.Property, field: "salary", operator: "<=", value: "80000", source: "user" },
         ],
       });
 
@@ -252,9 +252,9 @@ describe("getConstraintAdvice", () => {
        * with a ruleId field, instead of a separate derivedConstraints parameter.
        */
       const derivedSkillFilter: AppliedFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: 'derivedSkills',
-        operator: 'HAS_ALL',
+        operator: 'HAS_ANY',
         skills: [{ skillId: 'skill_distributed', skillName: 'skill_distributed' }],
         displayValue: 'Derived: Scaling requires distributed',
         source: 'inference',
@@ -287,7 +287,7 @@ describe("getConstraintAdvice", () => {
       const session = createMockSession(new Map([["RETURN count", 0]]));
 
       const userPropertyFilter: AppliedFilter = {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: 'salary',
         operator: '<=',
         value: '50000',
@@ -318,9 +318,9 @@ describe("getConstraintAdvice", () => {
       const session = createMockSession(new Map([["RETURN count", 0]]));
 
       const userSkillFilter: AppliedFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: 'requiredSkills',
-        operator: 'HAS_ALL',
+        operator: 'HAS_ANY',
         skills: [{ skillId: 'skill_typescript', skillName: 'TypeScript' }],
         displayValue: 'TypeScript',
         source: 'user',

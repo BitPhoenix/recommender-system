@@ -7,10 +7,12 @@ import { Router } from 'express';
 import { filterSearch } from '../controllers/search.controller.js';
 import { filterSimilarity } from '../controllers/filter-similarity.controller.js';
 import { handleCritique } from '../controllers/critique.controller.js';
+import { explainFilterMatch } from '../controllers/search-match-explanation.controller.js';
 import { validate } from '../middleware/zod-validate.middleware.js';
 import { SearchFilterRequestSchema } from '../schemas/search.schema.js';
 import { FilterSimilarityRequestSchema } from '../schemas/filter-similarity.schema.js';
 import { CritiqueRequestSchema } from '../schemas/critique.schema.js';
+import { ExplainRequestSchema } from '../schemas/search-match-explanation.schema.js';
 
 const router = Router();
 
@@ -37,5 +39,13 @@ router.post('/filter-similarity', validate(FilterSimilarityRequestSchema), filte
  * Implements Chapter 5.3.2 (Critiquing Methods)
  */
 router.post('/critique', validate(CritiqueRequestSchema), handleCritique);
+
+/**
+ * POST /api/search/filter/:engineerId/explain
+ * Explain why a specific engineer matches (or doesn't match) search criteria.
+ *
+ * Implements Chapter 5.3.3 (Explanation in Critiques)
+ */
+router.post('/filter/:engineerId/explain', validate(ExplainRequestSchema), explainFilterMatch);
 
 export default router;

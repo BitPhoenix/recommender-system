@@ -153,6 +153,9 @@ export const SearchFilterRequestSchema = z.object({
   // Rule Override - explicitly override inference rules by ID
   overriddenRuleIds: z.array(z.string()).optional(),
 
+  // Optional: filter to a specific engineer (used by /explain endpoint)
+  engineerId: z.string().optional(),
+
   // Pagination
   limit: z.number().int().min(1).max(100).optional(),
   offset: z.number().int().min(0).optional(),

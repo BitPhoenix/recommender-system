@@ -776,7 +776,7 @@ describe("generateRelaxationSuggestions", () => {
       const derivedSkillConstraint: DerivedSkillConstraint = {
         id: "derived_scaling-requires-distributed",
         field: "derivedSkills",
-        operator: "HAS_ALL",
+        operator: "HAS_ANY",
         value: ["skill_distributed"],
         displayValue: "Derived: Scaling requires distributed",
         source: "inference",

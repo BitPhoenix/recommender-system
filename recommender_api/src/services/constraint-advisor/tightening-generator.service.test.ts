@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateTighteningSuggestions } from "./tightening-generator.service.js";
 import type { ExpandedSearchCriteria } from "../constraint-expander.service.js";
-import { AppliedFilterKind, type AppliedFilter, type AppliedPropertyFilter } from "../../types/search.types.js";
+import { AppliedFilterType, type AppliedFilter, type AppliedPropertyFilter } from "../../types/search.types.js";
 
 /*
  * Creates a mock Neo4j session for testing tightening suggestion queries.
@@ -162,7 +162,7 @@ describe("generateTighteningSuggestions", () => {
        * 2. A salary constraint found in decomposed constraints
        */
       const budgetFilter: AppliedPropertyFilter = {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "salary",
         operator: "<=",
         value: "200000",
@@ -283,7 +283,7 @@ describe("generateTighteningSuggestions", () => {
   describe("strictness filtering", () => {
     it("only suggests budget values stricter than current constraint", async () => {
       const budgetFilter: AppliedPropertyFilter = {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "salary",
         operator: "<=",
         value: "200000",
@@ -408,9 +408,9 @@ describe("generateTighteningSuggestions", () => {
 
       // User already requires TypeScript
       const skillFilter: AppliedFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: "requiredSkills",
-        operator: "HAS_ALL",
+        operator: "HAS_ANY",
         skills: [{ skillId: "skill_typescript", skillName: "TypeScript" }],
         displayValue: "TypeScript",
         source: "user",
@@ -694,22 +694,22 @@ describe("generateTighteningSuggestions", () => {
        * effect of all constraints.
        */
       const skillFilter: AppliedFilter = {
-        kind: AppliedFilterKind.Skill,
+        type: AppliedFilterType.Skill,
         field: "requiredSkills",
-        operator: "HAS_ALL",
+        operator: "HAS_ANY",
         skills: [{ skillId: "skill_react", skillName: "React", minProficiency: "proficient" }],
         displayValue: "React (proficient)",
         source: "user",
       };
       const seniorityFilter: AppliedPropertyFilter = {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "yearsExperience",
         operator: ">=",
         value: "6",
         source: "user",
       };
       const budgetFilter: AppliedPropertyFilter = {
-        kind: AppliedFilterKind.Property,
+        type: AppliedFilterType.Property,
         field: "salary",
         operator: "<=",
         value: "200000",

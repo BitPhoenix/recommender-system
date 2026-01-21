@@ -9,6 +9,12 @@ import type {
   SearchFilterRequest,
   SearchFilterResponse,
   EngineerMatch,
+  AppliedSkillFilter,
+} from "../types/search.types.js";
+import {
+  isSkillFilter,
+  isDerivedSkillFilter,
+  SkillFilterType,
 } from "../types/search.types.js";
 import { expandSearchCriteria } from "./constraint-expander.service.js";
 import { resolveAllSkills } from "./skill-resolution.service.js";
@@ -22,6 +28,7 @@ import {
   type CypherQueryParams,
   type ResolvedTechnicalDomain,
   type ResolvedBusinessDomain,
+  type SkillFilterRequirement,
 } from "./cypher-query-builder/index.js";
 import {
   scoreAndSortEngineers,
@@ -51,6 +58,8 @@ export async function executeSearch(
   // Step 1: Resolve all skill requirements FIRST (needed for constraint expansion)
   const {
     skillGroups,
+    resolvedRequiredSkillRequirements,
+    resolvedPreferredSkillRequirements,
     requiredSkillIds,
     expandedSkillNames,
     unresolvedSkills,
@@ -67,11 +76,12 @@ export async function executeSearch(
   );
 
   // Step 2: Expand search criteria using knowledge base rules
-  // Now receives resolved skills for structured AppliedFilter creation
+  // Now receives resolved skill requirements for per-requirement HAS_ANY filtering
   const expanded = await expandSearchCriteria(
+    session,
     request,
-    resolvedRequiredSkills,
-    resolvedPreferredSkills
+    resolvedRequiredSkillRequirements,
+    resolvedPreferredSkillRequirements
   );
 
   // Step 2b: Resolve domain requirements using new domain model
@@ -94,11 +104,46 @@ export async function executeSearch(
   );
 
   // Step 3: Build query parameters with per-skill proficiency buckets
+  /*
+   * Convert resolved skill requirements to query filter requirements.
+   * Each requirement enables HAS_ANY semantics: engineer must have at least one skill
+   * from each requirement's expanded set. This properly handles skill hierarchy expansion
+   * where requesting "Node.js" should match engineers who have Express (descendant).
+   */
+  const userSkillFilterRequirements: SkillFilterRequirement[] = resolvedRequiredSkillRequirements.map(requirement => ({
+    expandedSkillIds: requirement.expandedSkillIds,
+    originalSkillId: requirement.originalSkillId,
+    minProficiency: requirement.minProficiency,
+    preferredMinProficiency: requirement.preferredMinProficiency,
+    type: SkillFilterType.User,
+  }));
+
+  /*
+   * Build skill filter requirements from derived skill filters (from inference rules).
+   * These use existence-only checks - any proficiency level qualifies.
+   * This unifies the skill filtering path: both user and derived skills go through
+   * the same skillFilterRequirements mechanism in the query builder.
+   */
+  const derivedSkillFilters = expanded.appliedFilters.filter(
+    (f): f is AppliedSkillFilter => isSkillFilter(f) && isDerivedSkillFilter(f)
+  );
+  const derivedSkillFilterRequirements: SkillFilterRequirement[] = derivedSkillFilters.map(filter => ({
+    expandedSkillIds: filter.skills.map(s => s.skillId),
+    originalSkillId: filter.originalSkillId ?? null,
+    minProficiency: 'learning',  // Existence-only: any proficiency qualifies
+    preferredMinProficiency: null,
+    type: SkillFilterType.Derived,
+  }));
+
+  const skillFilterRequirements = [...userSkillFilterRequirements, ...derivedSkillFilterRequirements];
+
   const queryParams: CypherQueryParams = {
-    // Per-skill proficiency buckets
+    // Per-skill proficiency buckets (for proficiency filtering)
     learningLevelSkillIds: skillGroups.learningLevelSkillIds,
     proficientLevelSkillIds: skillGroups.proficientLevelSkillIds,
     expertLevelSkillIds: skillGroups.expertLevelSkillIds,
+    // Skill filter requirements for HAS_ANY semantics
+    skillFilterRequirements: skillFilterRequirements.length > 0 ? skillFilterRequirements : undefined,
     originalSkillIdentifiers:
       originalSkillIdentifiers.length > 0 ? originalSkillIdentifiers : null,
     // Basic engineer filters
@@ -110,6 +155,8 @@ export async function executeSearch(
     stretchBudget: expanded.stretchBudget,
     offset: expanded.offset,
     limit: expanded.limit,
+    // Optional: filter to a specific engineer (for explain endpoint)
+    engineerId: request.engineerId,
     // Domain filtering with new model
     requiredBusinessDomains:
       requiredBusinessDomains.length > 0 ? requiredBusinessDomains : undefined,
@@ -287,7 +334,8 @@ export async function getSearchResultCount(
   );
 
   // Expand search criteria (needed for derived constraints like seniority→years)
-  const expanded = await expandSearchCriteria(request, [], []);
+  // Pass empty arrays for skill groups since count query uses flat skill IDs
+  const expanded = await expandSearchCriteria(session, request, [], []);
 
   // Resolve domains
   const requiredBusinessDomains = await resolveBusinessDomains(

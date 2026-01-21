@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildSearchQuery, buildSkillFilterCountQuery } from './search-query.builder.js';
-import type { CypherQueryParams, SkillProficiencyGroups } from './query-types.js';
+import type { CypherQueryParams, SkillFilterRequirement } from './query-types.js';
+import { SkillFilterType } from '../../types/search.types.js';
 
 // Factory helper for test params
 const createQueryParams = (overrides: Partial<CypherQueryParams> = {}): CypherQueryParams => ({
@@ -402,25 +403,97 @@ describe('buildSearchQuery', () => {
       expect(result.query).not.toContain('SIZE(qualifyingSkillIds)');
     });
   });
+
+  describe('skill filter requirements (HAS_ANY per requirement)', () => {
+    it('generates per-requirement filtering when skillFilterRequirements provided', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill_node', 'skill_express', 'skill_ts'],
+        skillFilterRequirements: [
+          {
+            expandedSkillIds: ['skill_node', 'skill_express'],
+            originalSkillId: 'skill_node',
+            minProficiency: 'proficient',
+            type: SkillFilterType.User,
+          },
+          {
+            expandedSkillIds: ['skill_ts'],
+            originalSkillId: 'skill_ts',
+            minProficiency: 'learning',
+            type: SkillFilterType.User,
+          },
+        ],
+      });
+      const result = buildSearchQuery(params);
+
+      // Each requirement gets its own parameter
+      expect(result.params.skillGroup0).toEqual(['skill_node', 'skill_express']);
+      expect(result.params.skillGroup1).toEqual(['skill_ts']);
+      expect(result.params.skillGroupCount).toBe(2);
+
+      // Query uses per-requirement filtering
+      expect(result.query).toContain('$skillGroup0');
+      expect(result.query).toContain('$skillGroup1');
+    });
+
+    it('uses HAS_ANY semantics within each requirement', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill_node', 'skill_express'],
+        skillFilterRequirements: [
+          {
+            expandedSkillIds: ['skill_node', 'skill_express'],
+            originalSkillId: 'skill_node',
+            minProficiency: 'proficient',
+            type: SkillFilterType.User,
+          },
+        ],
+      });
+      const result = buildSearchQuery(params);
+
+      // Query should check SIZE > 0 for each requirement (HAS_ANY)
+      expect(result.query).toContain('SIZE([x IN qualifyingSkillIds WHERE x IN $skillGroup0]) > 0');
+    });
+
+    it('ANDs multiple requirements together', () => {
+      const params = createQueryParams({
+        proficientLevelSkillIds: ['skill_node', 'skill_ts'],
+        skillFilterRequirements: [
+          { expandedSkillIds: ['skill_node'], originalSkillId: 'skill_node', minProficiency: 'proficient', type: SkillFilterType.User },
+          { expandedSkillIds: ['skill_ts'], originalSkillId: 'skill_ts', minProficiency: 'proficient', type: SkillFilterType.User },
+        ],
+      });
+      const result = buildSearchQuery(params);
+
+      // Both requirements should appear in WHERE clause with AND
+      expect(result.query).toContain('$skillGroup0');
+      expect(result.query).toContain('$skillGroup1');
+      expect(result.query).toContain('AND');
+    });
+
+  });
 });
 
 describe('buildSkillFilterCountQuery', () => {
-  const createSkillGroups = (overrides: Partial<SkillProficiencyGroups> = {}): SkillProficiencyGroups => ({
-    learningLevelSkillIds: [],
-    proficientLevelSkillIds: [],
-    expertLevelSkillIds: [],
-    ...overrides,
+  const createSkillFilterRequirement = (
+    skillId: string,
+    minProficiency: string = 'learning',
+    type: SkillFilterType = SkillFilterType.User
+  ): SkillFilterRequirement => ({
+    expandedSkillIds: [skillId],
+    originalSkillId: skillId,
+    minProficiency,
+    preferredMinProficiency: null,
+    type,
   });
 
-  it('builds count query with proficiency buckets', () => {
-    const skillGroups = createSkillGroups({
-      learningLevelSkillIds: ['skill_1'],
-      proficientLevelSkillIds: ['skill_2'],
-      expertLevelSkillIds: ['skill_3'],
-    });
+  it('builds count query with proficiency buckets from skill filter requirements', () => {
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'learning'),
+      createSkillFilterRequirement('skill_2', 'proficient'),
+      createSkillFilterRequirement('skill_3', 'expert'),
+    ];
     const propertyConditions = { whereClauses: [], params: {} };
 
-    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
 
     expect(result.query).toContain('$learningLevelSkillIds');
     expect(result.query).toContain('$proficientLevelSkillIds');
@@ -432,37 +505,37 @@ describe('buildSkillFilterCountQuery', () => {
   });
 
   it('includes property conditions in WHERE clause', () => {
-    const skillGroups = createSkillGroups({
-      learningLevelSkillIds: ['skill_1'],
-    });
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'learning'),
+    ];
     const propertyConditions = {
       whereClauses: ['e.salary <= $maxSalary'],
       params: { maxSalary: 100000 },
     };
 
-    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
 
     expect(result.query).toContain('e.salary <= $maxSalary');
     expect(result.params.maxSalary).toBe(100000);
   });
 
-  it('returns 0-result query when no skills provided', () => {
-    const skillGroups = createSkillGroups();
-    const result = buildSkillFilterCountQuery(skillGroups, { whereClauses: [], params: {} }, []);
+  it('returns 0-result query when no skill requirements provided', () => {
+    const skillFilterRequirements: SkillFilterRequirement[] = [];
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, { whereClauses: [], params: {} });
 
     expect(result.query).toContain('RETURN 0 AS resultCount');
   });
 
   it('combines multiple property conditions with AND', () => {
-    const skillGroups = createSkillGroups({
-      proficientLevelSkillIds: ['skill_1'],
-    });
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'proficient'),
+    ];
     const propertyConditions = {
       whereClauses: ['e.salary <= $maxSalary', 'e.yearsExperience >= $minExp'],
       params: { maxSalary: 100000, minExp: 5 },
     };
 
-    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
 
     expect(result.query).toContain('e.salary <= $maxSalary');
     expect(result.query).toContain('e.yearsExperience >= $minExp');
@@ -472,12 +545,12 @@ describe('buildSkillFilterCountQuery', () => {
   });
 
   it('uses proficiency CASE pattern for skill matching', () => {
-    const skillGroups = createSkillGroups({
-      expertLevelSkillIds: ['skill_1'],
-    });
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'expert'),
+    ];
     const propertyConditions = { whereClauses: [], params: {} };
 
-    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
 
     // Check for the proficiency qualification CASE pattern
     expect(result.query).toContain('COLLECT(DISTINCT CASE');
@@ -487,15 +560,34 @@ describe('buildSkillFilterCountQuery', () => {
     expect(result.query).toContain("us.proficiencyLevel = 'expert'");
   });
 
-  it('requires all skills to match (>= SIZE($allSkillIds))', () => {
-    const skillGroups = createSkillGroups({
-      proficientLevelSkillIds: ['skill_1', 'skill_2'],
-    });
+  it('requires all user skills to match (>= count of user skills)', () => {
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'proficient'),
+      createSkillFilterRequirement('skill_2', 'proficient'),
+    ];
     const propertyConditions = { whereClauses: [], params: {} };
 
-    const result = buildSkillFilterCountQuery(skillGroups, propertyConditions, []);
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
 
-    expect(result.query).toContain('>= SIZE($allSkillIds)');
+    // Now uses hardcoded count instead of SIZE($allSkillIds) for user skills only
+    expect(result.query).toContain('>= 2');
     expect(result.params.allSkillIds).toEqual(['skill_1', 'skill_2']);
+  });
+
+  it('handles derived skills with existence-only check', () => {
+    const skillFilterRequirements: SkillFilterRequirement[] = [
+      createSkillFilterRequirement('skill_1', 'proficient', SkillFilterType.User),    // User skill
+      createSkillFilterRequirement('skill_2', 'learning', SkillFilterType.Derived),   // Derived skill
+    ];
+    const propertyConditions = { whereClauses: [], params: {} };
+
+    const result = buildSkillFilterCountQuery(skillFilterRequirements, propertyConditions);
+
+    // Derived skills should be in derivedSkillIds param
+    expect(result.params.derivedSkillIds).toEqual(['skill_2']);
+    // User skills should be in proficiency buckets
+    expect(result.params.proficientLevelSkillIds).toEqual(['skill_1']);
+    // Existence check for derived skills
+    expect(result.query).toContain('ALL(derivedId IN $derivedSkillIds');
   });
 });

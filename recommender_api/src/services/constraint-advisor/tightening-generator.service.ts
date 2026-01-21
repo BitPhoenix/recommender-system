@@ -10,7 +10,7 @@ import type {
   AppliedFilter,
 } from "../../types/search.types.js";
 import {
-  AppliedFilterKind,
+  AppliedFilterType,
   START_TIMELINE_ORDER,
   SENIORITY_LEVEL_ORDER,
 } from "../../types/search.types.js";
@@ -32,7 +32,6 @@ import {
   type DecomposedConstraints,
   type PropertyConstraint,
 } from "./constraint.types.js";
-import { groupSkillsByProficiency } from "../skill-resolution.service.js";
 import { buildSkillDistributionQuery } from "../cypher-query-builder/index.js";
 import { extractSkillConstraints } from "./skill-extraction.utils.js";
 
@@ -422,14 +421,13 @@ async function generateSkillTighteningSuggestions(
    */
   const requiredSkillFilter = expanded.appliedFilters.find(
     (f): f is AppliedSkillFilter =>
-      f.kind === AppliedFilterKind.Skill && f.field === "requiredSkills"
+      f.type === AppliedFilterType.Skill && f.field === "requiredSkills"
   );
   const currentSkillIds =
     requiredSkillFilter?.skills.map((s) => s.skillId) ?? [];
 
-  // Extract skills using shared utility
-  const { userRequiredSkills, derivedSkillIds } =
-    extractSkillConstraints(decomposed);
+  // Extract unified skill filter requirements
+  const { skillFilterRequirements } = extractSkillConstraints(decomposed);
 
   // Build property conditions for the distribution query
   const propertyConstraintIds = new Set(
@@ -442,13 +440,11 @@ async function generateSkillTighteningSuggestions(
     propertyConstraintIds
   );
 
-  // Build and run distribution query using shared builder
-  const skillGroups = groupSkillsByProficiency(userRequiredSkills);
+  // Build and run distribution query using unified requirements
   const { query: distributionQuery, params: distributionParams } =
     buildSkillDistributionQuery(
-      skillGroups,
-      propertyConditions,
-      derivedSkillIds
+      skillFilterRequirements,
+      propertyConditions
     );
 
   const result = await session.run(distributionQuery, distributionParams);

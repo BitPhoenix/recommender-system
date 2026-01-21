@@ -6,6 +6,7 @@
  * into concrete database constraints using the knowledge base rules.
  */
 
+import type { Session } from "neo4j-driver";
 import type {
   SearchFilterRequest,
   AppliedFilter,
@@ -16,13 +17,12 @@ import type {
   StartTimeline,
   SeniorityLevel,
   TeamFocus,
-  SkillRequirement,
 } from "../types/search.types.js";
 import {
-  AppliedFilterKind,
-  AppliedPreferenceKind,
+  AppliedFilterType,
+  AppliedPreferenceType,
 } from "../types/search.types.js";
-import type { ResolvedSkillWithProficiency } from "./skill-resolver.service.js";
+import type { ResolvedSkillRequirement } from "./skill-resolver.service.js";
 import { START_TIMELINE_ORDER } from "../types/search.types.js";
 import { knowledgeBaseConfig } from "../config/knowledge-base/index.js";
 import {
@@ -119,16 +119,18 @@ type KnowledgeBaseConfig = typeof knowledgeBaseConfig;
 
 /**
  * Expands a search request into database-level constraints.
- * Now async to support the inference engine.
+ * Now async to support the inference engine and skill hierarchy expansion.
  *
+ * @param session - Neo4j session for querying skill hierarchy
  * @param request - The search filter request from the API
- * @param resolvedRequiredSkills - Pre-resolved required skills (for structured AppliedFilter)
- * @param resolvedPreferredSkills - Pre-resolved preferred skills (for structured AppliedPreference)
+ * @param resolvedRequiredSkillRequirements - Skill requirements for required skills (each is an independent HAS_ANY filter)
+ * @param resolvedPreferredSkillRequirements - Skill requirements for preferred skills
  */
 export async function expandSearchCriteria(
+  session: Session,
   request: SearchFilterRequest,
-  resolvedRequiredSkills: ResolvedSkillWithProficiency[],
-  resolvedPreferredSkills: ResolvedSkillWithProficiency[]
+  resolvedRequiredSkillRequirements: ResolvedSkillRequirement[],
+  resolvedPreferredSkillRequirements: ResolvedSkillRequirement[]
 ): Promise<ExpandedSearchCriteria> {
   const config = knowledgeBaseConfig;
 
@@ -155,10 +157,8 @@ export async function expandSearchCriteria(
 
   // Track skills and preferred values (with resolved skill data for structured types)
   const skillsContext = trackSkillsAsConstraints(
-    request.requiredSkills,
-    request.preferredSkills,
-    resolvedRequiredSkills,
-    resolvedPreferredSkills
+    resolvedRequiredSkillRequirements,
+    resolvedPreferredSkillRequirements
   );
   const preferredContext = trackPreferredValuesAsPreferences(request);
 
@@ -179,18 +179,33 @@ export async function expandSearchCriteria(
 
     if (isFilterConstraint(derivedConstraint)) {
       const skillIds = derivedConstraint.action.targetValue as string[];
-      inferenceContext.filters.push({
-        kind: AppliedFilterKind.Skill,
-        field: 'derivedSkills',
-        operator: 'HAS_ALL',
-        skills: skillIds.map(id => ({ skillId: id, skillName: id })),
-        displayValue: `Derived: ${derivedConstraint.rule.name}`,
-        source: 'inference',
-        ruleId: derivedConstraint.rule.id,
-      });
+
+      /*
+       * Expand each derived skill through hierarchy to enable descendant matching.
+       * This fixes the inconsistency where user-requested skills got hierarchy expansion
+       * but derived skills from inference rules did not.
+       *
+       * Example: inference rule derives "Node.js" requirement
+       * → expand to [node, express, nestjs]
+       * → engineer with Express matches (satisfies Node.js requirement)
+       */
+      for (const skillId of skillIds) {
+        const expandedSkills = await expandSkillHierarchy(session, skillId);
+
+        inferenceContext.filters.push({
+          type: AppliedFilterType.Skill,
+          field: 'derivedSkills',
+          operator: 'HAS_ANY',
+          skills: expandedSkills.map(s => ({ skillId: s.skillId, skillName: s.skillName })),
+          displayValue: `Derived: ${derivedConstraint.rule.name}`,
+          source: 'inference',
+          ruleId: derivedConstraint.rule.id,
+          originalSkillId: skillId,
+        });
+      }
     } else {
       inferenceContext.preferences.push({
-        kind: AppliedPreferenceKind.Property,
+        type: AppliedPreferenceType.Property,
         field: derivedConstraint.action.targetField,
         value: JSON.stringify(derivedConstraint.action.targetValue),
         source: "inference",
@@ -267,7 +282,7 @@ function expandSeniorityToYearsExperience(
     maxYears !== null ? `${minYears} AND ${maxYears}` : `>= ${minYears}`;
 
   context.filters.push({
-    kind: AppliedFilterKind.Property,
+    type: AppliedFilterType.Property,
     field: "yearsExperience",
     operator: maxYears !== null ? "BETWEEN" : ">=",
     value: valueStr,
@@ -306,7 +321,7 @@ function expandStartTimelineConstraint(
   const allowedTimelines = START_TIMELINE_ORDER.slice(0, thresholdIndex + 1);
 
   context.filters.push({
-    kind: AppliedFilterKind.Property,
+    type: AppliedFilterType.Property,
     field: "startTimeline",
     operator: "IN",
     value: JSON.stringify(allowedTimelines),
@@ -339,7 +354,7 @@ function expandTimezoneZones(requiredTimezone: string[] | undefined): {
   const timezoneZones = requiredTimezone;
 
   context.filters.push({
-    kind: AppliedFilterKind.Property,
+    type: AppliedFilterType.Property,
     field: "timezone",
     operator: "IN",
     value: JSON.stringify(requiredTimezone),
@@ -377,7 +392,7 @@ function expandBudgetConstraints(
 
   if (filterCeiling !== null) {
     context.filters.push({
-      kind: AppliedFilterKind.Property,
+      type: AppliedFilterType.Property,
       field: "salary",
       operator: "<=",
       value: filterCeiling.toString(),
@@ -410,7 +425,7 @@ function expandTeamFocusToAlignedSkills(
   const alignedSkillIds = alignment.alignedSkillIds;
 
   context.preferences.push({
-    kind: AppliedPreferenceKind.Property,
+    type: AppliedPreferenceType.Property,
     field: "teamFocusMatch",
     value: alignedSkillIds.join(", "),
     source: "knowledge_base",
@@ -443,23 +458,21 @@ function expandPaginationConstraints(
   return { limit, offset, context };
 }
 
-function formatSkillSummary(
-  skill: SkillRequirement,
-  includeMinProficiency: boolean
-): string {
-  const parts = [skill.skill];
-  if (includeMinProficiency && skill.minProficiency)
-    parts.push(`min:${skill.minProficiency}`);
-  if (skill.preferredMinProficiency)
-    parts.push(`pref:${skill.preferredMinProficiency}`);
-  return parts.join("|");
-}
-
+/**
+ * Converts resolved skill requirements into AppliedFilter and AppliedPreference entries.
+ *
+ * Each skill requirement becomes a separate HAS_ANY filter. This enables descendant matching:
+ * - User requests "Node.js"
+ * - Resolver expands to requirement: { originalSkillId: "node", expandedSkillIds: ["node", "express", "nestjs"] }
+ * - Filter: HAS_ANY of [node, express, nestjs]
+ * - Engineer with Express (only) matches because Express is in expandedSkillIds
+ *
+ * Multiple requirements are ANDed: requesting ["Node.js", "TypeScript"] means engineer must have
+ * (any Node.js descendant) AND (any TypeScript descendant).
+ */
 function trackSkillsAsConstraints(
-  requiredSkills: SkillRequirement[] | undefined,
-  preferredSkills: SkillRequirement[] | undefined,
-  resolvedRequiredSkills: ResolvedSkillWithProficiency[],
-  resolvedPreferredSkills: ResolvedSkillWithProficiency[]
+  resolvedRequiredSkillRequirements: ResolvedSkillRequirement[],
+  resolvedPreferredSkillRequirements: ResolvedSkillRequirement[]
 ): ExpansionContext {
   const context: ExpansionContext = {
     filters: [],
@@ -467,38 +480,50 @@ function trackSkillsAsConstraints(
     defaults: [],
   };
 
-  if (requiredSkills?.length && resolvedRequiredSkills.length) {
-    const skills: ResolvedSkillConstraint[] = resolvedRequiredSkills.map((resolved, idx) => ({
-      skillId: resolved.skillId,
-      skillName: requiredSkills[idx]?.skill ?? resolved.skillId,
-      minProficiency: resolved.minProficiency,
-      preferredMinProficiency: resolved.preferredMinProficiency ?? undefined,
+  /*
+   * Each skill requirement becomes a separate filter with HAS_ANY semantics.
+   * The engineer must have at least one skill from each requirement's expanded set.
+   */
+  for (const requirement of resolvedRequiredSkillRequirements) {
+    // Build the skill constraints for all match candidates
+    const skills: ResolvedSkillConstraint[] = requirement.expandedSkillIds.map(skillId => ({
+      skillId,
+      skillName: requirement.skillIdToName.get(skillId) ?? skillId,
+      minProficiency: requirement.minProficiency,
+      preferredMinProficiency: requirement.preferredMinProficiency ?? undefined,
     }));
 
     const skillFilter: AppliedSkillFilter = {
-      kind: AppliedFilterKind.Skill,
+      type: AppliedFilterType.Skill,
       field: 'requiredSkills',
-      operator: 'HAS_ALL',
+      operator: 'HAS_ANY',
       skills,
-      displayValue: requiredSkills.map(s => formatSkillSummary(s, true)).join(', '),
+      displayValue: requirement.originalIdentifier,
       source: 'user',
+      // Track original skill for matchType classification
+      originalSkillId: requirement.originalSkillId,
     };
     context.filters.push(skillFilter);
   }
 
-  if (preferredSkills?.length && resolvedPreferredSkills.length) {
-    const skills: ResolvedSkillConstraint[] = resolvedPreferredSkills.map((resolved, idx) => ({
-      skillId: resolved.skillId,
-      skillName: preferredSkills[idx]?.skill ?? resolved.skillId,
-      minProficiency: resolved.minProficiency,
-      preferredMinProficiency: resolved.preferredMinProficiency ?? undefined,
+  /*
+   * Each preferred skill requirement becomes a separate preference.
+   * This matches required skills pattern and enables accurate requirement counting.
+   * Preferences boost ranking when engineers have matching skills.
+   */
+  for (const requirement of resolvedPreferredSkillRequirements) {
+    const skills: ResolvedSkillConstraint[] = requirement.expandedSkillIds.map(skillId => ({
+      skillId,
+      skillName: requirement.skillIdToName.get(skillId) ?? skillId,
+      minProficiency: requirement.minProficiency,
+      preferredMinProficiency: requirement.preferredMinProficiency ?? undefined,
     }));
 
     const skillPreference: AppliedSkillPreference = {
-      kind: AppliedPreferenceKind.Skill,
+      type: AppliedPreferenceType.Skill,
       field: 'preferredSkills',
       skills,
-      displayValue: preferredSkills.map(s => formatSkillSummary(s, false)).join(', '),
+      displayValue: requirement.originalIdentifier,
       source: 'user',
     };
     context.preferences.push(skillPreference);
@@ -518,7 +543,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredSeniorityLevel) {
     context.preferences.push({
-      kind: AppliedPreferenceKind.Property,
+      type: AppliedPreferenceType.Property,
       field: "preferredSeniorityLevel",
       value: request.preferredSeniorityLevel,
       source: "user",
@@ -527,7 +552,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredMaxStartTime) {
     context.preferences.push({
-      kind: AppliedPreferenceKind.Property,
+      type: AppliedPreferenceType.Property,
       field: "preferredMaxStartTime",
       value: request.preferredMaxStartTime,
       source: "user",
@@ -536,7 +561,7 @@ function trackPreferredValuesAsPreferences(
 
   if (request.preferredTimezone && request.preferredTimezone.length > 0) {
     context.preferences.push({
-      kind: AppliedPreferenceKind.Property,
+      type: AppliedPreferenceType.Property,
       field: "preferredTimezone",
       value: JSON.stringify(request.preferredTimezone),
       source: "user",
@@ -554,4 +579,41 @@ function concatenateContexts(
     preferences: contexts.flatMap((c) => c.preferences),
     defaults: contexts.flatMap((c) => c.defaults),
   };
+}
+
+interface ExpandedSkill {
+  skillId: string;
+  skillName: string;
+}
+
+/**
+ * Expands a skill ID to include all its descendants via CHILD_OF relationship.
+ * This enables descendant matching for derived skills from inference rules.
+ *
+ * Example: "Node.js" → [{ skillId: "skill_nodejs", skillName: "Node.js" }, ...]
+ *
+ * Uses CHILD_OF*0.. to include the skill itself (depth 0) plus all descendants.
+ * This matches the same traversal used by skill-resolver.service.ts for user skills.
+ */
+async function expandSkillHierarchy(session: Session, skillId: string): Promise<ExpandedSkill[]> {
+  const result = await session.run(`
+    MATCH (root:Skill {id: $skillId})
+    OPTIONAL MATCH (descendant:Skill)-[:CHILD_OF*0..]->(root)
+    WHERE descendant.isCategory = false
+    RETURN COLLECT(DISTINCT { id: descendant.id, name: descendant.name }) AS descendants
+  `, { skillId });
+
+  const record = result.records[0];
+  if (!record) {
+    // Skill not found in graph - return original ID as fallback
+    return [{ skillId, skillName: skillId }];
+  }
+
+  const descendants = record.get('descendants') as Array<{ id: string; name: string }> | null;
+  if (!descendants || descendants.length === 0) {
+    return [{ skillId, skillName: skillId }];
+  }
+  return descendants
+    .filter(d => d.id !== null)
+    .map(d => ({ skillId: d.id, skillName: d.name ?? d.id }));
 }

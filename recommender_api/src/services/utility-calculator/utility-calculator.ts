@@ -8,7 +8,7 @@
  *   f_j(v_j) = utility function applied to attribute value
  */
 
-import type { CoreScores, PreferenceMatches, StartTimeline } from '../../types/search.types.js';
+import type { CoreScores, RawCoreScores, PreferenceMatches, StartTimeline } from '../../types/search.types.js';
 import { knowledgeBaseConfig } from '../../config/knowledge-base/index.js';
 import type {
   EngineerData,
@@ -162,6 +162,13 @@ export function calculateUtilityWithBreakdown(
     }
   }
 
+  // Build raw scores (0-1 normalized) for explanation generation
+  // Only include non-zero values to match scores filtering
+  const rawScores: Partial<RawCoreScores> = {};
+  if (skillMatchRaw > 0) rawScores.skillMatch = skillMatchRaw;
+  if (confidenceRaw > 0) rawScores.confidence = confidenceRaw;
+  if (experienceRaw > 0) rawScores.experience = experienceRaw;
+
   // Build preference matches - only include non-zero matches with their data
   const preferenceMatches: PreferenceMatches = {};
 
@@ -229,6 +236,7 @@ export function calculateUtilityWithBreakdown(
     utilityScore,
     scoreBreakdown: {
       scores,
+      rawScores: Object.keys(rawScores).length > 0 ? rawScores : undefined,
       preferenceMatches,
       total: utilityScore,
     },
