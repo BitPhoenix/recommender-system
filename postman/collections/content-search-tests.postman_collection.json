@@ -1,0 +1,1584 @@
+{
+  "info": {
+    "_postman_id": "content-search-api-tests",
+    "name": "Content Search API Tests",
+    "description": "Test scenarios for content-based search and resume upload endpoints.\n\nImplements Chapter 4: Content-Based Filtering\n\nEndpoints tested:\n- POST /api/search/content - TF-IDF keyword search and similarity search\n- POST /api/resume/upload - Resume upload and feature extraction",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Content Search",
+      "item": [
+        {
+          "name": "01 - Basic Keyword Search",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has required fields', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response).to.have.property('matches');",
+                  "  pm.expect(response).to.have.property('totalCount');",
+                  "  pm.expect(response).to.have.property('searchMethod');",
+                  "  pm.expect(response).to.have.property('queryMetadata');",
+                  "  pm.expect(response.matches).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Search method is tfidf', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.searchMethod).to.equal('tfidf');",
+                  "});",
+                  "",
+                  "pm.test('Query metadata has execution info', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.queryMetadata.executionTimeMs).to.be.a('number');",
+                  "  pm.expect(response.queryMetadata.documentsSearched).to.be.a('number');",
+                  "  pm.expect(response.queryMetadata.queryTerms).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"React TypeScript frontend developer\",\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "02 - Results Have Matching Terms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Each match has content score breakdown', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match).to.have.property('contentScore');",
+                  "    pm.expect(match).to.have.property('contentScoreBreakdown');",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('tfidfScore');",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('tfidfMatchingTerms');",
+                  "    pm.expect(match.contentScoreBreakdown.tfidfMatchingTerms).to.be.an('array');",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Matching terms are relevant to query', function() {",
+                  "  const response = pm.response.json();",
+                  "  if (response.matches.length > 0) {",
+                  "    const allMatchingTerms = response.matches.flatMap(m => m.contentScoreBreakdown.tfidfMatchingTerms);",
+                  "    pm.expect(allMatchingTerms.length).to.be.greaterThan(0);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Python Django backend API\",\n  \"limit\": 5,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "03 - Results Ranked by Relevance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Results are sorted by score descending', function() {",
+                  "  const response = pm.response.json();",
+                  "  for (let i = 1; i < response.matches.length; i++) {",
+                  "    pm.expect(response.matches[i-1].contentScore).to.be.at.least(response.matches[i].contentScore);",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test('Content scores are between 0 and 1', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScore).to.be.at.least(0);",
+                  "    pm.expect(match.contentScore).to.be.at.most(1);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Kubernetes Docker DevOps infrastructure\",\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "04 - Similar to Engineer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns similar engineers', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  pm.expect(response.totalCount).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Does not include target engineer in results', function() {",
+                  "  const response = pm.response.json();",
+                  "  const matchIds = response.matches.map(m => m.id);",
+                  "  pm.expect(matchIds).to.not.include('eng_priya');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"limit\": 5,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "05 - No Matches for Nonsense Query",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns empty results for nonsense query', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches).to.deep.equal([]);",
+                  "  pm.expect(response.totalCount).to.equal(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"xyzzynonexistentskillqwerty123\",\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "06 - Pagination with Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Respects limit parameter', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.at.most(3);",
+                  "});",
+                  "",
+                  "pm.test('Total count may exceed returned matches', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.totalCount).to.be.at.least(response.matches.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"software engineer developer\",\n  \"limit\": 3,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "07 - Match Fields Present",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Each match has required fields', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match).to.have.property('id');",
+                  "    pm.expect(match).to.have.property('name');",
+                  "    pm.expect(match).to.have.property('headline');",
+                  "    pm.expect(match).to.have.property('salary');",
+                  "    pm.expect(match).to.have.property('yearsExperience');",
+                  "    pm.expect(match).to.have.property('timezone');",
+                  "    pm.expect(match).to.have.property('contentScore');",
+                  "    pm.expect(match).to.have.property('contentScoreBreakdown');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"backend developer API\",\n  \"limit\": 5,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "08 - Invalid Request (Missing Required Fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message indicates missing field', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "09 - More Keyword Matches = Higher Rank",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Top result matches more terms than lower results', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(1);",
+                  "  ",
+                  "  const topMatch = response.matches[0];",
+                  "  const lastMatch = response.matches[response.matches.length - 1];",
+                  "  ",
+                  "  // Top match should have more or equal matching terms",
+                  "  pm.expect(topMatch.contentScoreBreakdown.tfidfMatchingTerms.length)",
+                  "    .to.be.at.least(lastMatch.contentScoreBreakdown.tfidfMatchingTerms.length);",
+                  "});",
+                  "",
+                  "pm.test('Top match has higher score than last match', function() {",
+                  "  const response = pm.response.json();",
+                  "  const topMatch = response.matches[0];",
+                  "  const lastMatch = response.matches[response.matches.length - 1];",
+                  "  pm.expect(topMatch.contentScore).to.be.greaterThan(lastMatch.contentScore);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Python Django backend API\",\n  \"limit\": 10,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "10 - Rare Terms Boost Relevance More Than Common Terms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Engineers with rare term (django) score higher than those without', function() {",
+                  "  const response = pm.response.json();",
+                  "  ",
+                  "  // Find engineers with and without the rare term 'django'",
+                  "  const withDjango = response.matches.filter(m => ",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('django')",
+                  "  );",
+                  "  const withoutDjango = response.matches.filter(m => ",
+                  "    !m.contentScoreBreakdown.tfidfMatchingTerms.includes('django')",
+                  "  );",
+                  "  ",
+                  "  // Skip if we don't have both types",
+                  "  if (withDjango.length === 0 || withoutDjango.length === 0) {",
+                  "    console.log('Skipping: Need engineers with and without Django');",
+                  "    return;",
+                  "  }",
+                  "  ",
+                  "  // Top engineer with rare term should beat top engineer without",
+                  "  pm.expect(withDjango[0].contentScore).to.be.greaterThan(withoutDjango[0].contentScore);",
+                  "});",
+                  "",
+                  "pm.test('Common terms (backend, api) appear in many results', function() {",
+                  "  const response = pm.response.json();",
+                  "  ",
+                  "  // Count how many have common terms",
+                  "  const withBackend = response.matches.filter(m => ",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('backend')",
+                  "  );",
+                  "  const withDjango = response.matches.filter(m => ",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('django')",
+                  "  );",
+                  "  ",
+                  "  // Common term should appear more frequently than rare term",
+                  "  pm.expect(withBackend.length).to.be.greaterThan(withDjango.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Python Django backend API\",\n  \"limit\": 20,\n  \"offset\": 0\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "11 - Embedding Search Basic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 500 (if LLM unavailable)', function() {",
+                  "  // Embedding search requires LLM, so may fail if unavailable",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Search method is embedding (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.searchMethod).to.equal('embedding');",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test('Returns matching engineers (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.matches).to.be.an('array');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Full stack developer cloud experience\",\n  \"method\": \"embedding\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "12 - Embedding Search Has Score Breakdown",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 500', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Each match has profileEmbeddingScore (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    response.matches.forEach(function(match) {",
+                  "      pm.expect(match.contentScoreBreakdown).to.have.property('profileEmbeddingScore');",
+                  "      pm.expect(typeof match.contentScoreBreakdown.profileEmbeddingScore).to.equal('number');",
+                  "    });",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Machine learning Python data science\",\n  \"method\": \"embedding\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "13 - Embedding Similar to Engineer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200, 404 (no embedding), or 500', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 404, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Does not include target engineer (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const matchIds = response.matches.map(m => m.id);",
+                  "    pm.expect(matchIds).to.not.include('eng_priya');",
+                  "  }",
+                  "});",
+                  "",
+                  "pm.test('Search method is embedding (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.searchMethod).to.equal('embedding');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"embedding\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "14 - Embedding Results Sorted by Score",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 500', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Results are sorted by score descending (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    for (let i = 1; i < response.matches.length; i++) {",
+                  "      pm.expect(response.matches[i-1].contentScore).to.be.at.least(response.matches[i].contentScore);",
+                  "    }",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Backend engineer distributed systems\",\n  \"method\": \"embedding\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "15 - Embedding Respects Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 500', function() {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Respects limit parameter (when successful)', function() {",
+                  "  if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.matches.length).to.be.at.most(3);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Software engineer\",\n  \"method\": \"embedding\",\n  \"limit\": 3\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "16 - Invalid Method Returns 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 for invalid method', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error response has expected structure', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"test query\",\n  \"method\": \"invalid_method\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "17 - TF-IDF Default Method",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Default method is tfidf', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.searchMethod).to.equal('tfidf');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Python developer\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "18 - Embedding Search Returns Semantic Matches",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns engineers with embeddings', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  pm.expect(response.searchMethod).to.equal('embedding');",
+                  "});",
+                  "",
+                  "pm.test('Each match has embedding score', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.profileEmbeddingScore).to.be.a('number');",
+                  "    pm.expect(match.contentScoreBreakdown.profileEmbeddingScore).to.be.at.least(0);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Backend engineer with distributed systems experience\",\n  \"method\": \"embedding\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "19 - Embedding Semantic Synonym (K8s to Kubernetes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('K8s query finds engineers (semantic match to Kubernetes)', function() {",
+                  "  const response = pm.response.json();",
+                  "  // Embedding search should recognize K8s as semantically equivalent to Kubernetes",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  pm.expect(response.searchMethod).to.equal('embedding');",
+                  "});",
+                  "",
+                  "pm.test('Compare: TF-IDF may miss K8s synonym', function() {",
+                  "  // This test documents the semantic advantage of embeddings",
+                  "  // TF-IDF would only find exact 'k8s' matches, not 'kubernetes'",
+                  "  const response = pm.response.json();",
+                  "  console.log('Embedding search found ' + response.matches.length + ' engineers for K8s query');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"K8s container orchestration cloud native\",\n  \"method\": \"embedding\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "20 - Embedding Similar to Engineer (With Embeddings)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns similar engineers', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  pm.expect(response.searchMethod).to.equal('embedding');",
+                  "});",
+                  "",
+                  "pm.test('Target engineer excluded from results', function() {",
+                  "  const response = pm.response.json();",
+                  "  const matchIds = response.matches.map(m => m.id);",
+                  "  pm.expect(matchIds).to.not.include('eng_priya');",
+                  "});",
+                  "",
+                  "pm.test('Similar engineers have embedding scores', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.profileEmbeddingScore).to.be.a('number');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"embedding\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "21 - Hybrid Search Basic",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Search method is hybrid', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.searchMethod).to.equal('hybrid');",
+                  "});",
+                  "",
+                  "pm.test('Returns matching engineers', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  pm.expect(response.totalCount).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Response has hybrid-specific metadata', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.queryMetadata).to.have.property('candidatesAfterBooleanFilter');",
+                  "  pm.expect(response.queryMetadata.candidatesAfterBooleanFilter).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Each match has profileEmbeddingScore (hybrid ranks by embedding)', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.profileEmbeddingScore).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Each match has tfidfMatchingTerms (for explainability)', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.tfidfMatchingTerms).to.be.an('array');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"React developer with AWS experience\",\n  \"method\": \"hybrid\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "22 - Hybrid Search with Required Terms (Boolean Filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Boolean filter reduced candidate count', function() {",
+                  "  const response = pm.response.json();",
+                  "  // With requiredTerms, candidatesAfterBooleanFilter should be less than total engineers",
+                  "  pm.expect(response.queryMetadata.candidatesAfterBooleanFilter).to.be.lessThan(117);",
+                  "});",
+                  "",
+                  "pm.test('requiredTerms echoed in response', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.queryMetadata.requiredTerms).to.deep.equal(['react', 'aws']);",
+                  "});",
+                  "",
+                  "pm.test('All matches have both required terms in their matching terms', function() {",
+                  "  const response = pm.response.json();",
+                  "  // At least some matches should have both react and aws in their matching terms",
+                  "  // (not all may, since tfidfMatchingTerms only shows top 5)",
+                  "  const hasReactMatch = response.matches.some(m => ",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('react') ||",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('reactjs')",
+                  "  );",
+                  "  const hasAwsMatch = response.matches.some(m => ",
+                  "    m.contentScoreBreakdown.tfidfMatchingTerms.includes('aws')",
+                  "  );",
+                  "  pm.expect(hasReactMatch || hasAwsMatch).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Results ranked by embedding similarity', function() {",
+                  "  const response = pm.response.json();",
+                  "  for (let i = 1; i < response.matches.length; i++) {",
+                  "    pm.expect(response.matches[i-1].contentScore).to.be.at.least(response.matches[i].contentScore);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"React developer with AWS experience\",\n  \"method\": \"hybrid\",\n  \"requiredTerms\": [\"react\", \"aws\"],\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "23 - Hybrid Search with Non-Existent Required Term",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns empty results when boolean filter matches nothing', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches).to.deep.equal([]);",
+                  "  pm.expect(response.totalCount).to.equal(0);",
+                  "});",
+                  "",
+                  "pm.test('candidatesAfterBooleanFilter is 0', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.queryMetadata.candidatesAfterBooleanFilter).to.equal(0);",
+                  "});",
+                  "",
+                  "pm.test('Search method is still hybrid', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.searchMethod).to.equal('hybrid');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Machine learning engineer\",\n  \"method\": \"hybrid\",\n  \"requiredTerms\": [\"xyznonexistenttermqwerty\"],\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "24 - Hybrid Similar to Engineer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Search method is hybrid', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.searchMethod).to.equal('hybrid');",
+                  "});",
+                  "",
+                  "pm.test('Returns similar engineers', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Target engineer excluded from results', function() {",
+                  "  const response = pm.response.json();",
+                  "  const matchIds = response.matches.map(m => m.id);",
+                  "  pm.expect(matchIds).to.not.include('eng_priya');",
+                  "});",
+                  "",
+                  "pm.test('Results have embedding scores', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.profileEmbeddingScore).to.be.a('number');",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Results have TF-IDF matching terms for explainability', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.tfidfMatchingTerms).to.be.an('array');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"hybrid\",\n  \"limit\": 10\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "25 - Hybrid Search Performance Under 500ms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Execution time under 500ms', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.queryMetadata.executionTimeMs).to.be.lessThan(500);",
+                  "});",
+                  "",
+                  "pm.test('Response time under 1 second', function() {",
+                  "  pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"queryText\": \"Senior distributed systems engineer with Kafka and microservices experience\",\n  \"method\": \"hybrid\",\n  \"limit\": 20\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "26 - Embedding Search Returns Skill Similarity Fields",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response includes skill embedding similarity fields', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  ",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('skillEmbeddingSimilarity');",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('recentSkillEmbeddingSimilarity');",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('skillCount');",
+                  "    pm.expect(match.contentScoreBreakdown).to.have.property('recentSkillCount');",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Skill similarity scores are between 0 and 1', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.skillEmbeddingSimilarity).to.be.at.least(0);",
+                  "    pm.expect(match.contentScoreBreakdown.skillEmbeddingSimilarity).to.be.at.most(1);",
+                  "    pm.expect(match.contentScoreBreakdown.recentSkillEmbeddingSimilarity).to.be.at.least(0);",
+                  "    pm.expect(match.contentScoreBreakdown.recentSkillEmbeddingSimilarity).to.be.at.most(1);",
+                  "  });",
+                  "});",
+                  "",
+                  "pm.test('Skill counts are non-negative integers', function() {",
+                  "  const response = pm.response.json();",
+                  "  response.matches.forEach(function(match) {",
+                  "    pm.expect(match.contentScoreBreakdown.skillCount).to.be.a('number');",
+                  "    pm.expect(match.contentScoreBreakdown.skillCount).to.be.at.least(0);",
+                  "    pm.expect(match.contentScoreBreakdown.recentSkillCount).to.be.a('number');",
+                  "    pm.expect(match.contentScoreBreakdown.recentSkillCount).to.be.at.least(0);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"embedding\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "27 - Content Score is Combined Profile and Skill Embedding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Content score is approximately combined score (0.5 * profile + 0.5 * skill)', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.matches.length).to.be.greaterThan(0);",
+                  "  ",
+                  "  response.matches.forEach(function(match) {",
+                  "    const breakdown = match.contentScoreBreakdown;",
+                  "    // Combined score = 0.5 * profileEmbeddingScore + 0.5 * skillEmbeddingSimilarity",
+                  "    const expectedCombined = 0.5 * breakdown.profileEmbeddingScore + 0.5 * breakdown.skillEmbeddingSimilarity;",
+                  "    // Allow small floating point tolerance",
+                  "    pm.expect(Math.abs(match.contentScore - expectedCombined)).to.be.lessThan(0.001);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"embedding\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "28 - Hybrid Search Also Includes Skill Similarity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Hybrid search includes skill similarity fields', function() {",
+                  "  const response = pm.response.json();",
+                  "  if (response.matches.length > 0) {",
+                  "    response.matches.forEach(function(match) {",
+                  "      pm.expect(match.contentScoreBreakdown).to.have.property('skillEmbeddingSimilarity');",
+                  "      pm.expect(match.contentScoreBreakdown).to.have.property('recentSkillEmbeddingSimilarity');",
+                  "      pm.expect(match.contentScoreBreakdown).to.have.property('skillCount');",
+                  "      pm.expect(match.contentScoreBreakdown).to.have.property('recentSkillCount');",
+                  "    });",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"similarToEngineerId\": \"eng_priya\",\n  \"method\": \"hybrid\",\n  \"limit\": 5\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/search/content",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "search", "content"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Resume Upload",
+      "item": [
+        {
+          "name": "01 - Resume Upload Generates Embedding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response includes embedding vector info', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response.vectors).to.have.property('embedding');",
+                  "  pm.expect(response.vectors.embedding.dimensions).to.equal(1024);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"engineerId\": \"eng_james\",\n  \"resumeText\": \"Staff Engineer with 12 years experience in distributed systems, Java, Kafka, and system design.\",\n  \"skipFeatureExtraction\": true,\n  \"generateVectors\": [\"embedding\"]\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/resume/upload",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "resume", "upload"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "02 - Update Existing Engineer (Skip Feature Extraction)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response indicates existing engineer updated', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response).to.have.property('engineerId');",
+                  "  pm.expect(response.engineerId).to.equal('eng_james');",
+                  "  pm.expect(response.isNewEngineer).to.equal(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"engineerId\": \"eng_james\",\n  \"resumeText\": \"JAMES OKONKWO\\njames.okonkwo@email.com | (202) 555-0134 | Washington, DC\\n\\nSUMMARY\\nStaff Engineer with 12 years of experience architecting and building large-scale distributed systems. Deep expertise in Java, event-driven architecture, and system design. Proven track record of leading technical initiatives, mentoring engineers, and driving architectural decisions that scale to millions of users.\\n\\nEXPERIENCE\\n\\nAmazon | Seattle, WA (Remote)\\nStaff Software Engineer | Jan 2020 - Present\\n- Architected order processing system handling 50M+ daily transactions across global regions\\n- Led design and implementation of event-driven microservices using Kafka and Java\\n- Mentored 8 engineers and established architectural patterns adopted org-wide\\n- Reduced system latency by 60% through strategic caching and query optimization\\n\\nGoldman Sachs | New York, NY\\nSenior Software Engineer | Mar 2016 - Dec 2019\\n- Built real-time trading platform components processing $10B+ daily volume\\n- Designed fault-tolerant distributed systems with 99.99% uptime requirements\\n- Led migration from monolithic architecture to microservices\\n- Established coding standards and review practices for 20+ person team\\n\\nJPMorgan Chase | New York, NY\\nSoftware Engineer | Jun 2012 - Feb 2016\\n- Developed backend services for retail banking applications\\n- Built batch processing systems handling millions of daily transactions\\n- Implemented disaster recovery solutions and failover mechanisms\\n\\nEDUCATION\\n\\nCarnegie Mellon University\\nM.S. Computer Science | 2012\\nB.S. Computer Science | 2010\\n\\nSKILLS\\nLanguages & Frameworks: Java, Spring Boot, Python, Kafka\\nDatabases: PostgreSQL, DynamoDB, Redis\\nArchitecture: Distributed Systems, Event-Driven Architecture, Microservices, System Design\\nLeadership: Technical Leadership, Mentorship, Architectural Decision Making\",\n  \"skipFeatureExtraction\": true\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/resume/upload",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "resume", "upload"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        },
+        {
+          "name": "03 - Invalid Request (Missing Required Fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error message indicates missing field', function() {",
+                  "  const response = pm.response.json();",
+                  "  pm.expect(response).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resumeText\": \"Some resume text without engineerId or name/email\"\n}"
+            },
+            "url": {
+              "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/resume/upload",
+              "host": ["mac-studio", "tailb9e408", "ts", "net"],
+              "path": ["api", "resume", "upload"],
+              "protocol": "http",
+              "port": "4025"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

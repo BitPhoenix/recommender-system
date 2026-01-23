@@ -6,6 +6,7 @@ interface Config {
   NEO4J_PASSWORD: string;
   LLM_HOST: string;
   LLM_MODEL: string;
+  LLM_EMBEDDING_MODEL: string;
   LLM_ENABLED: boolean;
   LLM_TIMEOUT_MS: number;
 }
@@ -18,6 +19,7 @@ const config: Config = {
   NEO4J_PASSWORD: process.env.NEO4J_PASSWORD || "password",
   LLM_HOST: process.env.LLM_HOST || "http://127.0.0.1:11434",
   LLM_MODEL: process.env.LLM_MODEL || "qwen2.5:14b-instruct",
+  LLM_EMBEDDING_MODEL: process.env.LLM_EMBEDDING_MODEL || "mxbai-embed-large",
   LLM_ENABLED: process.env.LLM_ENABLED !== "false",
   LLM_TIMEOUT_MS: parseInt(process.env.LLM_TIMEOUT_MS || "5000", 10),
 };

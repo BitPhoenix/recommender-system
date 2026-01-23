@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { generateCompletion, isLLMAvailable, resetConnectionState } from "./llm.service.js";
+import {
+  generateCompletion,
+  generateEmbedding,
+  getEmbeddingModelName,
+  isLLMAvailable,
+  resetConnectionState,
+} from "./llm.service.js";
+
+// Create a mock embedding array
+const mockEmbedding = new Array(1024).fill(0.1);
 
 // Mock the ollama module
 vi.mock("ollama", () => {
@@ -8,6 +17,9 @@ vi.mock("ollama", () => {
       list = vi.fn().mockResolvedValue({ models: [] });
       chat = vi.fn().mockResolvedValue({
         message: { content: "Staff engineers typically earn $180,000+" },
+      });
+      embed = vi.fn().mockResolvedValue({
+        embeddings: [new Array(1024).fill(0.1)],
       });
     },
   };
@@ -18,6 +30,7 @@ vi.mock("../config.js", () => ({
   default: {
     LLM_HOST: "http://127.0.0.1:11434",
     LLM_MODEL: "qwen2.5:14b-instruct",
+    LLM_EMBEDDING_MODEL: "mxbai-embed-large",
     LLM_ENABLED: true,
     LLM_TIMEOUT_MS: 5000,
   },
@@ -52,6 +65,30 @@ describe("llm.service", () => {
         systemPrompt: "You are a helpful assistant",
       });
       expect(result).toBeTruthy();
+    });
+  });
+
+  describe("generateEmbedding", () => {
+    it("generates embedding vector for text", async () => {
+      const result = await generateEmbedding("Python developer with machine learning experience");
+      expect(result).toBeInstanceOf(Array);
+      expect(result).toHaveLength(1024);
+    });
+
+    it("returns embedding with expected dimensionality", async () => {
+      const result = await generateEmbedding("Test text");
+      expect(result).toHaveLength(1024);
+      // All values should be numbers
+      result?.forEach((value) => {
+        expect(typeof value).toBe("number");
+      });
+    });
+  });
+
+  describe("getEmbeddingModelName", () => {
+    it("returns the configured embedding model name", () => {
+      const modelName = getEmbeddingModelName();
+      expect(modelName).toBe("mxbai-embed-large");
     });
   });
 });
