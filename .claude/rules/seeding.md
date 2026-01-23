@@ -13,8 +13,10 @@ seeds/skills.ts
 seeds/engineers.ts
 seeds/stories.ts
 seeds/assessments.ts
+seeds/resumes.ts
 seeds/types.ts
 seeds/index.ts
+seeds/embeddings.ts
 ```
 
 **Do not ask the user to run seeds manually.** After modifying seed files, verify the seed completed successfully by running Cypher queries against Neo4j:

@@ -2,8 +2,13 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install necessary packages
-RUN apk add --no-cache curl bash
+# Install necessary packages including PDF/OCR tools
+RUN apk add --no-cache \
+    curl \
+    bash \
+    tesseract-ocr \
+    tesseract-ocr-data-eng \
+    poppler-utils
 
 # Copy package files first for better caching
 COPY recommender_api/package*.json ./

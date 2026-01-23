@@ -1,0 +1,54 @@
+MARCUS JOHNSON
+Junior Backend Developer
+marcus.j@email.com | Austin, TX | github.com/marcusj
+
+SUMMARY
+Enthusiastic backend developer with 2 years of experience in Python and Django. Passionate about building clean, efficient APIs and learning new technologies. Eager to grow in a fast-paced startup environment.
+
+TECHNICAL SKILLS
+Languages: Python, JavaScript, SQL
+Frameworks: Django, Flask, FastAPI
+Databases: PostgreSQL, MySQL, SQLite
+Tools: Git, Docker, Linux, VS Code
+Cloud: AWS (basic), Heroku
+
+WORK EXPERIENCE
+
+Backend Developer
+FinTechStartup, Austin, TX
+January 2023 - Present
+- Develop and maintain REST APIs using Django REST Framework
+- Write unit tests achieving 80% code coverage with pytest
+- Collaborate with frontend team to design API contracts
+- Participate in daily standups and sprint planning
+
+Junior Developer
+LocalAgency LLC, Austin, TX
+June 2022 - December 2022
+- Built CRUD applications for small business clients using Django
+- Created database schemas and wrote raw SQL queries for reporting
+- Deployed applications to Heroku and managed environment variables
+- Fixed bugs and responded to client feedback
+
+Software Development Intern
+TechCorpEnterprise Inc., Dallas, TX
+May 2021 - August 2021
+- Assisted senior developers with Python scripting tasks
+- Wrote documentation for internal tools
+- Learned agile development practices
+
+PROJECTS
+
+Personal Finance Tracker (Personal Project)
+- Built full-stack application with Django backend and Vue.js frontend
+- Implemented user authentication using Django Allauth
+- Deployed to AWS EC2 with nginx and gunicorn
+
+API Rate Limiter (Open Source Contribution)
+- Contributed rate limiting middleware to popular Flask extension
+- Wrote comprehensive tests and documentation
+
+EDUCATION
+B.S. Computer Science, University of Texas at Austin, 2022
+- GPA: 3.6/4.0
+- Relevant Coursework: Data Structures, Algorithms, Database Systems, Web Development

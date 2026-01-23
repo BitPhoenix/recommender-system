@@ -1,8 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
+import { MulterError } from 'multer';
 import searchRoutes from './routes/search.routes.js';
 import similarityRoutes from './routes/similarity.routes.js';
+import resumeRoutes from './routes/resume.routes.js';
+import contentSearchRoutes from './routes/content-search.routes.js';
 import driver from './neo4j.js';
 
 export function createApp() {
@@ -35,7 +38,43 @@ export function createApp() {
 
   // API routes
   app.use('/api/search', searchRoutes);
+  app.use('/api/search', contentSearchRoutes);
   app.use('/api/engineers', similarityRoutes);
+  app.use('/api/resume', resumeRoutes);
+
+  // Error handling for file uploads
+  app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+    if (err instanceof MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        res.status(413).json({
+          error: {
+            code: "FILE_TOO_LARGE",
+            message: "File size exceeds the 10 MB limit",
+          },
+        });
+        return;
+      }
+      res.status(400).json({
+        error: {
+          code: "FILE_UPLOAD_ERROR",
+          message: err.message,
+        },
+      });
+      return;
+    }
+
+    if (err.message?.includes("Invalid file type")) {
+      res.status(415).json({
+        error: {
+          code: "INVALID_FILE_TYPE",
+          message: err.message,
+        },
+      });
+      return;
+    }
+
+    next(err);
+  });
 
   return app;
 }

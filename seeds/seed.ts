@@ -15,6 +15,13 @@ import {
   engineerBusinessDomainExperience,
   engineerTechnicalDomainExperience,
 } from './engineers';
+import { seedSkillSynonyms } from './skill-synonyms';
+import { seedCompanies } from './companies';
+import { seedResumes } from './resumes';
+import { createVectorIndices } from './migrations/001-add-vector-indices';
+import { addSkillVectorIndex } from './migrations/002-add-skill-vector-index';
+import { seedEngineerEmbeddings } from './embeddings';
+import { seedSkillEmbeddings } from './skill-embeddings';
 
 // ============================================
 // CONFIGURATION
@@ -56,6 +63,9 @@ async function createConstraints(session: Session): Promise<void> {
     'CREATE CONSTRAINT business_domain_id IF NOT EXISTS FOR (bd:BusinessDomain) REQUIRE bd.id IS UNIQUE',
     'CREATE CONSTRAINT technical_domain_id IF NOT EXISTS FOR (td:TechnicalDomain) REQUIRE td.id IS UNIQUE',
     'CREATE CONSTRAINT skill_category_id IF NOT EXISTS FOR (sc:SkillCategory) REQUIRE sc.id IS UNIQUE',
+    // Resume and work experience constraints
+    'CREATE CONSTRAINT resume_engineer_id IF NOT EXISTS FOR (r:Resume) REQUIRE r.engineerId IS UNIQUE',
+    'CREATE CONSTRAINT work_experience_id IF NOT EXISTS FOR (we:WorkExperience) REQUIRE we.id IS UNIQUE',
   ];
 
   for (const constraint of constraints) {
@@ -721,6 +731,10 @@ async function seed(): Promise<void> {
       await cleanupRoleCategoryChildOf(session);
       // Note: Skill→SkillCategory memberships are seeded after domains
       await seedSkillCorrelations(session);
+      // Seed skill synonyms for fuzzy matching
+      await seedSkillSynonyms(session);
+      // Seed well-known companies and aliases
+      await seedCompanies(session);
     }
 
     if (shouldSeedCategory('domains')) {
@@ -751,6 +765,9 @@ async function seed(): Promise<void> {
         await seedEngineerBusinessDomainExperience(session);
         await seedEngineerTechnicalDomainExperience(session);
       }
+
+      // Seed resumes and work experiences (requires engineers and skills to be seeded)
+      await seedResumes(session);
     }
 
     if (shouldSeedCategory('stories')) {
@@ -770,6 +787,14 @@ async function seed(): Promise<void> {
       await seedEngineerCertifications(session);
       await seedSkillEvidence(session);
     }
+
+    // Run migrations
+    await createVectorIndices(session);
+    await addSkillVectorIndex(session);
+
+    // Generate embeddings (requires migrations to be run first)
+    await seedEngineerEmbeddings(session);
+    await seedSkillEmbeddings(session);
 
     console.log('\nSeed completed successfully!');
 

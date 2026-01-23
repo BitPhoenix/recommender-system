@@ -2,7 +2,7 @@ import { Ollama } from "ollama";
 import config from "../config.js";
 
 /*
- * LLM service for generating text completions via Ollama.
+ * LLM service for generating text completions and embeddings via Ollama.
  * Provides graceful degradation if Ollama is unavailable.
  */
 
@@ -100,4 +100,55 @@ export async function generateCompletion(
     }
     return null;
   }
+}
+
+/*
+ * Generate an embedding vector for text using Ollama.
+ * Returns null if LLM is unavailable or on error.
+ *
+ * Uses the configured embedding model (default: mxbai-embed-large, 1024 dimensions).
+ */
+export async function generateEmbedding(text: string): Promise<number[] | null> {
+  if (!(await isLLMAvailable())) {
+    return null;
+  }
+
+  try {
+    const client = getClient();
+
+    /*
+     * Use a longer timeout for embeddings since they process the full text.
+     * Typical embedding generation takes 100-500ms for short text,
+     * but can take 1-2s for longer documents.
+     */
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.LLM_TIMEOUT_MS * 2);
+
+    try {
+      const response = await client.embed({
+        model: config.LLM_EMBEDDING_MODEL,
+        input: text,
+      });
+
+      clearTimeout(timeoutId);
+      return response.embeddings[0];
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.warn("[LLM] Embedding request timed out");
+    } else {
+      console.warn("[LLM] Embedding generation failed:", error);
+    }
+    return null;
+  }
+}
+
+/*
+ * Get the embedding model name for metadata.
+ */
+export function getEmbeddingModelName(): string {
+  return config.LLM_EMBEDDING_MODEL;
 }

@@ -1,0 +1,883 @@
+{
+  "info": {
+    "_postman_id": "resume-file-upload-tests",
+    "name": "Resume File Upload API Tests",
+    "description": "Test scenarios for POST /api/resume/upload/file endpoint covering PDF upload, extraction, and error handling.\n\nPhase 1: Native PDF text extraction.\nPhase 2: OCR fallback for scanned PDFs (tesseract + poppler-utils).\nPhase 3: DOCX support via mammoth.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - PDF Upload Success",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/native-text-layer-doesnt-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test Engineer PDF",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "test-pdf@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a PDF with embedded text layer. Should extract text using pdf-native method."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('engineerId');",
+              "    pm.expect(response).to.have.property('isNewEngineer');",
+              "    pm.expect(response).to.have.property('extractionMetadata');",
+              "});",
+              "",
+              "pm.test('Extraction metadata has correct method', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('pdf-native');",
+              "});",
+              "",
+              "pm.test('Extraction metadata has pageCount and textLength', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.pageCount).to.be.a('number');",
+              "    pm.expect(response.extractionMetadata.pageCount).to.be.at.least(1);",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.a('number');",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});",
+              "",
+              "pm.test('isNewEngineer is true for new upload', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewEngineer).to.be.true;",
+              "});",
+              "",
+              "// Store engineerId for later tests",
+              "if (pm.response.code === 200) {",
+              "    pm.globals.set('testEngineerId', pm.response.json().engineerId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - PDF Upload Updates Existing Engineer",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/native-text-layer-doesnt-trigger-ocr.pdf"
+            },
+            {
+              "key": "engineerId",
+              "value": "{{testEngineerId}}",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a PDF for an existing engineer. Should update their resume."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('isNewEngineer is false for existing engineer', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewEngineer).to.be.false;",
+              "});",
+              "",
+              "pm.test('engineerId matches the provided ID', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.engineerId).to.equal(pm.globals.get('testEngineerId'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Unsupported File Type (TXT)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/package.json"
+            },
+            {
+              "key": "name",
+              "value": "Test Bad File",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "bad-file@example.com",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a non-PDF/DOCX file. Should return 415 INVALID_FILE_TYPE."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 415', function () {",
+              "    pm.response.to.have.status(415);",
+              "});",
+              "",
+              "pm.test('Error code is INVALID_FILE_TYPE', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.code).to.equal('INVALID_FILE_TYPE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Missing File",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "name",
+              "value": "Test No File",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "no-file@example.com",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "POST without file attachment. Should return 400 NO_FILE."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Error code is NO_FILE', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.code).to.equal('NO_FILE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Empty PDF (Insufficient Text)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/empty-pdf-triggers-extraction-failure.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test Empty PDF",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "empty-pdf@example.com",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a PDF with no text layer. Should return 422 EXTRACTION_FAILED."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 422', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "pm.test('Error code is EXTRACTION_FAILED', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.code).to.equal('EXTRACTION_FAILED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Response Has Extraction Metadata",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/native-text-layer-doesnt-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test Metadata Check",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "metadata-check@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Verify that the response includes all extraction metadata fields."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('extractionMetadata has all required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata).to.have.property('method');",
+              "    pm.expect(response.extractionMetadata).to.have.property('pageCount');",
+              "    pm.expect(response.extractionMetadata).to.have.property('textLength');",
+              "});",
+              "",
+              "pm.test('method is one of the valid extraction methods', function () {",
+              "    const response = pm.response.json();",
+              "    const validMethods = ['pdf-native', 'pdf-ocr', 'docx'];",
+              "    pm.expect(validMethods).to.include(response.extractionMetadata.method);",
+              "});",
+              "",
+              "pm.test('pageCount is a positive integer', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.pageCount).to.be.at.least(1);",
+              "    pm.expect(Number.isInteger(response.extractionMetadata.pageCount)).to.be.true;",
+              "});",
+              "",
+              "pm.test('textLength is a positive integer', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(1);",
+              "    pm.expect(Number.isInteger(response.extractionMetadata.textLength)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - JSON Endpoint Still Works (Regression)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resumeText\": \"John Smith\\nSenior Software Engineer\\n\\nExperienced developer with 10+ years in TypeScript, React, and Node.js. Built scalable microservices at multiple startups.\",\n  \"name\": \"John Smith Regression\",\n  \"email\": \"john.regression@example.com\",\n  \"skipFeatureExtraction\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload"]
+        },
+        "description": "Verify that the original JSON endpoint still works after adding file upload support."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('engineerId');",
+              "    pm.expect(response).to.have.property('isNewEngineer');",
+              "});",
+              "",
+              "pm.test('Response does NOT have extractionMetadata (JSON endpoint)', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.not.have.property('extractionMetadata');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Scanned PDF Triggers OCR Fallback",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/scanned-image-only-does-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test Scanned PDF",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "scanned-pdf@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a scanned PDF (no native text layer). Should trigger OCR fallback and successfully extract text."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Extraction method is pdf-ocr', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('pdf-ocr');",
+              "});",
+              "",
+              "pm.test('Text was extracted via OCR', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});",
+              "",
+              "pm.test('Page count is accurate', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.pageCount).to.be.at.least(1);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Native PDF Still Uses Native Method (Regression)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/native-text-layer-doesnt-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test Native Regression",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "native-regression@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Verify that PDFs with text layers still use native extraction (not OCR) after adding OCR fallback."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Extraction method is pdf-native (not ocr)', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('pdf-native');",
+              "});",
+              "",
+              "pm.test('Text was extracted successfully', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - DOCX Upload Success",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/resume.docx"
+            },
+            {
+              "key": "name",
+              "value": "Test Engineer DOCX",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "test-docx@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a DOCX file with resume content. Should extract text using docx method."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('engineerId');",
+              "    pm.expect(response).to.have.property('isNewEngineer');",
+              "    pm.expect(response).to.have.property('extractionMetadata');",
+              "});",
+              "",
+              "pm.test('Extraction metadata has correct method', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('docx');",
+              "});",
+              "",
+              "pm.test('Extraction metadata has pageCount and textLength', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.pageCount).to.be.a('number');",
+              "    pm.expect(response.extractionMetadata.pageCount).to.equal(1);",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.a('number');",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});",
+              "",
+              "pm.test('isNewEngineer is true for new upload', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewEngineer).to.be.true;",
+              "});",
+              "",
+              "// Store engineerId for DOCX update test",
+              "if (pm.response.code === 200) {",
+              "    pm.globals.set('testDocxEngineerId', pm.response.json().engineerId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - DOCX Upload Updates Existing Engineer",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/resume.docx"
+            },
+            {
+              "key": "engineerId",
+              "value": "{{testDocxEngineerId}}",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Upload a DOCX for an existing engineer. Should update their resume."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('isNewEngineer is false for existing engineer', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewEngineer).to.be.false;",
+              "});",
+              "",
+              "pm.test('engineerId matches the provided ID', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.engineerId).to.equal(pm.globals.get('testDocxEngineerId'));",
+              "});",
+              "",
+              "pm.test('Extraction method is still docx', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('docx');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - DOCX Response Has Extraction Metadata",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/resume.docx"
+            },
+            {
+              "key": "name",
+              "value": "Test DOCX Metadata Check",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "docx-metadata-check@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Verify that DOCX upload response includes all extraction metadata fields."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('extractionMetadata has all required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata).to.have.property('method');",
+              "    pm.expect(response.extractionMetadata).to.have.property('pageCount');",
+              "    pm.expect(response.extractionMetadata).to.have.property('textLength');",
+              "});",
+              "",
+              "pm.test('method is docx', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('docx');",
+              "});",
+              "",
+              "pm.test('pageCount is 1 (DOCX does not have native page count)', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.pageCount).to.equal(1);",
+              "});",
+              "",
+              "pm.test('textLength is a positive integer', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(1);",
+              "    pm.expect(Number.isInteger(response.extractionMetadata.textLength)).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - PDF Still Works After DOCX Added (Regression)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/native-text-layer-doesnt-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test PDF After DOCX",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "pdf-after-docx@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Verify that PDF uploads still work correctly after adding DOCX support."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Extraction method is pdf-native or pdf-ocr', function () {",
+              "    const response = pm.response.json();",
+              "    const pdfMethods = ['pdf-native', 'pdf-ocr'];",
+              "    pm.expect(pdfMethods).to.include(response.extractionMetadata.method);",
+              "});",
+              "",
+              "pm.test('Text was extracted successfully', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 - OCR Still Works After DOCX Added (Regression)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "resume",
+              "type": "file",
+              "src": "recommender_api/src/services/file-extractor/__tests__/fixtures/scanned-image-only-does-trigger-ocr.pdf"
+            },
+            {
+              "key": "name",
+              "value": "Test OCR After DOCX",
+              "type": "text"
+            },
+            {
+              "key": "email",
+              "value": "ocr-after-docx@example.com",
+              "type": "text"
+            },
+            {
+              "key": "skipFeatureExtraction",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/resume/upload/file",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "resume", "upload", "file"]
+        },
+        "description": "Verify that scanned PDF OCR extraction still works correctly after adding DOCX support."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Extraction method is pdf-ocr', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.method).to.equal('pdf-ocr');",
+              "});",
+              "",
+              "pm.test('Text was extracted via OCR successfully', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractionMetadata.textLength).to.be.at.least(100);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

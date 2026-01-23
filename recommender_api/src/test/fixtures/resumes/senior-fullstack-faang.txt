@@ -1,0 +1,49 @@
+SARAH CHEN
+Senior Software Engineer
+sarah.chen@email.com | San Francisco, CA | linkedin.com/in/sarahchen
+
+PROFESSIONAL SUMMARY
+Senior Full Stack Engineer with 8 years of experience building scalable web applications. Specialized in React.js and Node.js with extensive AWS cloud infrastructure experience. Led teams at Google and multiple high-growth startups.
+
+SKILLS
+Languages: TypeScript, JavaScript, Python, Go
+Frontend: React.js, Next.js, Redux, GraphQL, Tailwind CSS
+Backend: Node.js, Express, NestJS, PostgreSQL, MongoDB, Redis
+Infrastructure: AWS (ECS, Lambda, DynamoDB), Kubernetes (k8s), Docker, Terraform
+Tools: Git, CI/CD, Datadog, Sentry
+
+EXPERIENCE
+
+Senior Software Engineer
+Google, Mountain View, CA
+July 2021 - Present
+- Led development of internal developer platform serving 2,000+ engineers
+- Architected microservices using Go and Kubernetes, reducing deployment time by 60%
+- Mentored team of 5 junior engineers, conducting code reviews and technical design sessions
+- Implemented real-time collaboration features using WebSockets and Redis pub/sub
+
+Software Engineer II
+Stripe, San Francisco, CA
+March 2019 - June 2021
+- Built payment processing dashboard handling $50M+ daily transaction volume
+- Developed React components with TypeScript, achieving 95% test coverage
+- Optimized PostgreSQL queries reducing p99 latency by 40%
+- Collaborated with product team to ship 3 major features per quarter
+
+Software Engineer
+Airbnb, San Francisco, CA
+June 2017 - February 2019
+- Developed booking flow improvements increasing conversion rate by 15%
+- Built A/B testing infrastructure using Python and Apache Kafka
+- Migrated legacy jQuery codebase to React, improving maintainability
+- Participated in on-call rotation supporting production systems
+
+Junior Software Engineer
+TechStartup Inc., San Francisco, CA
+August 2015 - May 2017
+- Full stack development using Ruby on Rails and Angular
+- Implemented RESTful APIs for mobile application backend
+- Set up automated testing pipeline reducing bug escape rate by 50%
+
+EDUCATION
+B.S. Computer Science, Stanford University, 2015

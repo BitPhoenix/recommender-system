@@ -1,0 +1,55 @@
+EMMA RODRIGUEZ
+Frontend Developer
+emma.rodriguez@email.com | Chicago, IL | portfolio.emmar.dev
+
+ABOUT ME
+Creative frontend developer with 4 years of experience building beautiful, responsive web applications. Specialized in Vue.js and modern CSS with a strong eye for design. Thrives in fast-paced agency environments delivering client projects on tight deadlines.
+
+SKILLS
+Frontend: Vue.js, Vuex, Nuxt.js, React, HTML5, CSS3, SASS/SCSS
+JavaScript: TypeScript, ES6+, Webpack, Vite
+UI/Design: Figma, Adobe XD, Tailwind CSS, Bootstrap
+Testing: Jest, Cypress, Vue Test Utils
+Tools: Git, npm, Jira, Slack
+
+PROFESSIONAL EXPERIENCE
+
+Frontend Developer
+DigitalAgency Co., Chicago, IL
+March 2022 - Present
+- Lead frontend development for 10+ client projects simultaneously
+- Build pixel-perfect responsive websites from Figma designs
+- Develop reusable Vue.js component libraries for faster project delivery
+- Collaborate with UX designers to improve user experience
+- Mentor junior developers on Vue best practices
+
+Junior Frontend Developer
+CreativeStudio LLC, Chicago, IL
+January 2020 - February 2022
+- Built marketing websites and landing pages using Vue.js and Nuxt
+- Implemented animations and micro-interactions using GSAP
+- Optimized website performance achieving 90+ Lighthouse scores
+- Participated in client meetings to gather requirements
+
+Web Developer Intern
+SmallBizWebsite Inc., Chicago, IL
+June 2019 - December 2019
+- Developed WordPress themes and plugins for local businesses
+- Created responsive layouts using CSS Grid and Flexbox
+- Learned version control with Git and GitHub
+
+NOTABLE PROJECTS
+
+E-commerce Platform Redesign (Client: RetailBrand)
+- Led frontend rebuild using Vue 3 and TypeScript
+- Implemented complex product filtering and search functionality
+- Achieved 40% improvement in page load time
+
+Restaurant Chain Website (Client: FoodChain Corp)
+- Built multi-location website with online ordering integration
+- Developed custom Vue components for menu display
+- Integrated with third-party delivery APIs
+
+EDUCATION
+B.A. Graphic Design, School of the Art Institute of Chicago, 2019
+Web Development Bootcamp Certificate, General Assembly, 2019

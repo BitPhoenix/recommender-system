@@ -1,0 +1,59 @@
+JAMES WILSON
+Staff Site Reliability Engineer
+james.wilson@email.com | Seattle, WA | linkedin.com/in/jameswilson
+
+PROFESSIONAL SUMMARY
+Staff-level SRE with 12 years of experience in infrastructure automation, cloud architecture, and platform engineering. Expert in Kubernetes, Terraform, and AWS. Led platform teams at enterprise companies serving millions of users.
+
+TECHNICAL EXPERTISE
+Cloud Platforms: AWS (Solutions Architect Professional), Google Cloud Platform (GCP), Azure
+Container Orchestration: Kubernetes, Docker, Helm, Istio service mesh
+Infrastructure as Code: Terraform, Pulumi, CloudFormation, Ansible
+Observability: Prometheus, Grafana, ELK Stack, Datadog, PagerDuty
+CI/CD: Jenkins, GitLab CI, GitHub Actions, ArgoCD, Spinnaker
+Languages: Python, Go, Bash, Ruby
+Databases: PostgreSQL, MySQL, Redis, Elasticsearch, Cassandra
+
+EXPERIENCE
+
+Staff Site Reliability Engineer
+Microsoft Azure, Seattle, WA
+April 2020 - Present
+- Architected multi-region Kubernetes platform serving 500+ microservices
+- Designed disaster recovery strategy achieving 99.99% uptime SLA
+- Led team of 8 SREs, establishing on-call practices and runbook standards
+- Reduced infrastructure costs by $2M annually through right-sizing and spot instances
+- Implemented GitOps workflow using ArgoCD for declarative deployments
+
+Principal DevOps Engineer
+Amazon Web Services (AWS), Seattle, WA
+September 2016 - March 2020
+- Built internal platform-as-a-service used by 1,000+ development teams
+- Developed Terraform modules for standardized infrastructure provisioning
+- Created observability stack processing 10TB+ logs daily
+- Mentored engineers across organization on cloud-native practices
+
+Senior Systems Engineer
+Oracle Corporation, Redwood City, CA
+March 2013 - August 2016
+- Managed on-premises data center infrastructure supporting Oracle Cloud
+- Automated server provisioning using Puppet and Chef
+- Implemented monitoring and alerting for 5,000+ servers
+- Led migration of legacy systems to virtualized infrastructure
+
+Systems Administrator
+IBM, Austin, TX
+July 2010 - February 2013
+- Administered Linux servers and storage systems
+- Wrote Bash and Python scripts for operational automation
+- Participated in 24/7 on-call rotation for production systems
+
+CERTIFICATIONS
+- AWS Solutions Architect Professional
+- Certified Kubernetes Administrator (CKA)
+- Google Cloud Professional Cloud Architect
+- HashiCorp Certified: Terraform Associate
+
+EDUCATION
+B.S. Computer Engineering, University of Washington, 2010
+M.S. Computer Science (part-time), Georgia Tech, 2015

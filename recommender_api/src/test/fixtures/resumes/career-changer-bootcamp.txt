@@ -1,0 +1,68 @@
+DAVID PARK
+Software Developer
+david.park.dev@email.com | Denver, CO | github.com/davidparkdev
+
+SUMMARY
+Career changer with a background in mechanical engineering, recently completed intensive coding bootcamp. Passionate about solving complex problems with code. Strong analytical skills from engineering background combined with newly acquired full-stack development capabilities.
+
+TECHNICAL SKILLS
+Languages: JavaScript, Python, HTML, CSS
+Frontend: React, Redux, Bootstrap
+Backend: Node.js, Express, MongoDB
+Tools: Git, GitHub, VS Code, Postman
+Learning: TypeScript, PostgreSQL, Docker
+
+BOOTCAMP PROJECTS
+
+Job Board Application (Capstone Project)
+- Full-stack MERN application for job seekers and employers
+- Implemented user authentication with JWT tokens
+- Built RESTful API with Express and MongoDB
+- Deployed to Heroku with MongoDB Atlas
+
+Weather Dashboard
+- React application consuming OpenWeather API
+- Implemented geolocation and city search features
+- Used Redux for state management
+- Styled with CSS modules and animations
+
+Task Management CLI Tool
+- Python command-line application for task tracking
+- Used SQLite for local data persistence
+- Implemented CRUD operations and filtering
+- Published to PyPI as open source
+
+CODING BOOTCAMP
+Full Stack Web Development Certificate
+TechBootcamp Academy, Denver, CO
+January 2024 - May 2024
+- 600+ hours of intensive coding instruction
+- Daily pair programming and code reviews
+- Agile methodology with weekly sprints
+- Final project presented to industry panel
+
+PREVIOUS CAREER
+
+Mechanical Engineer
+EngineeringFirm Corp., Denver, CO
+June 2018 - December 2023
+- Designed mechanical systems using CAD software
+- Analyzed data and created technical reports
+- Led cross-functional team projects
+- Automated repetitive calculations with Python scripts
+
+Junior Mechanical Engineer
+ManufacturingCo Inc., Boulder, CO
+July 2016 - May 2018
+- Assisted senior engineers with design projects
+- Conducted quality control inspections
+- Learned to use Python for data analysis
+
+EDUCATION
+B.S. Mechanical Engineering, Colorado State University, 2016
+GPA: 3.4/4.0
+
+ADDITIONAL
+- Active contributor to local tech meetups
+- Completed freeCodeCamp certifications in responsive web design
+- Building personal projects in free time to strengthen skills
