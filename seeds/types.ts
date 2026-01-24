@@ -260,3 +260,59 @@ export interface EngineerTechnicalDomainExperience {
   technicalDomainId: string;
   years: number;
 }
+
+// ============================================
+// JOB DESCRIPTION TYPES
+// ============================================
+
+export type JobSeniority = 'junior' | 'mid' | 'senior' | 'staff' | 'principal';
+
+export interface JobDescription {
+  id: string;
+  title: string;
+  description: string;
+  companyName: string;
+  location: string;
+  seniority: JobSeniority;
+  minBudget: number;
+  maxBudget: number;
+  stretchBudget?: number;
+  startTimeline: StartTimeline;
+  timezone: string[];
+  teamFocus?: 'greenfield' | 'migration' | 'maintenance' | 'scaling';
+  createdAt: string;
+}
+
+export interface JobRequiredSkill {
+  jobId: string;
+  skillId: string;
+  minProficiency?: ProficiencyLevel;
+}
+
+export interface JobPreferredSkill {
+  jobId: string;
+  skillId: string;
+  minProficiency?: ProficiencyLevel;
+}
+
+export interface JobRequiredBusinessDomain {
+  jobId: string;
+  businessDomainId: string;
+  minYears: number;
+}
+
+export interface JobPreferredBusinessDomain {
+  jobId: string;
+  businessDomainId: string;
+  minYears?: number;
+}
+
+export interface JobRequiredTechnicalDomain {
+  jobId: string;
+  technicalDomainId: string;
+}
+
+export interface JobPreferredTechnicalDomain {
+  jobId: string;
+  technicalDomainId: string;
+}

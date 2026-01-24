@@ -8,6 +8,20 @@ The API server runs via Tilt in a Kubernetes cluster (minikube). **Do not start 
 - API available at: `http://localhost:4025`
 - Neo4j available at: `bolt://localhost:7687` and `http://localhost:7474`
 - Client available at: `http://localhost:5173`
+- Ollama runs locally on macOS (via Homebrew or Ollama.app), not in a container
+
+### Running Tests
+
+Tests are run from the host machine (not inside containers). Ports are forwarded from the Kubernetes cluster:
+
+```bash
+cd recommender_api
+npm test           # Unit and integration tests
+npm run test:e2e   # E2E tests (requires Tilt running)
+```
+
+- **LLM-dependent tests**: Some integration tests require Ollama to be running locally. If Ollama is unavailable, these tests will skip gracefully.
+- **Neo4j tests**: Integration tests connect to Neo4j via `localhost:7687` (port-forwarded from the cluster).
 
 ## Design Philosophy
 

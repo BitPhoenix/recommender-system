@@ -87,6 +87,9 @@ export interface NormalizedSkillsResult {
 /*
  * Normalize a list of extracted skill names to our canonical taxonomy.
  * Returns resolved skills (matched) and unresolved skills (needs review).
+ *
+ * Note: Runs sequentially to avoid Neo4j session concurrency issues.
+ * Sessions can only run one query at a time.
  */
 export async function normalizeExtractedSkills(
   session: Session,
@@ -94,11 +97,11 @@ export async function normalizeExtractedSkills(
 ): Promise<NormalizedSkillsResult> {
   const canonicalSkills = await loadCanonicalSkills(session);
 
-  const normalizedSkills = await Promise.all(
-    extractedSkillNames.map((name) =>
-      normalizeExtractedSkill(session, name, canonicalSkills)
-    )
-  );
+  const normalizedSkills: NormalizationResult[] = [];
+  for (const name of extractedSkillNames) {
+    const result = await normalizeExtractedSkill(session, name, canonicalSkills);
+    normalizedSkills.push(result);
+  }
 
   return {
     resolvedSkills: normalizedSkills.filter((n) => n.canonicalSkillId !== null),

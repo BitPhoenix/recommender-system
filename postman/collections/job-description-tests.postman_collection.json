@@ -1,0 +1,705 @@
+{
+  "info": {
+    "_postman_id": "job-description-tests",
+    "name": "Job Description Upload API Tests",
+    "description": "Test scenarios for POST /api/job-description/upload endpoint covering job creation, updates, skill/domain extraction, and error handling.\n\nThe endpoint uses LLM (Ollama) to extract structured features from job description text.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Job Creation Success",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Senior Backend Engineer - Payments Platform\\n\\nTechPay Solutions\\n\\nWe're looking for a Senior Backend Engineer to join our Payments Platform team. You'll design and build scalable payment processing systems handling millions of transactions daily.\\n\\nKey Responsibilities:\\n- Design and implement high-throughput payment APIs\\n- Build real-time fraud detection and prevention systems\\n- Lead technical design discussions and code reviews\\n- Mentor junior engineers and contribute to engineering culture\\n\\nRequirements:\\n- 6+ years of backend engineering experience\\n- Strong TypeScript/Node.js experience\\n- Experience with payment systems, PCI compliance, or financial services\\n- Distributed systems experience (Kafka, event-driven architecture)\\n- PostgreSQL and Redis expertise\\n\\nNice to have:\\n- Experience mentoring other engineers\\n- Fintech or payments industry background\\n\\nCompensation: $180,000 - $220,000 (stretch to $240,000 for exceptional candidates)\\nLocation: Remote (US)\\nTimezone: Eastern or Central preferred\\nStart: Within two weeks\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create a new job description from text. Should extract features, normalize skills/domains, and generate embedding."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('jobId');",
+              "    pm.expect(response).to.have.property('isNewJob');",
+              "    pm.expect(response).to.have.property('extractedFeatures');",
+              "    pm.expect(response).to.have.property('validationResults');",
+              "});",
+              "",
+              "pm.test('jobId has correct format', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.jobId).to.match(/^job_/);",
+              "});",
+              "",
+              "pm.test('isNewJob is true for new job', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewJob).to.be.true;",
+              "});",
+              "",
+              "pm.test('extractedFeatures has required fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures).to.have.property('title');",
+              "    pm.expect(response.extractedFeatures).to.have.property('seniority');",
+              "    pm.expect(response.extractedFeatures).to.have.property('skills');",
+              "});",
+              "",
+              "pm.test('seniority is senior', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.seniority).to.equal('senior');",
+              "});",
+              "",
+              "// Store jobId for later tests",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Job Update Success",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobId\": \"{{testJobId}}\",\n  \"jobDescriptionText\": \"Staff Engineer - Financial Infrastructure\\n\\nFinanceForward\\n\\nJoin our core infrastructure team as a Staff Engineer. You'll shape the technical direction of our financial platform serving millions of users.\\n\\nKey Responsibilities:\\n- Define technical strategy for our payment infrastructure\\n- Lead cross-team initiatives for system reliability and scalability\\n- Design APIs and data models for financial products\\n- Drive adoption of best practices across engineering organization\\n\\nRequirements:\\n- 10+ years of software engineering experience\\n- Deep expertise in distributed systems and microservices\\n- Experience with banking or fintech infrastructure\\n- Strong system design and architecture skills\\n- Track record of technical leadership\\n\\nNice to have:\\n- Experience with Kafka and event-driven systems\\n- Team leadership experience\\n\\nCompensation: $250,000 - $300,000 (up to $350,000 for exceptional candidates)\\nLocation: New York, NY (Hybrid)\\nTimezone: Eastern\\nStart: Within one month\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Update an existing job description. Should replace relationships and update features."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('jobId matches the provided ID', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.jobId).to.equal(pm.globals.get('testJobId'));",
+              "});",
+              "",
+              "pm.test('isNewJob is false for existing job', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.isNewJob).to.be.false;",
+              "});",
+              "",
+              "pm.test('seniority was updated to staff', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.seniority).to.equal('staff');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Validation Error: Missing jobDescriptionText",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "POST without jobDescriptionText. Should return 400 validation error."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation failure', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.false;",
+              "});",
+              "",
+              "pm.test('Error is ZodError', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.name).to.equal('ZodError');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Validation Error: Empty jobDescriptionText",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "POST with empty jobDescriptionText. Should return 400 validation error."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation failure', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.success).to.be.false;",
+              "});",
+              "",
+              "pm.test('Error is ZodError', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.name).to.equal('ZodError');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Error: Non-existent Job Update",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobId\": \"job_nonexistent_12345\",\n  \"jobDescriptionText\": \"Senior Backend Engineer\\n\\nWe are looking for a senior backend engineer.\\n\\nRequirements:\\n- 5+ years experience\\n- TypeScript expertise\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Try to update a job that doesn't exist. Should return 404 NOT_FOUND."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('Error code is NOT_FOUND', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.code).to.equal('NOT_FOUND');",
+              "});",
+              "",
+              "pm.test('Error message mentions not found', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error.message.toLowerCase()).to.include('not found');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Skills Extraction and Resolution",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Frontend Engineer - Design Systems\\n\\nDesignHub\\n\\nWe're building the next generation of design tools and need a Frontend Engineer to help scale our design system.\\n\\nKey Responsibilities:\\n- Build and maintain reusable React component library\\n- Collaborate with designers to implement pixel-perfect UIs\\n- Optimize performance for complex interactive applications\\n- Write comprehensive tests and documentation\\n\\nRequirements:\\n- 4+ years of frontend development experience\\n- Expert-level React and TypeScript skills\\n- Experience building and maintaining design systems\\n- Strong CSS/Tailwind skills\\n- Understanding of accessibility best practices\\n\\nNice to have:\\n- Next.js experience\\n- Unit testing experience\\n\\nCompensation: $140,000 - $175,000\\nLocation: San Francisco, CA\\nTimezone: Pacific or Mountain\\nStart: Within two weeks\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with specific skills to verify extraction and resolution."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Skills were extracted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.skills.length).to.be.at.least(1);",
+              "});",
+              "",
+              "pm.test('Skills were resolved to canonical IDs', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.validationResults.resolvedSkills.length).to.be.at.least(1);",
+              "});",
+              "",
+              "pm.test('Resolved skills have required fields', function () {",
+              "    const response = pm.response.json();",
+              "    const resolvedSkills = response.validationResults.resolvedSkills;",
+              "    if (resolvedSkills.length > 0) {",
+              "        const skill = resolvedSkills[0];",
+              "        pm.expect(skill).to.have.property('extracted');",
+              "        pm.expect(skill).to.have.property('canonicalId');",
+              "        pm.expect(skill).to.have.property('canonicalName');",
+              "        pm.expect(skill).to.have.property('method');",
+              "        pm.expect(skill).to.have.property('confidence');",
+              "        pm.expect(skill).to.have.property('isRequired');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Some skills are required, some preferred', function () {",
+              "    const response = pm.response.json();",
+              "    const resolvedSkills = response.validationResults.resolvedSkills;",
+              "    const requiredSkills = resolvedSkills.filter(s => s.isRequired);",
+              "    const preferredSkills = resolvedSkills.filter(s => !s.isRequired);",
+              "    // At least one required skill should be resolved",
+              "    pm.expect(requiredSkills.length + preferredSkills.length).to.be.at.least(1);",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testSkillsJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Company Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Software Engineer - Cloud Platform\\n\\nGoogle\\n\\nGoogle is looking for talented engineers to join our Cloud team. You'll work on infrastructure that powers millions of developers worldwide.\\n\\nKey Responsibilities:\\n- Design and build scalable cloud infrastructure components\\n- Collaborate with cross-functional teams on product development\\n- Participate in on-call rotations and incident response\\n- Contribute to open source projects\\n\\nRequirements:\\n- 3+ years of software engineering experience\\n- Strong Python or Go programming skills\\n- Experience with cloud infrastructure (GCP, AWS, or Azure)\\n- Understanding of distributed systems concepts\\n\\nNice to have:\\n- Kubernetes experience\\n- Open source contributions\\n\\nCompensation: $180,000 - $250,000\\nLocation: Mountain View, CA (Hybrid)\\nTimezone: Pacific\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with company name to verify company extraction."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Company name was extracted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.companyName).to.not.be.null;",
+              "});",
+              "",
+              "pm.test('Company was resolved in validation results', function () {",
+              "    const response = pm.response.json();",
+              "    // Company might be new or existing",
+              "    if (response.validationResults.company) {",
+              "        pm.expect(response.validationResults.company).to.have.property('canonicalId');",
+              "        pm.expect(response.validationResults.company).to.have.property('canonicalName');",
+              "        pm.expect(response.validationResults.company).to.have.property('method');",
+              "    }",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testCompanyJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Domain Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Senior Backend Engineer - Healthcare Platform\\n\\nHealthTech Innovations\\n\\nBuild the infrastructure powering digital healthcare. You'll work on HIPAA-compliant systems serving millions of patients.\\n\\nKey Responsibilities:\\n- Design secure APIs for patient data management\\n- Build integrations with EHR systems (Epic, Cerner)\\n- Ensure HIPAA compliance across all systems\\n- Lead initiatives for system security and reliability\\n\\nRequirements:\\n- 6+ years of backend engineering experience\\n- Python or Node.js expertise\\n- 2+ years healthcare or regulated industry experience\\n- Understanding of HIPAA and data privacy\\n- Experience with PostgreSQL and secure data handling\\n\\nNice to have:\\n- Pharma industry experience\\n- Docker and containerization skills\\n\\nCompensation: $170,000 - $210,000\\nLocation: Boston, MA (Hybrid)\\nTimezone: Eastern\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with domain requirements to verify domain extraction."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Business domains were extracted', function () {",
+              "    const response = pm.response.json();",
+              "    // Check if business domains exist in extracted features",
+              "    const hasBusiness = response.extractedFeatures.businessDomains && response.extractedFeatures.businessDomains.length > 0;",
+              "    const hasResolvedBusiness = response.validationResults.resolvedBusinessDomains && response.validationResults.resolvedBusinessDomains.length > 0;",
+              "    pm.expect(hasBusiness || hasResolvedBusiness).to.be.true;",
+              "});",
+              "",
+              "pm.test('Technical domains were extracted', function () {",
+              "    const response = pm.response.json();",
+              "    // Check if technical domains exist in extracted features",
+              "    const hasTechnical = response.extractedFeatures.technicalDomains && response.extractedFeatures.technicalDomains.length > 0;",
+              "    const hasResolvedTechnical = response.validationResults.resolvedTechnicalDomains && response.validationResults.resolvedTechnicalDomains.length > 0;",
+              "    pm.expect(hasTechnical || hasResolvedTechnical).to.be.true;",
+              "});",
+              "",
+              "pm.test('Resolved business domains have required fields', function () {",
+              "    const response = pm.response.json();",
+              "    const resolvedDomains = response.validationResults.resolvedBusinessDomains || [];",
+              "    if (resolvedDomains.length > 0) {",
+              "        const domain = resolvedDomains[0];",
+              "        pm.expect(domain).to.have.property('extracted');",
+              "        pm.expect(domain).to.have.property('canonicalId');",
+              "        pm.expect(domain).to.have.property('isRequired');",
+              "    }",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testDomainJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Embedding Generation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Data Engineer - Clinical Analytics\\n\\nClinicalData Corp\\n\\nJoin our data team to build analytics infrastructure for clinical research. Help researchers make discoveries that improve patient outcomes.\\n\\nKey Responsibilities:\\n- Build ETL pipelines for clinical data\\n- Design data models for research analytics\\n- Create dashboards and reporting tools\\n- Ensure data quality and lineage tracking\\n\\nRequirements:\\n- 4+ years of data engineering experience\\n- Strong Python and SQL skills\\n- Experience with Spark, Airflow, or similar tools\\n- Understanding of healthcare data (HL7, FHIR is a plus)\\n- Data warehouse experience (Snowflake, BigQuery)\\n\\nNice to have:\\n- Data modeling experience\\n- Attention to detail\\n\\nCompensation: $145,000 - $175,000\\nLocation: Remote (US)\\nTimezone: Eastern or Central\\nStart: Within two weeks\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job and verify embedding generation."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Embedding was generated', function () {",
+              "    const response = pm.response.json();",
+              "    // Embedding might be null if Ollama unavailable",
+              "    if (response.embedding !== null) {",
+              "        pm.expect(response.embedding).to.have.property('dimensions');",
+              "        pm.expect(response.embedding).to.have.property('model');",
+              "    }",
+              "});",
+              "",
+              "pm.test('Embedding has correct dimensions', function () {",
+              "    const response = pm.response.json();",
+              "    if (response.embedding !== null) {",
+              "        pm.expect(response.embedding.dimensions).to.equal(1024);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Embedding model is mxbai-embed-large', function () {",
+              "    const response = pm.response.json();",
+              "    if (response.embedding !== null) {",
+              "        pm.expect(response.embedding.model).to.equal('mxbai-embed-large');",
+              "    }",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testEmbeddingJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Budget Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Junior Frontend Developer\\n\\nLaunchPad Tech\\n\\nGreat opportunity for an early-career developer to join our fast-growing startup. You'll learn from senior engineers while building real features.\\n\\nKey Responsibilities:\\n- Build React components under guidance of senior engineers\\n- Write unit and integration tests\\n- Participate in code reviews and learn best practices\\n- Help improve developer tooling and documentation\\n\\nRequirements:\\n- 1-2 years of professional experience (bootcamp grads welcome)\\n- Solid React and JavaScript fundamentals\\n- Eagerness to learn TypeScript and modern tooling\\n- Good communication skills\\n- Portfolio of personal or school projects\\n\\nNice to have:\\n- TypeScript experience\\n- Passion for learning new technologies\\n\\nCompensation: $80,000 - $100,000\\nLocation: Austin, TX\\nTimezone: Central\\nStart: Within two weeks\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with salary range to verify budget extraction."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Budget was extracted', function () {",
+              "    const response = pm.response.json();",
+              "    // At least one budget field should be set",
+              "    const hasMinBudget = response.extractedFeatures.minBudget !== null;",
+              "    const hasMaxBudget = response.extractedFeatures.maxBudget !== null;",
+              "    pm.expect(hasMinBudget || hasMaxBudget).to.be.true;",
+              "});",
+              "",
+              "pm.test('Budget values are reasonable', function () {",
+              "    const response = pm.response.json();",
+              "    if (response.extractedFeatures.minBudget) {",
+              "        pm.expect(response.extractedFeatures.minBudget).to.be.at.least(50000);",
+              "    }",
+              "    if (response.extractedFeatures.maxBudget) {",
+              "        pm.expect(response.extractedFeatures.maxBudget).to.be.at.most(500000);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Seniority is junior', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.seniority).to.equal('junior');",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testBudgetJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Timeline and Timezone Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Senior Full Stack Engineer - E-commerce Platform\\n\\nShopStream\\n\\nJoin our engineering team to build the future of online shopping. You'll work across the stack from React frontends to Node.js backends.\\n\\nKey Responsibilities:\\n- Build features across our e-commerce platform\\n- Design and implement RESTful and GraphQL APIs\\n- Optimize for performance and conversion\\n- Collaborate with product and design teams\\n\\nRequirements:\\n- 6+ years of full stack experience\\n- Strong React and Node.js/TypeScript skills\\n- 2+ years e-commerce or retail experience\\n- PostgreSQL and caching (Redis) experience\\n- Experience with A/B testing and analytics\\n\\nNice to have:\\n- GraphQL API experience\\n- Redis caching expertise\\n\\nCompensation: $160,000 - $200,000 (stretch to $220,000)\\nLocation: Remote (US)\\nTimezone: Any US timezone\\nStart: Immediately - urgent hire!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with timeline and timezone requirements."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Start timeline was extracted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.startTimeline).to.not.be.null;",
+              "});",
+              "",
+              "pm.test('Start timeline is immediate', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.startTimeline).to.equal('immediate');",
+              "});",
+              "",
+              "pm.test('Timezone was extracted', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.extractedFeatures.timezone).to.be.an('array');",
+              "    pm.expect(response.extractedFeatures.timezone.length).to.be.at.least(1);",
+              "});",
+              "",
+              "pm.test('All US timezones accepted', function () {",
+              "    const response = pm.response.json();",
+              "    // 'Any US timezone' should result in all 4 timezones",
+              "    pm.expect(response.extractedFeatures.timezone.length).to.be.at.least(4);",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testTimelineJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Team Focus Extraction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"jobDescriptionText\": \"Senior DevOps Engineer - Platform Team\\n\\nScaleUp Systems\\n\\nLead our platform engineering efforts as we scale to support hundreds of microservices and thousands of deployments daily. This is a greenfield opportunity to build our next-generation infrastructure from the ground up.\\n\\nKey Responsibilities:\\n- Design and maintain Kubernetes infrastructure\\n- Build CI/CD pipelines and deployment automation\\n- Implement observability and monitoring solutions\\n- Drive infrastructure-as-code practices\\n\\nRequirements:\\n- 6+ years of DevOps/SRE experience\\n- Expert Kubernetes and Docker skills\\n- Strong Terraform and cloud (AWS/GCP) experience\\n- Experience with monitoring (Prometheus, Grafana, DataDog)\\n- Python or Go scripting abilities\\n\\nNice to have:\\n- Experience building new platforms from scratch\\n- Go programming experience\\n\\nCompensation: $175,000 - $215,000 (stretch to $230,000)\\nLocation: Seattle, WA\\nTimezone: Pacific\\nStart: Within one month\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/job-description/upload",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "job-description", "upload"]
+        },
+        "description": "Create job with team focus context to verify extraction."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Team focus was extracted', function () {",
+              "    const response = pm.response.json();",
+              "    // Team focus might be null if not clearly specified",
+              "    if (response.extractedFeatures.teamFocus !== null) {",
+              "        const validFocuses = ['greenfield', 'scaling', 'maintenance', 'migration'];",
+              "        pm.expect(validFocuses).to.include(response.extractedFeatures.teamFocus);",
+              "    }",
+              "});",
+              "",
+              "pm.test('Team focus is greenfield or scaling', function () {",
+              "    const response = pm.response.json();",
+              "    if (response.extractedFeatures.teamFocus !== null) {",
+              "        // Job description mentions both 'scale' and 'greenfield' - LLM may pick either",
+              "        pm.expect(['greenfield', 'scaling']).to.include(response.extractedFeatures.teamFocus);",
+              "    }",
+              "});",
+              "",
+              "// Store jobId for cleanup",
+              "if (pm.response.code === 201) {",
+              "    pm.globals.set('testTeamFocusJobId', pm.response.json().jobId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

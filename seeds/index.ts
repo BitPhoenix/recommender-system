@@ -5,3 +5,4 @@ export * from './assessments';
 export * from './domains';
 export * from './skill-categories';
 export * from './resumes';
+export * from './job-descriptions';
