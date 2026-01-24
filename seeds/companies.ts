@@ -42,6 +42,20 @@ export const knownCompanies: SeedCompany[] = [
   { id: "company_accenture", name: "Accenture", type: "consultancy" },
   { id: "company_deloitte", name: "Deloitte", type: "consultancy" },
   { id: "company_thoughtworks", name: "ThoughtWorks", type: "consultancy" },
+
+  // Job description companies (startups posting job listings)
+  { id: "company_techpay", name: "TechPay Solutions", type: "startup" },
+  { id: "company_financeforward", name: "FinanceForward", type: "startup" },
+  { id: "company_designhub", name: "DesignHub", type: "startup" },
+  { id: "company_shopstream", name: "ShopStream", type: "startup" },
+  { id: "company_launchpad", name: "LaunchPad Tech", type: "startup" },
+  { id: "company_healthtech", name: "HealthTech Innovations", type: "startup" },
+  { id: "company_clinicaldata", name: "ClinicalData Corp", type: "startup" },
+  { id: "company_scaleup", name: "ScaleUp Systems", type: "startup" },
+  { id: "company_cloudnative", name: "CloudNative Inc", type: "startup" },
+  { id: "company_securepay", name: "SecurePay", type: "startup" },
+  { id: "company_airesearch", name: "AI Research Labs", type: "startup" },
+  { id: "company_megascale", name: "MegaScale Technologies", type: "enterprise" },
 ];
 
 interface CompanyAlias {
@@ -137,4 +151,48 @@ export async function seedCompanies(session: Session): Promise<void> {
   }
 
   console.log(`[Seed] Created ${companyAliases.length} company aliases`);
+}
+
+/*
+ * Map from company display names to their canonical IDs.
+ * Used to create POSTED_BY relationships from job descriptions.
+ */
+export const companyNameToId: Record<string, string> = {
+  // Job description companies
+  "TechPay Solutions": "company_techpay",
+  "FinanceForward": "company_financeforward",
+  "DesignHub": "company_designhub",
+  "ShopStream": "company_shopstream",
+  "LaunchPad Tech": "company_launchpad",
+  "HealthTech Innovations": "company_healthtech",
+  "ClinicalData Corp": "company_clinicaldata",
+  "ScaleUp Systems": "company_scaleup",
+  "CloudNative Inc": "company_cloudnative",
+  "SecurePay": "company_securepay",
+  "AI Research Labs": "company_airesearch",
+  "MegaScale Technologies": "company_megascale",
+};
+
+/*
+ * Seed POSTED_BY relationships from job descriptions to companies.
+ * Uses the companyName stored on JobDescription nodes to find the company.
+ */
+export async function seedJobPostedByRelationships(session: Session): Promise<void> {
+  console.log("[Seed] Creating POSTED_BY relationships for job descriptions...");
+
+  let createdCount = 0;
+
+  for (const [companyName, companyId] of Object.entries(companyNameToId)) {
+    const result = await session.run(`
+      MATCH (j:JobDescription)
+      WHERE j.companyName = $companyName
+      MATCH (c:Company {id: $companyId})
+      MERGE (j)-[:POSTED_BY]->(c)
+      RETURN count(*) AS count
+    `, { companyName, companyId });
+
+    createdCount += result.records[0].get("count").toNumber();
+  }
+
+  console.log(`[Seed] Created ${createdCount} POSTED_BY relationships`);
 }

@@ -16,12 +16,23 @@ import {
   engineerTechnicalDomainExperience,
 } from './engineers';
 import { seedSkillSynonyms } from './skill-synonyms';
-import { seedCompanies } from './companies';
+import { seedCompanies, seedJobPostedByRelationships } from './companies';
 import { seedResumes } from './resumes';
 import { createVectorIndices } from './migrations/001-add-vector-indices';
 import { addSkillVectorIndex } from './migrations/002-add-skill-vector-index';
+import { addJobDescriptionVectorIndex } from './migrations/003-add-job-vector-index';
 import { seedEngineerEmbeddings } from './embeddings';
 import { seedSkillEmbeddings } from './skill-embeddings';
+import { seedJobDescriptionEmbeddings } from './job-description-embeddings';
+import {
+  jobDescriptions,
+  jobRequiredSkills,
+  jobPreferredSkills,
+  jobRequiredBusinessDomains,
+  jobPreferredBusinessDomains,
+  jobRequiredTechnicalDomains,
+  jobPreferredTechnicalDomains,
+} from './job-descriptions';
 
 // ============================================
 // CONFIGURATION
@@ -32,7 +43,7 @@ const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
 const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'password';
 
 // Category definitions
-type SeedCategory = 'skills' | 'engineers' | 'stories' | 'assessments' | 'domains' | 'all';
+type SeedCategory = 'skills' | 'engineers' | 'stories' | 'assessments' | 'domains' | 'jobs' | 'all';
 
 const SEED_CATEGORIES = (process.env.SEED_CATEGORIES?.split(',') || ['all']) as SeedCategory[];
 
@@ -66,6 +77,8 @@ async function createConstraints(session: Session): Promise<void> {
     // Resume and work experience constraints
     'CREATE CONSTRAINT resume_engineer_id IF NOT EXISTS FOR (r:Resume) REQUIRE r.engineerId IS UNIQUE',
     'CREATE CONSTRAINT work_experience_id IF NOT EXISTS FOR (we:WorkExperience) REQUIRE we.id IS UNIQUE',
+    // Job description constraint
+    'CREATE CONSTRAINT job_description_id IF NOT EXISTS FOR (j:JobDescription) REQUIRE j.id IS UNIQUE',
   ];
 
   for (const constraint of constraints) {
@@ -706,6 +719,166 @@ async function seedEngineerTechnicalDomainExperience(session: Session): Promise<
 }
 
 // ============================================
+// JOB DESCRIPTION SEEDING
+// ============================================
+
+async function seedJobDescriptions(session: Session): Promise<void> {
+  console.log('📋 Seeding job descriptions...');
+
+  for (const job of jobDescriptions) {
+    await session.run(
+      `MERGE (j:JobDescription {id: $id})
+       ON CREATE SET
+         j.title = $title,
+         j.description = $description,
+         j.companyName = $companyName,
+         j.location = $location,
+         j.seniority = $seniority,
+         j.minBudget = $minBudget,
+         j.maxBudget = $maxBudget,
+         j.stretchBudget = $stretchBudget,
+         j.startTimeline = $startTimeline,
+         j.timezone = $timezone,
+         j.teamFocus = $teamFocus,
+         j.createdAt = datetime($createdAt)
+       ON MATCH SET
+         j.title = $title,
+         j.description = $description,
+         j.companyName = $companyName,
+         j.location = $location,
+         j.seniority = $seniority,
+         j.minBudget = $minBudget,
+         j.maxBudget = $maxBudget,
+         j.stretchBudget = $stretchBudget,
+         j.startTimeline = $startTimeline,
+         j.timezone = $timezone,
+         j.teamFocus = $teamFocus,
+         j.updatedAt = datetime()`,
+      {
+        ...job,
+        stretchBudget: job.stretchBudget ?? null,
+        teamFocus: job.teamFocus ?? null,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobDescriptions.length} job descriptions`);
+}
+
+async function seedJobRequiredSkills(session: Session): Promise<void> {
+  console.log('🎯 Seeding job required skills...');
+
+  for (const req of jobRequiredSkills) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (s:Skill {id: $skillId})
+       MERGE (j)-[r:REQUIRES_SKILL]->(s)
+       ON CREATE SET r.minProficiency = $minProficiency
+       ON MATCH SET r.minProficiency = $minProficiency`,
+      {
+        jobId: req.jobId,
+        skillId: req.skillId,
+        minProficiency: req.minProficiency ?? null,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobRequiredSkills.length} required skill relationships`);
+}
+
+async function seedJobPreferredSkills(session: Session): Promise<void> {
+  console.log('✨ Seeding job preferred skills...');
+
+  for (const pref of jobPreferredSkills) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (s:Skill {id: $skillId})
+       MERGE (j)-[r:PREFERS_SKILL]->(s)
+       ON CREATE SET r.minProficiency = $minProficiency
+       ON MATCH SET r.minProficiency = $minProficiency`,
+      {
+        jobId: pref.jobId,
+        skillId: pref.skillId,
+        minProficiency: pref.minProficiency ?? null,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobPreferredSkills.length} preferred skill relationships`);
+}
+
+async function seedJobRequiredBusinessDomains(session: Session): Promise<void> {
+  console.log('🏢 Seeding job required business domains...');
+
+  for (const req of jobRequiredBusinessDomains) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (d:BusinessDomain {id: $domainId})
+       MERGE (j)-[r:REQUIRES_BUSINESS_DOMAIN]->(d)
+       ON CREATE SET r.minYears = $minYears
+       ON MATCH SET r.minYears = $minYears`,
+      {
+        jobId: req.jobId,
+        domainId: req.businessDomainId,
+        minYears: req.minYears,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobRequiredBusinessDomains.length} required business domain relationships`);
+}
+
+async function seedJobPreferredBusinessDomains(session: Session): Promise<void> {
+  console.log('💼 Seeding job preferred business domains...');
+
+  for (const pref of jobPreferredBusinessDomains) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (d:BusinessDomain {id: $domainId})
+       MERGE (j)-[r:PREFERS_BUSINESS_DOMAIN]->(d)
+       ON CREATE SET r.minYears = $minYears
+       ON MATCH SET r.minYears = $minYears`,
+      {
+        jobId: pref.jobId,
+        domainId: pref.businessDomainId,
+        minYears: pref.minYears ?? null,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobPreferredBusinessDomains.length} preferred business domain relationships`);
+}
+
+async function seedJobRequiredTechnicalDomains(session: Session): Promise<void> {
+  console.log('⚙️  Seeding job required technical domains...');
+
+  for (const req of jobRequiredTechnicalDomains) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (d:TechnicalDomain {id: $domainId})
+       MERGE (j)-[:REQUIRES_TECHNICAL_DOMAIN]->(d)`,
+      {
+        jobId: req.jobId,
+        domainId: req.technicalDomainId,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobRequiredTechnicalDomains.length} required technical domain relationships`);
+}
+
+async function seedJobPreferredTechnicalDomains(session: Session): Promise<void> {
+  console.log('🔧 Seeding job preferred technical domains...');
+
+  for (const pref of jobPreferredTechnicalDomains) {
+    await session.run(
+      `MATCH (j:JobDescription {id: $jobId})
+       MATCH (d:TechnicalDomain {id: $domainId})
+       MERGE (j)-[:PREFERS_TECHNICAL_DOMAIN]->(d)`,
+      {
+        jobId: pref.jobId,
+        domainId: pref.technicalDomainId,
+      }
+    );
+  }
+  console.log(`   ✓ Seeded ${jobPreferredTechnicalDomains.length} preferred technical domain relationships`);
+}
+
+// ============================================
 // MAIN
 // ============================================
 
@@ -788,13 +961,28 @@ async function seed(): Promise<void> {
       await seedSkillEvidence(session);
     }
 
+    if (shouldSeedCategory('jobs')) {
+      // Jobs require skills and domains to be seeded first
+      await seedJobDescriptions(session);
+      await seedJobRequiredSkills(session);
+      await seedJobPreferredSkills(session);
+      await seedJobRequiredBusinessDomains(session);
+      await seedJobPreferredBusinessDomains(session);
+      await seedJobRequiredTechnicalDomains(session);
+      await seedJobPreferredTechnicalDomains(session);
+      // Create POSTED_BY relationships (requires companies to be seeded)
+      await seedJobPostedByRelationships(session);
+    }
+
     // Run migrations
     await createVectorIndices(session);
     await addSkillVectorIndex(session);
+    await addJobDescriptionVectorIndex(session);
 
     // Generate embeddings (requires migrations to be run first)
     await seedEngineerEmbeddings(session);
     await seedSkillEmbeddings(session);
+    await seedJobDescriptionEmbeddings(session);
 
     console.log('\nSeed completed successfully!');
 

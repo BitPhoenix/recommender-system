@@ -4,36 +4,30 @@
  */
 
 import { z } from 'zod';
+import {
+  SENIORITY_LEVEL_ORDER,
+  SeniorityLevelSchema,
+  START_TIMELINE_ORDER,
+  StartTimelineSchema,
+  PROFICIENCY_LEVEL_ORDER,
+  ProficiencyLevelSchema,
+  TeamFocusSchema,
+  US_TIMEZONE_ZONE_ORDER,
+  USTimezoneZoneSchema,
+} from './enums.schema.js';
 
-// ============================================
-// ENUM SCHEMAS
-// ============================================
-
-export const SENIORITY_LEVEL_ORDER = [
-  'junior', 'mid', 'senior', 'staff', 'principal'
-] as const;
-
-export const SeniorityLevelSchema = z.enum(SENIORITY_LEVEL_ORDER);
-
-export const START_TIMELINE_ORDER = [
-  'immediate', 'two_weeks', 'one_month', 'three_months', 'six_months', 'one_year'
-] as const;
-
-export const StartTimelineSchema = z.enum(START_TIMELINE_ORDER);
-
-export const PROFICIENCY_LEVEL_ORDER = ['learning', 'proficient', 'expert'] as const;
-
-export const ProficiencyLevelSchema = z.enum(PROFICIENCY_LEVEL_ORDER);
-
-export const TeamFocusSchema = z.enum([
-  'greenfield', 'migration', 'maintenance', 'scaling'
-]);
-
-export const US_TIMEZONE_ZONE_ORDER = [
-  'Eastern', 'Central', 'Mountain', 'Pacific'
-] as const;
-
-export const USTimezoneZoneSchema = z.enum(US_TIMEZONE_ZONE_ORDER);
+// Re-export enum schemas and constants for backward compatibility
+export {
+  SENIORITY_LEVEL_ORDER,
+  SeniorityLevelSchema,
+  START_TIMELINE_ORDER,
+  StartTimelineSchema,
+  PROFICIENCY_LEVEL_ORDER,
+  ProficiencyLevelSchema,
+  TeamFocusSchema,
+  US_TIMEZONE_ZONE_ORDER,
+  USTimezoneZoneSchema,
+};
 
 // ============================================
 // SHARED BASE SCHEMAS

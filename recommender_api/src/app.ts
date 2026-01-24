@@ -6,6 +6,7 @@ import searchRoutes from './routes/search.routes.js';
 import similarityRoutes from './routes/similarity.routes.js';
 import resumeRoutes from './routes/resume.routes.js';
 import contentSearchRoutes from './routes/content-search.routes.js';
+import jobDescriptionRoutes from './routes/job-description.routes.js';
 import driver from './neo4j.js';
 
 export function createApp() {
@@ -41,6 +42,7 @@ export function createApp() {
   app.use('/api/search', contentSearchRoutes);
   app.use('/api/engineers', similarityRoutes);
   app.use('/api/resume', resumeRoutes);
+  app.use('/api/job-description', jobDescriptionRoutes);
 
   // Error handling for file uploads
   app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
