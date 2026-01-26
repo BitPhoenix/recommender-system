@@ -55,7 +55,7 @@ export async function updateEngineerEmbedding(
  *
  * Uses the engineer_embedding_index for efficient ANN search.
  */
-export async function findSimilarByEmbedding(
+export async function findSimilarEngineersByEmbedding(
   session: Session,
   queryEmbedding: number[],
   limit: number = 20,
@@ -107,7 +107,7 @@ export async function findSimilarByEmbedding(
  * For very large candidate sets (100K+), this could be revisited with a hybrid
  * approach using Neo4j's filtering capabilities on the indexed scan.
  */
-export async function findSimilarByEmbeddingWithFilter(
+export async function findSimilarEngineersByEmbeddingWithFilter(
   session: Session,
   queryEmbedding: number[],
   limit: number,
@@ -195,13 +195,13 @@ export async function findSimilarToEngineer(
     throw new Error(`Engineer has no embedding: ${engineerId}`);
   }
 
-  return findSimilarByEmbedding(session, embedding, limit, engineerId);
+  return findSimilarEngineersByEmbedding(session, embedding, limit, engineerId);
 }
 
 /*
  * Check if an engineer has an embedding.
  */
-export async function hasEmbedding(
+export async function hasEngineerEmbedding(
   session: Session,
   engineerId: string
 ): Promise<boolean> {

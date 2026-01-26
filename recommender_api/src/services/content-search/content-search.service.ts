@@ -8,9 +8,9 @@ import {
 } from "./tfidf-vectorizer.service.js";
 import { generateEmbedding } from "../llm.service.js";
 import {
-  findSimilarByEmbedding,
+  findSimilarEngineersByEmbedding,
   findSimilarToEngineer,
-  findSimilarByEmbeddingWithFilter,
+  findSimilarEngineersByEmbeddingWithFilter,
   getEngineerEmbedding,
 } from "./embedding-index-manager.service.js";
 import { loadEngineerInfo } from "../engineer.service.js";
@@ -191,7 +191,7 @@ async function executeEmbeddingSearch(
     if (!queryEmbedding) {
       throw new Error("Failed to generate embedding for query. LLM may be unavailable.");
     }
-    similarEngineers = await findSimilarByEmbedding(
+    similarEngineers = await findSimilarEngineersByEmbedding(
       session,
       queryEmbedding,
       candidatePoolSize
@@ -394,7 +394,7 @@ async function executeHybridSearch(
 
   // Use HNSW index to rank ALL candidates by semantic similarity
   // The candidateIds filter is applied within the vector search
-  const embeddingResults = await findSimilarByEmbeddingWithFilter(
+  const embeddingResults = await findSimilarEngineersByEmbeddingWithFilter(
     session,
     queryEmbedding,
     candidatePoolSize,

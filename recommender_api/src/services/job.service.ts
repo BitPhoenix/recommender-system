@@ -19,6 +19,90 @@ export async function jobDescriptionExists(session: Session, jobId: string): Pro
   return result.records.length > 0;
 }
 
+// Types for job matching queries
+
+export interface JobSkillRelationship {
+  skillId: string;
+  skillName: string;
+  minProficiency: string | null;
+  embedding: number[];
+}
+
+export interface JobWithSkills {
+  id: string;
+  title: string;
+  description: string;
+  embedding: number[];
+  seniority: string;
+  minBudget: number | null;
+  maxBudget: number | null;
+  timezone: string[];
+  requiredSkills: JobSkillRelationship[];
+  preferredSkills: JobSkillRelationship[];
+}
+
+/*
+ * Load job description with skill relationships and embeddings.
+ * Used for job-to-engineer matching where we need skill embeddings for similarity computation.
+ */
+export async function loadJobWithSkills(
+  session: Session,
+  jobId: string
+): Promise<JobWithSkills | null> {
+  const result = await session.run(`
+    MATCH (j:JobDescription {id: $jobId})
+    OPTIONAL MATCH (j)-[rr:REQUIRES_SKILL]->(rs:Skill)
+    OPTIONAL MATCH (j)-[rp:PREFERS_SKILL]->(ps:Skill)
+    RETURN j {
+      .id, .title, .description, .embedding, .seniority,
+      .minBudget, .maxBudget, .timezone
+    } AS job,
+    collect(DISTINCT CASE WHEN rs IS NOT NULL THEN {
+      skillId: rs.id,
+      skillName: rs.name,
+      minProficiency: rr.minProficiency,
+      embedding: rs.embedding
+    } END) AS requiredSkills,
+    collect(DISTINCT CASE WHEN ps IS NOT NULL THEN {
+      skillId: ps.id,
+      skillName: ps.name,
+      minProficiency: rp.minProficiency,
+      embedding: ps.embedding
+    } END) AS preferredSkills
+  `, { jobId });
+
+  if (result.records.length === 0) {
+    return null;
+  }
+
+  const record = result.records[0];
+  const job = record.get("job");
+
+  if (!job) {
+    return null;
+  }
+
+  const requiredSkills = (record.get("requiredSkills") as (JobSkillRelationship | null)[]).filter(
+    (s): s is JobSkillRelationship => s !== null
+  );
+  const preferredSkills = (record.get("preferredSkills") as (JobSkillRelationship | null)[]).filter(
+    (s): s is JobSkillRelationship => s !== null
+  );
+
+  return {
+    id: job.id,
+    title: job.title,
+    description: job.description,
+    embedding: job.embedding,
+    seniority: job.seniority,
+    minBudget: job.minBudget,
+    maxBudget: job.maxBudget,
+    timezone: job.timezone ?? [],
+    requiredSkills,
+    preferredSkills,
+  };
+}
+
 // ============================================
 // PERSISTENCE FUNCTIONS
 // ============================================

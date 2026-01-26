@@ -140,9 +140,9 @@ describe('Embedding Index Manager', () => {
     });
   });
 
-  describe('findSimilarByEmbedding', () => {
+  describe('findSimilarEngineersByEmbedding', () => {
     it('returns engineers sorted by similarity score', async () => {
-      const { findSimilarByEmbedding } = await import('./embedding-index-manager.service.js');
+      const { findSimilarEngineersByEmbedding } = await import('./embedding-index-manager.service.js');
 
       const mockRecords = [
         { get: vi.fn((key) => key === 'engineerId' ? 'eng_1' : 0.95) },
@@ -155,7 +155,7 @@ describe('Embedding Index Manager', () => {
       } as unknown as QueryResult);
 
       const queryEmbedding = new Array(1024).fill(0.1);
-      const results = await findSimilarByEmbedding(mockSession, queryEmbedding, 10);
+      const results = await findSimilarEngineersByEmbedding(mockSession, queryEmbedding, 10);
 
       expect(results).toHaveLength(3);
       expect(results[0].engineerId).toBe('eng_1');
@@ -165,7 +165,7 @@ describe('Embedding Index Manager', () => {
     });
 
     it('excludes specified engineer from results', async () => {
-      const { findSimilarByEmbedding } = await import('./embedding-index-manager.service.js');
+      const { findSimilarEngineersByEmbedding } = await import('./embedding-index-manager.service.js');
 
       const mockRecords = [
         { get: vi.fn((key) => key === 'engineerId' ? 'eng_1' : 0.95) },
@@ -178,14 +178,14 @@ describe('Embedding Index Manager', () => {
       } as unknown as QueryResult);
 
       const queryEmbedding = new Array(1024).fill(0.1);
-      const results = await findSimilarByEmbedding(mockSession, queryEmbedding, 10, 'eng_target');
+      const results = await findSimilarEngineersByEmbedding(mockSession, queryEmbedding, 10, 'eng_target');
 
       expect(results).toHaveLength(2);
       expect(results.map((r) => r.engineerId)).not.toContain('eng_target');
     });
 
     it('respects limit parameter', async () => {
-      const { findSimilarByEmbedding } = await import('./embedding-index-manager.service.js');
+      const { findSimilarEngineersByEmbedding } = await import('./embedding-index-manager.service.js');
 
       const mockRecords = [
         { get: vi.fn((key) => key === 'engineerId' ? 'eng_1' : 0.95) },
@@ -200,7 +200,7 @@ describe('Embedding Index Manager', () => {
       } as unknown as QueryResult);
 
       const queryEmbedding = new Array(1024).fill(0.1);
-      const results = await findSimilarByEmbedding(mockSession, queryEmbedding, 3);
+      const results = await findSimilarEngineersByEmbedding(mockSession, queryEmbedding, 3);
 
       expect(results).toHaveLength(3);
     });
