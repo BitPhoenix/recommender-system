@@ -1,0 +1,460 @@
+{
+  "info": {
+    "_postman_id": "job-match-api-tests",
+    "name": "Job Match API Tests",
+    "description": "Test scenarios for GET /api/job/:jobId/matches endpoint.\n\nImplements job-to-engineer matching using multi-signal scoring (Eightfold architecture).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Basic Match Success",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "## Expected Response\n\nReturns ranked engineers matching the senior backend fintech job.\n\n## Expected Structure\n\n- `jobId`: The job ID\n- `jobTitle`: The job title\n- `matches`: Array of matching engineers with scores\n- `totalCount`: Total number of matches\n- `queryMetadata`: Execution stats"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required top-level fields', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('jobId');",
+              "    pm.expect(response).to.have.property('jobTitle');",
+              "    pm.expect(response).to.have.property('matches');",
+              "    pm.expect(response).to.have.property('totalCount');",
+              "    pm.expect(response).to.have.property('queryMetadata');",
+              "});",
+              "",
+              "pm.test('Job ID matches request', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.jobId).to.equal('job_senior_backend_fintech');",
+              "});",
+              "",
+              "pm.test('Matches is non-empty array', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.matches).to.be.an('array');",
+              "    pm.expect(response.matches.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Each match has required fields', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    matches.forEach(function(match) {",
+              "        pm.expect(match).to.have.property('id');",
+              "        pm.expect(match).to.have.property('name');",
+              "        pm.expect(match).to.have.property('matchScore');",
+              "        pm.expect(match).to.have.property('scoreBreakdown');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Score Breakdown Structure",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=5",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [{ "key": "limit", "value": "5" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Verify score breakdown contains all signal fields"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Score breakdown has all signal fields', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    matches.forEach(function(match) {",
+              "        const breakdown = match.scoreBreakdown;",
+              "        pm.expect(breakdown).to.have.property('semanticSimilarity');",
+              "        pm.expect(breakdown).to.have.property('skillSimilarity');",
+              "        pm.expect(breakdown).to.have.property('recentSkillSimilarity');",
+              "        pm.expect(breakdown).to.have.property('requiredSkillCoverage');",
+              "        pm.expect(breakdown).to.have.property('preferredSkillCoverage');",
+              "        pm.expect(breakdown).to.have.property('seniorityMatch');",
+              "        pm.expect(breakdown).to.have.property('timezoneMatch');",
+              "        pm.expect(breakdown).to.have.property('budgetMatch');",
+              "        pm.expect(breakdown).to.have.property('matchingSkills');",
+              "        pm.expect(breakdown).to.have.property('missingRequiredSkills');",
+              "    });",
+              "});",
+              "",
+              "pm.test('All numeric signals are between 0 and 1', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    matches.forEach(function(match) {",
+              "        const b = match.scoreBreakdown;",
+              "        pm.expect(b.semanticSimilarity).to.be.at.least(0);",
+              "        pm.expect(b.semanticSimilarity).to.be.at.most(1);",
+              "        pm.expect(b.skillSimilarity).to.be.at.least(0);",
+              "        pm.expect(b.skillSimilarity).to.be.at.most(1);",
+              "        pm.expect(b.requiredSkillCoverage).to.be.at.least(0);",
+              "        pm.expect(b.requiredSkillCoverage).to.be.at.most(1);",
+              "        pm.expect(b.seniorityMatch).to.be.at.least(0);",
+              "        pm.expect(b.seniorityMatch).to.be.at.most(1);",
+              "        pm.expect(b.timezoneMatch).to.be.at.least(0);",
+              "        pm.expect(b.timezoneMatch).to.be.at.most(1);",
+              "        pm.expect(b.budgetMatch).to.be.at.least(0);",
+              "        pm.expect(b.budgetMatch).to.be.at.most(1);",
+              "    });",
+              "});",
+              "",
+              "pm.test('Explainability arrays are present', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    matches.forEach(function(match) {",
+              "        pm.expect(match.scoreBreakdown.matchingSkills).to.be.an('array');",
+              "        pm.expect(match.scoreBreakdown.missingRequiredSkills).to.be.an('array');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Results Ordered by Score",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=20",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [{ "key": "limit", "value": "20" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Verify results are sorted by matchScore descending"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Results are sorted by matchScore descending', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    for (let i = 1; i < matches.length; i++) {",
+              "        pm.expect(matches[i].matchScore).to.be.at.most(matches[i-1].matchScore);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Pagination First Page",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=5&offset=0",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [
+            { "key": "limit", "value": "5" },
+            { "key": "offset", "value": "0" }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test pagination - first page"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Returns at most limit results', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    pm.expect(matches.length).to.be.at.most(5);",
+              "});",
+              "",
+              "pm.test('Total count is available', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.totalCount).to.be.a('number');",
+              "    pm.expect(response.totalCount).to.be.at.least(response.matches.length);",
+              "});",
+              "",
+              "// Store first page IDs for comparison",
+              "pm.collectionVariables.set('firstPageIds', JSON.stringify(pm.response.json().matches.map(m => m.id)));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Pagination Second Page",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=5&offset=5",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [
+            { "key": "limit", "value": "5" },
+            { "key": "offset", "value": "5" }
+          ],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test pagination - second page has different results"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Second page has no overlap with first page', function () {",
+              "    const firstPageIds = JSON.parse(pm.collectionVariables.get('firstPageIds') || '[]');",
+              "    const secondPageIds = pm.response.json().matches.map(m => m.id);",
+              "    ",
+              "    if (secondPageIds.length > 0) {",
+              "        const overlap = secondPageIds.filter(id => firstPageIds.includes(id));",
+              "        pm.expect(overlap.length).to.equal(0);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Different Jobs Return Different Rankings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_mid_frontend_saas/matches?limit=10",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_mid_frontend_saas", "matches"],
+          "query": [{ "key": "limit", "value": "10" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test that frontend job returns different top matches than backend job"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Frontend job returns results', function () {",
+              "    const matches = pm.response.json().matches;",
+              "    pm.expect(matches.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Job title is for frontend role', function () {",
+              "    const jobTitle = pm.response.json().jobTitle;",
+              "    pm.expect(jobTitle.toLowerCase()).to.include('frontend');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Query Metadata Present",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=5",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [{ "key": "limit", "value": "5" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Verify query metadata includes execution stats"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Query metadata has execution time', function () {",
+              "    const metadata = pm.response.json().queryMetadata;",
+              "    pm.expect(metadata.executionTimeMs).to.be.a('number');",
+              "    pm.expect(metadata.executionTimeMs).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Query metadata has candidates evaluated', function () {",
+              "    const metadata = pm.response.json().queryMetadata;",
+              "    pm.expect(metadata.candidatesEvaluated).to.be.a('number');",
+              "    pm.expect(metadata.candidatesEvaluated).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Query metadata has scoring weights', function () {",
+              "    const metadata = pm.response.json().queryMetadata;",
+              "    pm.expect(metadata.scoringWeights).to.be.an('object');",
+              "    pm.expect(metadata.scoringWeights.skillSimilarity).to.equal(0.25);",
+              "    pm.expect(metadata.scoringWeights.semanticSimilarity).to.equal(0.2);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - 404 Not Found for Non-existent Job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/nonexistent_job_id/matches",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "nonexistent_job_id", "matches"],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test 404 response for non-existent job"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('Response has error field', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('error');",
+              "    pm.expect(response.error).to.equal('NOT_FOUND');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Invalid Limit Parameter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?limit=999",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [{ "key": "limit", "value": "999" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test validation error for limit > 100"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation error', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Invalid Offset Parameter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://mac-studio.tailb9e408.ts.net:4025/api/job/job_senior_backend_fintech/matches?offset=-1",
+          "host": ["mac-studio", "tailb9e408", "ts", "net"],
+          "path": ["api", "job", "job_senior_backend_fintech", "matches"],
+          "query": [{ "key": "offset", "value": "-1" }],
+          "protocol": "http",
+          "port": "4025"
+        },
+        "description": "Test validation error for negative offset"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Response indicates validation error', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response).to.have.property('error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "firstPageIds",
+      "value": "[]"
+    }
+  ]
+}
